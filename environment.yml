@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - huggingface
   - pytorch
-	- nvidia
+  - nvidia
 dependencies:
   - python=3.11
   - numpy
@@ -12,7 +12,7 @@ dependencies:
   - scikit-learn
   - altair-all
   - pytorch
-	- pytorch-cuda=12.1
+  - pytorch-cuda=12.1
   - transformers
   - datasets
   - pip
