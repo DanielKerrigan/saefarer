@@ -1,6 +1,7 @@
 # My additions
 
-datasets
+saved_datasets
+saved_models
 scratch/
 
 # Byte-compiled / optimized / DLL files

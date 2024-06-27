@@ -1,15 +1,21 @@
 """
+Sparse autoencoder model.
+
 This code is from
 https://github.com/openai/sparse_autoencoder/
 https://github.com/jbloomAus/SAELens
 https://github.com/neelnanda-io/1L-Sparse-Autoencoder
 """
 
-from typing import Callable, Any
+import json
+from pathlib import Path
+from typing import Any
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from config import Config
 
 
 def LN(
@@ -22,7 +28,7 @@ def LN(
     return x, mu, std
 
 
-class Autoencoder(nn.Module):
+class SAE(nn.Module):
     """Sparse autoencoder
 
     Implements:
@@ -30,39 +36,34 @@ class Autoencoder(nn.Module):
         recons = decoder(latents) + pre_bias
     """
 
-    def __init__(
-        self, n_latents: int, n_inputs: int, k: int, normalize: bool = False
-    ) -> None:
-        """
-        :param n_latents: dimension of the autoencoder latent
-        :param n_inputs: dimensionality of the original data (e.g residual stream, number of MLP hidden units)
-        :param k: number of neurons in the hidden layer of the autoencoder that fire at a given time
-        :param normalize: make the input data have a mean of 0 and standard deviation of 1
-        """
+    def __init__(self, cfg: Config) -> None:
         super().__init__()
 
-        self.dtype = torch.float32
-        self.device = torch.device("cpu")
+        self.dtype = getattr(torch, cfg.dtype)
+        self.device = torch.device(cfg.device)
 
-        self.b_dec = nn.Parameter(torch.zeros(n_inputs))
-        self.b_enc = nn.Parameter(torch.zeros(n_latents))
+        self.cfg = cfg
+
+        self.b_dec = nn.Parameter(torch.zeros(cfg.d_in))
+        self.b_enc = nn.Parameter(torch.zeros(cfg.d_sae))
 
         self.W_dec = nn.Parameter(
             torch.nn.init.kaiming_uniform_(
-                torch.empty(n_latents, n_inputs, dtype=self.dtype, device=self.device)
+                torch.empty(
+                    cfg.d_sae,
+                    cfg.d_in,
+                    dtype=self.dtype,
+                    device=self.device,
+                )
             )
         )
         self.set_decoder_norm_to_unit_norm()
 
         self.W_enc = nn.Parameter(self.W_dec.t().clone())
 
-        self.activation = TopK(k)
+        self.activation = TopK(cfg.k)
 
-        self.normalize = normalize
-
-    def encode_pre_act(
-        self, x: torch.Tensor, latent_slice: slice = slice(None)
-    ) -> torch.Tensor:
+    def encode_pre_act(self, x: torch.Tensor) -> torch.Tensor:
         """
         :param x: input data (shape: [batch, n_inputs])
         :param latent_slice: slice of latents to compute
@@ -74,7 +75,8 @@ class Autoencoder(nn.Module):
         return latents_pre_act
 
     def preprocess(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, Any]]:
-        if not self.normalize:
+        """Mean center, standard"""
+        if not self.cfg.normalize:
             return x, dict()
         x, mu, std = LN(x)
         return x, dict(mu=mu, std=std)
@@ -122,7 +124,10 @@ class Autoencoder(nn.Module):
 
     @torch.no_grad()
     def set_decoder_norm_to_unit_norm(self):
-        self.W_dec = self.W_dec / self.W_dec.norm(dim=1, keepdim=True)
+        """
+        Set decoder weights to have unit norm.
+        """
+        self.W_dec.data /= self.W_dec.data.norm(dim=1, keepdim=True)
 
     @torch.no_grad()
     def remove_gradient_parallel_to_decoder_directions(self):
@@ -132,6 +137,7 @@ class Autoencoder(nn.Module):
         """
         assert self.W_dec.grad is not None  # keep pyright happy
 
+        # The below code is equivalent to
         # parallel_component = (self.W_dec.grad * self.W_dec.data).sum(
         #     dim=1, keepdim=True
         # )
@@ -149,69 +155,32 @@ class Autoencoder(nn.Module):
             self.W_dec.data,
         )
 
+    def save(self, path):
+        """Save model to path."""
+        torch.save([self.cfg, self.state_dict()], path)
+
     @classmethod
-    def from_state_dict(
-        cls, state_dict: dict[str, torch.Tensor], strict: bool = True
-    ) -> "Autoencoder":
-        n_latents, d_model = state_dict["encoder.weight"].shape
-
-        # Retrieve activation
-        activation_class_name = "TopK"
-        activation_class = TopK
-        normalize = (
-            activation_class_name == "TopK"
-        )  # NOTE: hacky way to determine if normalization is enabled
-        activation_state_dict = state_dict.pop("activation_state_dict", {})
-        if hasattr(activation_class, "from_state_dict"):
-            activation = activation_class.from_state_dict(
-                activation_state_dict, strict=strict
-            )
-        else:
-            activation = activation_class()
-            if hasattr(activation, "load_state_dict"):
-                activation.load_state_dict(activation_state_dict, strict=strict)
-
-        autoencoder = cls(
-            n_latents, d_model, activation=activation, normalize=normalize
-        )
-        # Load remaining state dict
-        autoencoder.load_state_dict(state_dict, strict=strict)
-        return autoencoder
-
-    def state_dict(self, destination=None, prefix="", keep_vars=False):
-        sd = super().state_dict(destination, prefix, keep_vars)
-        sd[prefix + "activation"] = self.activation.__class__.__name__
-        if hasattr(self.activation, "state_dict"):
-            sd[prefix + "activation_state_dict"] = self.activation.state_dict()
-        return sd
+    def load(cls, path):
+        """Load model from path."""
+        config, state = torch.load(path)
+        model = cls(config)
+        model.load_state_dict(state)
+        return model
 
 
 class TopK(nn.Module):
+    """TopK activation."""
+
     def __init__(self, k: int) -> None:
         super().__init__()
         self.k = k
         self.postact_fn = nn.ReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass."""
         topk = torch.topk(x, k=self.k, dim=-1)
         values = self.postact_fn(topk.values)
         # make all other values 0
         result = torch.zeros_like(x)
         result.scatter_(-1, topk.indices, values)
         return result
-
-    def state_dict(self, destination=None, prefix="", keep_vars=False):
-        state_dict = super().state_dict(destination, prefix, keep_vars)
-        state_dict.update(
-            {
-                prefix + "k": self.k,
-            }
-        )
-        return state_dict
-
-    @classmethod
-    def from_state_dict(
-        cls, state_dict: dict[str, torch.Tensor], strict: bool = True
-    ) -> "TopK":
-        k = state_dict["k"]
-        return cls(k=k)
