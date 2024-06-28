@@ -3,7 +3,7 @@
 import torch
 from datasets import Dataset
 from einops import rearrange
-from transformers import PreTrainedModel, PreTrainedTokenizerBase
+from transformers import AutoModel, AutoTokenizer
 
 from config import Config
 
@@ -13,11 +13,14 @@ class ActivationsStore:
 
     def __init__(
         self,
-        model: PreTrainedModel,
-        tokenizer: PreTrainedTokenizerBase,
+        model: AutoModel,
+        tokenizer: AutoTokenizer,
         dataset: Dataset,
         cfg: Config,
     ):
+        self.dtype = getattr(torch, cfg.dtype)
+        self.device = torch.device(cfg.device)
+
         self.model = model
         self.tokenizer = tokenizer
         self.dataset = dataset
@@ -34,7 +37,7 @@ class ActivationsStore:
                 * cfg.lm_sequence_length,
                 cfg.d_in,
             ),
-            dtype=torch.bfloat16,
+            dtype=self.dtype,
             requires_grad=False,
         )
 

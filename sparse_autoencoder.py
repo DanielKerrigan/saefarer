@@ -7,13 +7,11 @@ https://github.com/jbloomAus/SAELens
 https://github.com/neelnanda-io/1L-Sparse-Autoencoder
 """
 
-import json
-from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
+import einops
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from config import Config
 
@@ -32,8 +30,8 @@ class SAE(nn.Module):
     """Sparse autoencoder
 
     Implements:
-        latents = activation(encoder(x - pre_bias) + latent_bias)
-        recons = decoder(latents) + pre_bias
+        latents = relu(topk(encoder(x - b_dec) + b_enc))
+        recons = decoder(latents) + b_dec
     """
 
     def __init__(self, cfg: Config) -> None:
@@ -59,15 +57,25 @@ class SAE(nn.Module):
         )
         self.set_decoder_norm_to_unit_norm()
 
-        self.W_enc = nn.Parameter(self.W_dec.t().clone())
+        self.W_enc = nn.Parameter(self.W_dec.t().clone().contiguous())
 
-        self.activation = TopK(cfg.k)
+        self.topk = TopK(cfg.k)
+        self.aux_topk = TopK(cfg.aux_k)
+
+        self.stats_last_nonzero: torch.Tensor
+        self.register_buffer(
+            "stats_last_nonzero", torch.zeros(cfg.d_sae, dtype=torch.long)
+        )
+
+    def auxk_masker(self, x: torch.Tensor) -> torch.Tensor:
+        """mask dead neurons"""
+        dead_mask = self.stats_last_nonzero > self.cfg.dead_steps_threshold
+        x.data *= dead_mask
+        return x
 
     def encode_pre_act(self, x: torch.Tensor) -> torch.Tensor:
         """
         :param x: input data (shape: [batch, n_inputs])
-        :param latent_slice: slice of latents to compute
-            Example: latent_slice = slice(0, 10) to compute only the first 10 latents.
         :return: autoencoder latents before activation (shape: [batch, n_latents])
         """
         x = x - self.b_dec
@@ -87,7 +95,7 @@ class SAE(nn.Module):
         :return: autoencoder latents (shape: [batch, n_latents])
         """
         x, info = self.preprocess(x)
-        return self.activation(self.encode_pre_act(x)), info
+        return self.topk(self.encode_pre_act(x)), info
 
     def decode(
         self, latents: torch.Tensor, info: dict[str, Any] | None = None
@@ -96,9 +104,9 @@ class SAE(nn.Module):
         :param latents: autoencoder latents (shape: [batch, n_latents])
         :return: reconstructed data (shape: [batch, n_inputs])
         """
-        recontructed = latents * self.W_dec + self.b_dec
+        recontructed = latents @ self.W_dec + self.b_dec
 
-        if self.normalize:
+        if self.cfg.normalize:
             assert info is not None
             recontructed = recontructed * info["std"] + info["mu"]
 
@@ -115,12 +123,17 @@ class SAE(nn.Module):
         """
         x, info = self.preprocess(x)
         latents_pre_act = self.encode_pre_act(x)
-        latents = self.activation(latents_pre_act)
+        latents = self.topk(latents_pre_act)
         recons = self.decode(latents, info)
 
-        mse_loss = F.mse_loss(recons, x, reduction="sum")
+        # set all indices of self.stats_last_nonzero where (latents != 0) to 0
+        self.stats_last_nonzero *= (latents == 0).all(dim=0).long()
+        self.stats_last_nonzero += 1
 
-        return mse_loss
+        aux_latents = self.aux_topk(self.auxk_masker(latents_pre_act))
+        aux_recons = self.decode(aux_latents, info)
+
+        return recons, aux_recons
 
     @torch.no_grad()
     def set_decoder_norm_to_unit_norm(self):
@@ -143,16 +156,16 @@ class SAE(nn.Module):
         # )
         # self.W_dec.grad -= parallel_component * self.W_dec.data
 
-        parallel_component = torch.einsum(
-            "fd, fd -> f",
+        parallel_component = einops.einsum(
             self.W_dec.grad,
             self.W_dec.data,
+            "d_sae d_in, d_sae d_in -> d_sae",
         )
 
-        self.W_dec.grad -= torch.einsum(
-            "f, fd -> fd",
+        self.W_dec.grad -= einops.einsum(
             parallel_component,
             self.W_dec.data,
+            "d_sae, d_sae d_in -> d_sae d_in",
         )
 
     def save(self, path):
@@ -171,10 +184,10 @@ class SAE(nn.Module):
 class TopK(nn.Module):
     """TopK activation."""
 
-    def __init__(self, k: int) -> None:
+    def __init__(self, k: int, postact_fn: Callable = nn.ReLU()) -> None:
         super().__init__()
         self.k = k
-        self.postact_fn = nn.ReLU()
+        self.postact_fn = postact_fn
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass."""
