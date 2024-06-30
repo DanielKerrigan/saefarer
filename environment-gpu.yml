@@ -2,7 +2,7 @@ name: mi
 channels:
   - conda-forge
   - huggingface
-  - pytorch
+  - pytorch-nightly
   - nvidia
 dependencies:
   - python=3.11
@@ -12,7 +12,9 @@ dependencies:
   - scikit-learn
   - altair-all
   - pytorch
-  - pytorch-cuda=12.1
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.4
   - transformers
   - datasets
   - pip

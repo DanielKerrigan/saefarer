@@ -21,7 +21,7 @@ class ActivationsStore:
         self.dtype = getattr(torch, cfg.dtype)
         self.device = torch.device(cfg.device)
 
-        self.model = model
+        self.model = model.to(self.device)
         self.tokenizer = tokenizer
         self.dataset = dataset
         self.cfg = cfg
@@ -39,7 +39,10 @@ class ActivationsStore:
             ),
             dtype=self.dtype,
             requires_grad=False,
+            device=self.device,
         )
+
+        self.total_tokens_read = 0
 
         self.refresh(self.cfg.n_batches_in_store)
 
@@ -72,6 +75,8 @@ class ActivationsStore:
         for i in range(n_batches):
             tokens = self.get_batch_tokens()
             activations = self.get_activations(tokens)
+
+            self.total_tokens_read += n_tokens_in_lm_batch
 
             start = i * n_tokens_in_lm_batch
             end = start + n_tokens_in_lm_batch
@@ -114,7 +119,13 @@ class ActivationsStore:
                         and tokens[0] != self.tokenizer.bos_token_id
                     ):
                         tokens = torch.cat(
-                            (torch.tensor([self.tokenizer.bos_token_id]), tokens), dim=0
+                            (
+                                torch.tensor(
+                                    [self.tokenizer.bos_token_id], device=self.device
+                                ),
+                                tokens,
+                            ),
+                            dim=0,
                         )
 
         batch = torch.stack(batch_sequences, dim=0)
@@ -128,8 +139,9 @@ class ActivationsStore:
         if self.cfg.prepend_bos_token:
             text = self.tokenizer.bos_token + text
 
-        tokens = self.tokenizer(text, return_tensors="pt")["input_ids"].squeeze()
-        return tokens
+        tokens = self.tokenizer(text, return_tensors="pt")["input_ids"].squeeze(0)
+
+        return tokens.to(self.device)
 
     @torch.no_grad()
     def get_activations(self, batch_tokens):

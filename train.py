@@ -3,7 +3,7 @@
 import torch
 import torch.nn.functional as F
 import tqdm
-from datasets import load_from_disk
+from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from activations_store import ActivationsStore
@@ -34,20 +34,18 @@ def main():
 
     print("Loading model")
 
-    model = AutoModelForCausalLM.from_pretrained(
-        "./saved_models/roneneldan/TinyStories-1M"
-    )
+    model = AutoModelForCausalLM.from_pretrained("roneneldan/TinyStories-1M")
 
     print("Loading tokenizer")
 
-    tokenizer = AutoTokenizer.from_pretrained("./saved_models/EleutherAI/gpt-neo-125M")
+    tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neo-125M")
 
     print("Loading dataset")
 
-    dataset = load_from_disk("saved_datasets/tinystories")
+    dataset = load_dataset("roneneldan/TinyStories")
 
     cfg = Config(
-        device="cpu",
+        device="cuda",
         dtype="float32",
         # dimensions
         d_sae=256,
@@ -61,8 +59,8 @@ def main():
         normalize=False,
         # batch sizes
         lm_sequence_length=256,
-        lm_batch_size_sequences=32,
-        n_batches_in_store=20,
+        lm_batch_size_sequences=16,
+        n_batches_in_store=64,
         sae_batch_size_tokens=4096,
         # tokenization
         prepend_bos_token=True,
@@ -114,7 +112,7 @@ def main():
         optimizer.step()
         optimizer.zero_grad()
 
-        if i % 100 == 0:
+        if i % 1000 == 0:
             print(
                 loss.item(),
                 mse_coef * mse_loss.item(),

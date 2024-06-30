@@ -42,8 +42,8 @@ class SAE(nn.Module):
 
         self.cfg = cfg
 
-        self.b_dec = nn.Parameter(torch.zeros(cfg.d_in))
-        self.b_enc = nn.Parameter(torch.zeros(cfg.d_sae))
+        self.b_dec = nn.Parameter(torch.zeros(cfg.d_in, device=self.device))
+        self.b_enc = nn.Parameter(torch.zeros(cfg.d_sae, device=self.device))
 
         self.W_dec = nn.Parameter(
             torch.nn.init.kaiming_uniform_(
@@ -64,7 +64,8 @@ class SAE(nn.Module):
 
         self.stats_last_nonzero: torch.Tensor
         self.register_buffer(
-            "stats_last_nonzero", torch.zeros(cfg.d_sae, dtype=torch.long)
+            "stats_last_nonzero",
+            torch.zeros(cfg.d_sae, dtype=torch.long, device=self.device),
         )
 
     def auxk_masker(self, x: torch.Tensor) -> torch.Tensor:
