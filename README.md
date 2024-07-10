@@ -1,6 +1,6 @@
 # Sparse Autoencoders
 
-This code is cobbled together from the following repositories:
+This project uses code from the following repositories:
 
 - [sparse_autoencoder](https://github.com/openai/sparse_autoencoder)
 - [SAELens](https://github.com/jbloomAus/SAELens)

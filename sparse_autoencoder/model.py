@@ -1,19 +1,13 @@
-"""
-Sparse autoencoder model.
+"""Sparse autoencoder model."""
 
-This code is from
-https://github.com/openai/sparse_autoencoder/
-https://github.com/jbloomAus/SAELens
-https://github.com/neelnanda-io/1L-Sparse-Autoencoder
-"""
-
-from typing import Any, Callable
+from os import PathLike
+from typing import Any, Callable, Self, Union
 
 import einops
 import torch
 import torch.nn as nn
 
-from config import Config
+from sparse_autoencoder.config import Config
 
 
 def LN(
@@ -83,14 +77,16 @@ class SAE(nn.Module):
         latents_pre_act = x @ self.W_enc + self.b_enc
         return latents_pre_act
 
-    def preprocess(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, Any]]:
+    def preprocess(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """Mean center, standard"""
         if not self.cfg.normalize:
             return x, dict()
         x, mu, std = LN(x)
         return x, dict(mu=mu, std=std)
 
-    def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, Any]]:
+    def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """
         :param x: input data (shape: [batch, n_inputs])
         :return: autoencoder latents (shape: [batch, n_latents])
@@ -107,15 +103,12 @@ class SAE(nn.Module):
         """
         recontructed = latents @ self.W_dec + self.b_dec
 
-        if self.cfg.normalize:
-            assert info is not None
+        if self.cfg.normalize and info:
             recontructed = recontructed * info["std"] + info["mu"]
 
         return recontructed
 
-    def forward(
-        self, x: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
         :param x: input data (shape: [batch, n_inputs])
         :return:  autoencoder latents pre activation (shape: [batch, n_latents])
@@ -169,12 +162,12 @@ class SAE(nn.Module):
             "d_sae, d_sae d_in -> d_sae d_in",
         )
 
-    def save(self, path):
+    def save(self, path: Union[str, PathLike]):
         """Save model to path."""
         torch.save([self.cfg, self.state_dict()], path)
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path: Union[str, PathLike]) -> Self:
         """Load model from path."""
         config, state = torch.load(path)
         model = cls(config)

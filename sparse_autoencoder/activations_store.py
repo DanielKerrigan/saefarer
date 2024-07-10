@@ -1,11 +1,12 @@
 """ActivationsStore"""
 
 import torch
-from datasets import Dataset
+from datasets import Dataset, IterableDataset
 from einops import rearrange
-from transformers import AutoModel, AutoTokenizer
+from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from config import Config
+from sparse_autoencoder.config import Config
+from sparse_autoencoder.constants import DTYPES
 
 
 class ActivationsStore:
@@ -13,15 +14,16 @@ class ActivationsStore:
 
     def __init__(
         self,
-        model: AutoModel,
-        tokenizer: AutoTokenizer,
-        dataset: Dataset,
+        model: PreTrainedModel,
+        tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast,
+        dataset: Dataset | IterableDataset,
         cfg: Config,
     ):
-        self.dtype = getattr(torch, cfg.dtype)
+        self.dtype = DTYPES[cfg.dtype]
         self.device = torch.device(cfg.device)
 
-        self.model = model.to(self.device)
+        self.model = model
+
         self.tokenizer = tokenizer
         self.dataset = dataset
         self.cfg = cfg
@@ -47,7 +49,7 @@ class ActivationsStore:
         self.refresh(self.cfg.n_batches_in_store)
 
     @torch.no_grad()
-    def next(self):
+    def next(self) -> torch.Tensor:
         """Get the next batch of activations for SAE training."""
         activations = self.store[
             self.store_index : self.store_index + self.cfg.sae_batch_size_tokens
@@ -84,7 +86,7 @@ class ActivationsStore:
 
         self.store = self.store[torch.randperm(self.store.shape[0])]
 
-    def get_batch_tokens(self):
+    def get_batch_tokens(self) -> torch.Tensor:
         """Get batch of tokens from the dataset."""
 
         batch_sequences = []
@@ -132,19 +134,19 @@ class ActivationsStore:
 
         return batch
 
-    def get_next_tokens(self):
+    def get_next_tokens(self) -> torch.Tensor:
         """Get tokens for the next item in the dataset."""
         text = next(self.iterable_dataset)["text"]
 
         if self.cfg.prepend_bos_token:
             text = self.tokenizer.bos_token + text
 
-        tokens = self.tokenizer(text, return_tensors="pt")["input_ids"].squeeze(0)
+        tokens = self.tokenizer(text, return_tensors="pt").input_ids.squeeze(0)
 
         return tokens.to(self.device)
 
     @torch.no_grad()
-    def get_activations(self, batch_tokens):
+    def get_activations(self, batch_tokens) -> torch.Tensor:
         """Get activations for tokens."""
         batch_output = self.model(batch_tokens, output_hidden_states=True)
         batch_activations = batch_output.hidden_states[self.cfg.hidden_state_index]

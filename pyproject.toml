@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sparse_autoencoder"
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch == 2.3.1",
+    "transformers == 4.41.2",
+    "datasets == 2.20.0",
+    "einops == 0.8.0"
+]
