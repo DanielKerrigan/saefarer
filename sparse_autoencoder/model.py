@@ -1,7 +1,8 @@
 """Sparse autoencoder model."""
 
 from os import PathLike
-from typing import Any, Callable, Self, Union
+from typing import Any, Callable, Union
+from typing_extensions import Self
 
 import einops
 import torch

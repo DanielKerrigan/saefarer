@@ -3,6 +3,7 @@
 saved_datasets
 saved_models
 scratch/
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
