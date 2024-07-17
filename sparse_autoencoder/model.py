@@ -1,12 +1,12 @@
 """Sparse autoencoder model."""
 
 from os import PathLike
-from typing import Any, Callable, Union
-from typing_extensions import Self
+from typing import Any, Callable, Literal, Union
 
 import einops
 import torch
 import torch.nn as nn
+from typing_extensions import Self
 
 from sparse_autoencoder.config import Config
 
@@ -168,11 +168,19 @@ class SAE(nn.Module):
         torch.save([self.cfg, self.state_dict()], path)
 
     @classmethod
-    def load(cls, path: Union[str, PathLike]) -> Self:
+    def load(
+        cls,
+        path: Union[str, PathLike],
+        device: Literal["cpu", "cuda"],
+    ) -> Self:
         """Load model from path."""
-        config, state = torch.load(path)
+        config, state = torch.load(path, map_location=device)
+
+        config.device = device
+
         model = cls(config)
         model.load_state_dict(state)
+
         return model
 
 

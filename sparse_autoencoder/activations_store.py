@@ -1,4 +1,6 @@
-"""ActivationsStore"""
+""""""
+
+from typing import Union
 
 import torch
 from datasets import Dataset, IterableDataset
@@ -10,13 +12,16 @@ from sparse_autoencoder.constants import DTYPES
 
 
 class ActivationsStore:
-    """ActivationsStore"""
+    """
+    This class is used to provide model activations from a given
+    layer to train the SAE on.
+    """
 
     def __init__(
         self,
         model: PreTrainedModel,
-        tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast,
-        dataset: Dataset | IterableDataset,
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
+        dataset: Union[Dataset, IterableDataset],
         cfg: Config,
     ):
         self.dtype = DTYPES[cfg.dtype]
@@ -30,13 +35,11 @@ class ActivationsStore:
 
         self.iterable_dataset = iter(dataset)
 
-        self.store_index = 0
-
         self.store = torch.zeros(
             (
                 cfg.n_batches_in_store
-                * cfg.lm_batch_size_sequences
-                * cfg.lm_sequence_length,
+                * cfg.model_batch_size_sequences
+                * cfg.model_sequence_length,
                 cfg.d_in,
             ),
             dtype=self.dtype,
@@ -44,19 +47,32 @@ class ActivationsStore:
             device=self.device,
         )
 
-        self.total_tokens_read = 0
+        # our current position in the store
+        self.store_index = 0
 
-        self.refresh(self.cfg.n_batches_in_store)
+        self.store_filled_once = False
 
     @torch.no_grad()
     def next(self) -> torch.Tensor:
-        """Get the next batch of activations for SAE training."""
+        """
+        Get the next batch of model activations for SAE training.
+        This batch has dimensions [sae_batch_size_tokens, d_in].
+        """
+
+        # if this is the first time next is being called, fill the store
+        if not self.store_filled_once:
+            self.refresh(self.cfg.n_batches_in_store)
+            self.store_filled_once = True
+
+        # get a batch of activations from the store
         activations = self.store[
             self.store_index : self.store_index + self.cfg.sae_batch_size_tokens
         ]
 
+        # keep track of how much of the store we have read
         self.store_index += self.cfg.sae_batch_size_tokens
 
+        # if we have read more than half of the store, then re-fill the store
         if (
             self.store_index
             > (self.store.shape[0] // 2) - self.cfg.sae_batch_size_tokens
@@ -70,20 +86,21 @@ class ActivationsStore:
         """Refresh the store."""
         self.store_index = 0
 
-        n_tokens_in_lm_batch = (
-            self.cfg.lm_batch_size_sequences * self.cfg.lm_sequence_length
+        n_tokens_in_model_batch = (
+            self.cfg.model_batch_size_sequences * self.cfg.model_sequence_length
         )
 
+        # overwrite the first n_batches of the store,
+        # which have already been used
         for i in range(n_batches):
             tokens = self.get_batch_tokens()
             activations = self.get_activations(tokens)
 
-            self.total_tokens_read += n_tokens_in_lm_batch
-
-            start = i * n_tokens_in_lm_batch
-            end = start + n_tokens_in_lm_batch
+            start = i * n_tokens_in_model_batch
+            end = start + n_tokens_in_model_batch
             self.store[start:end] = activations
 
+        # shuffle the store
         self.store = self.store[torch.randperm(self.store.shape[0])]
 
     def get_batch_tokens(self) -> torch.Tensor:
@@ -94,14 +111,16 @@ class ActivationsStore:
         cur_sequence = []
         cur_sequence_length = 0
 
-        while len(batch_sequences) < self.cfg.lm_batch_size_sequences:
+        while len(batch_sequences) < self.cfg.model_batch_size_sequences:
+            # get tokens for next item in dataset
             tokens = self.get_next_tokens()
 
+            # add as much of these tokens to the current sequence as we can
             while (
                 tokens.shape[0] > 0
-                and len(batch_sequences) < self.cfg.lm_batch_size_sequences
+                and len(batch_sequences) < self.cfg.model_batch_size_sequences
             ):
-                space_left_in_seq = self.cfg.lm_sequence_length - cur_sequence_length
+                space_left_in_seq = self.cfg.model_sequence_length - cur_sequence_length
 
                 n_tokens_to_add = min(tokens.shape[0], space_left_in_seq)
 
@@ -109,12 +128,14 @@ class ActivationsStore:
                 cur_sequence_length += n_tokens_to_add
                 tokens = tokens[n_tokens_to_add:]
 
-                if cur_sequence_length == self.cfg.lm_sequence_length:
+                # if the current sequence is full, add it to the batch
+                if cur_sequence_length == self.cfg.model_sequence_length:
                     sequence = torch.cat(cur_sequence, dim=0)
                     batch_sequences.append(sequence)
                     cur_sequence = []
                     cur_sequence_length = 0
 
+                    # if there are still tokens left, prepend the bos token
                     if (
                         tokens.shape[0] > 0
                         and self.cfg.prepend_bos_token

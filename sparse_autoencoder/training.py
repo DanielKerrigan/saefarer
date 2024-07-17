@@ -1,4 +1,4 @@
-"""Script for training a SAE."""
+"""Code for training a sparse autoencoder."""
 
 from os import PathLike
 from typing import Union
@@ -37,7 +37,7 @@ def normalized_mse(output, target):
 
 
 def get_mse_coef(activaitons):
-    """Get coefficient for MSE loss"""
+    """Ccoefficient for MSE loss"""
     return 1 / ((activaitons.mean(dim=0) - activaitons) ** 2).mean()
 
 
@@ -59,6 +59,7 @@ def train(
 
     store = ActivationsStore(model, tokenizer, dataset, cfg)
 
+    # Calculate MSE loss coefficient following OpenAI's approach
     sample_activations = store.next()
     mse_coef = get_mse_coef(sample_activations).item()
 
@@ -69,8 +70,13 @@ def train(
     print("Beginning training")
 
     for i in tqdm.trange(cfg.total_training_batches):
+        # get next batch of model activations
         x = store.next()
+
+        # forward pass through SAE
         recons, aux_recons = sae(x)
+
+        # calculate loss
 
         mse_loss = mse(recons, x)
 
@@ -79,6 +85,9 @@ def train(
         ).nan_to_num(0)
 
         loss = mse_coef * mse_loss + cfg.aux_k_coef * aux_loss
+
+        # backward pass
+
         loss.backward()
 
         sae.set_decoder_norm_to_unit_norm()
@@ -86,6 +95,8 @@ def train(
 
         optimizer.step()
         optimizer.zero_grad()
+
+        # logging
 
         if i % 1000 == 0:
             print(

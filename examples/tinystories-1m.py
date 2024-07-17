@@ -11,7 +11,7 @@ def main():
     """Train the SAE"""
 
     cfg = Config(
-        device="cpu",
+        device="cuda",
         dtype="float32",
         # dimensions
         d_sae=256,
@@ -24,8 +24,8 @@ def main():
         hidden_state_index=-2,
         normalize=False,
         # batch sizes
-        lm_sequence_length=256,
-        lm_batch_size_sequences=16,
+        model_sequence_length=256,
+        model_batch_size_sequences=16,
         n_batches_in_store=64,
         sae_batch_size_tokens=4096,
         # tokenization

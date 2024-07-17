@@ -23,8 +23,8 @@ class Config:
     # activation normalization
     normalize: bool = False
     # batch sizes
-    lm_sequence_length: int = 256
-    lm_batch_size_sequences: int = 32
+    model_sequence_length: int = 256
+    model_batch_size_sequences: int = 32
     n_batches_in_store: int = 20
     sae_batch_size_tokens: int = 4096
     # tokenization
