@@ -63,9 +63,12 @@ class SAE(nn.Module):
             torch.zeros(cfg.d_sae, dtype=torch.long, device=self.device),
         )
 
+    def get_dead_neuron_mask(self) -> torch.Tensor:
+        return self.stats_last_nonzero > self.cfg.dead_steps_threshold
+
     def auxk_masker(self, x: torch.Tensor) -> torch.Tensor:
         """mask dead neurons"""
-        dead_mask = self.stats_last_nonzero > self.cfg.dead_steps_threshold
+        dead_mask = self.get_dead_neuron_mask()
         x.data *= dead_mask
         return x
 
