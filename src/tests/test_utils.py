@@ -1,7 +1,6 @@
 import numpy as np
 import torch
-
-from sparse_autoencoder.utils import freedman_diaconis
+from saefarer.utils import freedman_diaconis
 
 
 def test_freedman_diaconis():

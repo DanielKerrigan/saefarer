@@ -7,7 +7,7 @@ class Histogram(TypedDict):
 
 
 class TokenSequence(TypedDict):
-    tokens: List[str]
+    token: List[str]
     activation: List[float]
     max_index: int
 

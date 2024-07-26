@@ -8,8 +8,11 @@ from typing import Literal
 class Config:
     """Configuration class for SAE and ActivationsStore."""
 
-    device: Literal["cpu", "cuda"] = "cpu"
+    device: Literal["cpu", "mps", "cuda"] = "cpu"
     dtype: Literal["float16", "bfloat16", "float32", "float64"] = "float32"
+    # dataset
+    is_dataset_tokenized: bool = True
+    dataset_column: str = "input_ids"
     # dimensions
     d_sae: int = 128
     d_in: int = 64

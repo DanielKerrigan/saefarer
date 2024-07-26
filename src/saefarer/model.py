@@ -1,14 +1,36 @@
 """Sparse autoencoder model."""
 
+from dataclasses import dataclass
 from os import PathLike
 from typing import Any, Callable, Literal, Union
 
 import einops
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from typing_extensions import Self
 
-from sparse_autoencoder.config import Config
+from saefarer.config import Config
+
+
+@dataclass
+class ForwardOutput:
+    """SAE forward output"""
+
+    reconstructions: torch.Tensor
+    loss: torch.Tensor
+    mse_loss: torch.Tensor
+    aux_loss: torch.Tensor
+    num_dead: int
+
+
+def normalized_mse(output, target):
+    """Normalized MSE loss"""
+    target_mu = target.mean(dim=0)
+    target_mu_reshaped = target_mu.unsqueeze(0).broadcast_to(target.shape)
+    numerator = F.mse_loss(output, target, reduction="mean")
+    denominator = F.mse_loss(target_mu_reshaped, target, reduction="mean")
+    return numerator / denominator
 
 
 def LN(
@@ -37,22 +59,23 @@ class SAE(nn.Module):
 
         self.cfg = cfg
 
-        self.b_dec = nn.Parameter(torch.zeros(cfg.d_in, device=self.device))
         self.b_enc = nn.Parameter(torch.zeros(cfg.d_sae, device=self.device))
+        self.b_dec = nn.Parameter(torch.zeros(cfg.d_in, device=self.device))
 
-        self.W_dec = nn.Parameter(
+        self.W_enc = nn.Parameter(
             torch.nn.init.kaiming_uniform_(
                 torch.empty(
-                    cfg.d_sae,
                     cfg.d_in,
+                    cfg.d_sae,
                     dtype=self.dtype,
                     device=self.device,
                 )
             )
         )
-        self.set_decoder_norm_to_unit_norm()
 
-        self.W_enc = nn.Parameter(self.W_dec.t().clone().contiguous())
+        self.W_dec = nn.Parameter(self.W_enc.t().clone())
+
+        self.set_decoder_norm_to_unit_norm()
 
         self.topk = TopK(cfg.k)
         self.aux_topk = TopK(cfg.aux_k)
@@ -112,7 +135,7 @@ class SAE(nn.Module):
 
         return recontructed
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> ForwardOutput:
         """
         :param x: input data (shape: [batch, n_inputs])
         :return:  autoencoder latents pre activation (shape: [batch, n_latents])
@@ -124,14 +147,32 @@ class SAE(nn.Module):
         latents = self.topk(latents_pre_act)
         recons = self.decode(latents, info)
 
+        mse_loss = normalized_mse(recons, x)
+
         # set all indices of self.stats_last_nonzero where (latents != 0) to 0
         self.stats_last_nonzero *= (latents == 0).all(dim=0).long()
         self.stats_last_nonzero += 1
 
-        aux_latents = self.aux_topk(self.auxk_masker(latents_pre_act))
-        aux_recons = self.decode(aux_latents, info)
+        num_dead = int(self.get_dead_neuron_mask().sum().item())
 
-        return recons, aux_recons
+        if num_dead > 0:
+            aux_latents = self.aux_topk(self.auxk_masker(latents_pre_act))
+            aux_recons = self.decode(aux_latents, info)
+            aux_loss = self.cfg.aux_k_coef * normalized_mse(
+                aux_recons, x - recons.detach() + self.b_dec.detach()
+            ).nan_to_num(0)
+        else:
+            aux_loss = mse_loss.new_tensor(0.0)
+
+        loss = mse_loss + aux_loss
+
+        return ForwardOutput(
+            reconstructions=recons,
+            loss=loss,
+            mse_loss=mse_loss,
+            aux_loss=aux_loss,
+            num_dead=num_dead,
+        )
 
     @torch.no_grad()
     def set_decoder_norm_to_unit_norm(self):

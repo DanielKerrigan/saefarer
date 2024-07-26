@@ -11,15 +11,15 @@ import torch
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from sparse_autoencoder.config import Config
-from sparse_autoencoder.feature_data import (
+from saefarer.config import Config
+from saefarer.feature_data import (
     FeatureData,
     Histogram,
     SAEData,
     TokenSequence,
 )
-from sparse_autoencoder.model import SAE
-from sparse_autoencoder.utils import freedman_diaconis, top_k_indices
+from saefarer.model import SAE
+from saefarer.utils import freedman_diaconis, top_k_indices
 
 
 @torch.inference_mode()
@@ -34,7 +34,7 @@ def compute_visualization_data(
 ):
     sae_activations = _get_sae_activations(sae, model, tokens, cfg)
 
-    output_dir = Path(output_dir).resolve()
+    output_dir = Path(output_dir)
 
     if not output_dir.exists():
         raise OSError(f"{output_dir} does not exist")
@@ -46,6 +46,7 @@ def compute_visualization_data(
     num_digits = math.floor(math.log10(max([1, *alive_indices]))) + 1
     feature_index_to_path: Dict[int, str] = {}
 
+    overview_path = output_dir / "overview.json"
     features_dir = output_dir / "features"
     features_dir.mkdir(exist_ok=True)
 
@@ -68,7 +69,7 @@ def compute_visualization_data(
         )
 
         feature_path = features_dir / f"{i:0{num_digits}}.json"
-        feature_index_to_path[i] = feature_path.as_posix()
+        feature_index_to_path[i] = feature_path.relative_to(output_dir).as_posix()
         feature_path.write_text(json.dumps(feature_data), encoding="utf-8")
 
     firing_rate_histogram = _get_firing_rate_histogram(firing_rates)
@@ -82,7 +83,6 @@ def compute_visualization_data(
         feature_index_to_path=feature_index_to_path,
     )
 
-    overview_path = output_dir / "overview.json"
     overview_path.write_text(json.dumps(sae_data), encoding="utf-8")
 
 
@@ -127,7 +127,7 @@ def _get_sequence_data(
         acts = feature_activations[seq_i, min_tok_i : max_tok_i + 1]
 
         token_sequence = TokenSequence(
-            tokens=tokenizer.batch_decode(tok_ids),
+            token=tokenizer.batch_decode(tok_ids),
             activation=acts.tolist(),
             max_index=tok_i - min_tok_i,
         )
