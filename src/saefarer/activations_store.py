@@ -204,4 +204,4 @@ class ActivationsStore:
         except StopIteration:
             # if the dataloader is exhausted, create a new one
             self._dataloader = self.get_data_loader()
-            return next(self.dataloader)
+            return next(self.dataloader)[0]

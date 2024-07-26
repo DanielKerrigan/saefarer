@@ -7,24 +7,25 @@ from typing import List, Tuple, TypedDict, Union
 
 import torch
 import tqdm
-from transformers import (
-    PreTrainedModel,
-    PreTrainedTokenizer,
-    PreTrainedTokenizerFast,
-)
-
 from datasets import (
     Dataset,
     DatasetDict,
     IterableDataset,
     IterableDatasetDict,
 )
+from transformers import (
+    PreTrainedModel,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerFast,
+)
+
 from saefarer.activations_store import ActivationsStore
 from saefarer.config import Config
-from saefarer.model import SAE
+from saefarer.model import SAE, ForwardOutput
 
 
 class LogData(TypedDict):
+    batch: int
     loss: float
     mse_loss: float
     aux_loss: float
@@ -64,7 +65,7 @@ def train(
         x = store.next_batch()
 
         # forward pass through SAE
-        output = sae(x)
+        output: ForwardOutput = sae(x)
 
         # backward pass
 
@@ -80,6 +81,7 @@ def train(
 
         if i % log_batch_freq == 0:
             info = LogData(
+                batch=i,
                 loss=output.loss.item(),
                 mse_loss=output.mse_loss.item(),
                 aux_loss=output.aux_loss.item(),
