@@ -12,6 +12,8 @@
     marginTop = 0,
     marginRight = 0,
     marginBottom = 0,
+    xAxisLabel = "",
+    yAxisLabel = "",
   }: {
     data: Histogram;
     width: number;
@@ -20,6 +22,8 @@
     marginTop?: number;
     marginRight?: number;
     marginBottom?: number;
+    xAxisLabel?: string;
+    yAxisLabel?: string;
   } = $props();
 
   let x = $derived(
@@ -32,6 +36,7 @@
     scaleLinear()
       .domain([0, Math.max(...data.counts)])
       .range([height - marginBottom, marginTop])
+      .nice()
   );
 
   let I = $derived(range(data.counts.length));
@@ -40,16 +45,38 @@
 </script>
 
 <svg {width} {height}>
-  {#each I as i}
-    <rect
-      x={x(edges[i][0]) + 0.5}
-      width={x(edges[i][1]) - x(edges[i][0]) - 1}
-      y={y(data.counts[i])}
-      height={y(0) - y(data.counts[i])}
-      fill={"black"}
-    />
-  {/each}
+  <g>
+    {#each I as i}
+      <rect
+        x={x(edges[i][0]) + 0.5}
+        width={x(edges[i][1]) - x(edges[i][0]) - 1}
+        y={y(data.counts[i])}
+        height={y(0) - y(data.counts[i])}
+        fill={"black"}
+      />
+    {/each}
+  </g>
 
-  <Axis orient={"bottom"} scale={x} translateY={height - marginBottom} />
-  <Axis orient={"left"} scale={y} translateX={marginLeft} />
+  <Axis
+    orientation={"bottom"}
+    scale={x}
+    translateY={height - marginBottom}
+    title={xAxisLabel}
+    titleAnchor="right"
+    {marginTop}
+    {marginRight}
+    {marginBottom}
+    {marginLeft}
+  />
+  <Axis
+    orientation={"left"}
+    scale={y}
+    translateX={marginLeft}
+    title={yAxisLabel}
+    titleAnchor="top"
+    {marginTop}
+    {marginRight}
+    {marginBottom}
+    {marginLeft}
+  />
 </svg>

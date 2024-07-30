@@ -37,10 +37,14 @@
 
     <Histogram
       data={feature_data.value.activations_histogram}
+      marginTop={20}
+      marginRight={20}
       marginLeft={50}
-      marginBottom={50}
+      marginBottom={40}
       width={300}
       height={300}
+      xAxisLabel={"Activation value"}
+      yAxisLabel={"Token count"}
     />
   </div>
 

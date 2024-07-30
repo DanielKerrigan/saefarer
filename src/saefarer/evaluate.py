@@ -14,6 +14,7 @@ from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokeniz
 from saefarer.config import Config
 from saefarer.feature_data import (
     FeatureData,
+    FeatureProjection,
     Histogram,
     SAEData,
     TokenSequence,
@@ -74,10 +75,13 @@ def compute_visualization_data(
 
     firing_rate_histogram = _get_firing_rate_histogram(firing_rates)
 
+    feature_projection = _get_feature_projection(sae, feature_indices)
+
     sae_data = SAEData(
         num_dead_features=len(dead_indices),
         num_alive_features=len(alive_indices),
         firing_rate_histogram=firing_rate_histogram,
+        feature_projection=feature_projection,
         dead_feature_indices=dead_indices,
         alive_feature_indices=alive_indices,
         feature_index_to_path=feature_index_to_path,
@@ -169,3 +173,15 @@ def _get_dead_alive_features(
     alive_features = [i for i in alive_features if i in user_indices]
 
     return dead_features, alive_features
+
+
+@torch.inference_mode()
+def _get_feature_projection(sae: SAE, feature_indices: List[int]) -> FeatureProjection:
+    weights = sae.W_dec.numpy()
+    # TODO: get projection
+    weights_embedded = weights
+
+    x = weights_embedded[:, 0].tolist()
+    y = weights_embedded[:, 1].tolist()
+
+    return FeatureProjection(feature_index=feature_indices, x=x, y=y)
