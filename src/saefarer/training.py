@@ -1,12 +1,15 @@
 """Code for training a sparse autoencoder."""
 
 import json
+import time
+from dataclasses import asdict
 from os import PathLike
 from pathlib import Path
-from typing import List, Tuple, TypedDict, Union
+from typing import TypedDict, Union
 
 import torch
 import tqdm
+import wandb
 from datasets import (
     Dataset,
     DatasetDict,
@@ -25,11 +28,15 @@ from saefarer.model import SAE, ForwardOutput
 
 
 class LogData(TypedDict):
-    batch: int
+    elapsed_seconds: float
+    n_training_batches: int
+    n_training_tokens: int
     loss: float
     mse_loss: float
     aux_loss: float
-    num_dead: int
+    n_dead_features: int
+    mean_n_batches_since_fired: float
+    max_n_batches_since_fired: int
 
 
 def train(
@@ -37,18 +44,29 @@ def train(
     model: PreTrainedModel,
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
     dataset: Union[Dataset, DatasetDict, IterableDatasetDict, IterableDataset],
-    log_batch_freq: int,
     save_path: Union[str, PathLike],
     log_path: Union[str, PathLike],
-) -> Tuple[SAE, List[LogData]]:
+) -> SAE:
     """Train the SAE"""
+
+    log_path = Path(log_path)
+
+    if cfg.logger == "wandb":
+        wandb.init(
+            config=asdict(cfg),
+            project=cfg.wandb_project,
+            group=cfg.wandb_group,
+            name=cfg.wandb_name,
+            notes=cfg.wandb_notes,
+            dir=log_path,
+        )
+    else:
+        log_file = log_path.open("a")
 
     sae = SAE(cfg)
 
     if isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
         dataset = dataset["train"]
-
-    print("Initializing ActivationsStore")
 
     store = ActivationsStore(model, tokenizer, dataset, cfg)
 
@@ -56,11 +74,11 @@ def train(
         sae.parameters(), lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), eps=cfg.eps
     )
 
-    log_data: List[LogData] = []
-
     print("Beginning training")
 
-    for i in tqdm.trange(cfg.total_training_batches):
+    start_time = time.time()
+
+    for i in tqdm.trange(1, cfg.total_training_batches + 1):
         # get next batch of model activations
         x = store.next_batch()
 
@@ -79,21 +97,37 @@ def train(
 
         # logging
 
-        if i % log_batch_freq == 0:
+        if i % cfg.log_batch_freq == 0:
             info = LogData(
-                batch=i,
+                elapsed_seconds=time.time() - start_time,
+                n_training_batches=i,
+                n_training_tokens=i * sae.cfg.sae_batch_size_tokens,
                 loss=output.loss.item(),
                 mse_loss=output.mse_loss.item(),
                 aux_loss=output.aux_loss.item(),
-                num_dead=output.num_dead,
+                n_dead_features=output.num_dead,
+                mean_n_batches_since_fired=sae.stats_last_nonzero.mean(
+                    dtype=torch.float32
+                ).item(),
+                max_n_batches_since_fired=int(sae.stats_last_nonzero.max().item()),
             )
-            log_data.append(info)
-            print(info)
+
+            json_line = json.dumps(info)
+
+            print(json_line)
+
+            if cfg.logger == "wandb":
+                wandb.log(data=info, step=i)
+            else:
+                log_file.write(json_line + "\n")
 
     print("Saving final model")
 
     sae.save(save_path)
 
-    Path(log_path).write_text(json.dumps(log_data), encoding="utf-8")
+    if cfg.logger == "wandb":
+        wandb.finish()
+    else:
+        log_file.close()
 
-    return sae, log_data
+    return sae

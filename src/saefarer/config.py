@@ -1,7 +1,7 @@
 """Configuration for SAE and ActivationsStore."""
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Literal, Union
 
 
 @dataclass
@@ -40,6 +40,13 @@ class Config:
     # training
     total_training_tokens: int = 100_000_000
     total_training_batches: int = field(init=False)
+    # logging
+    logger: Literal["local", "wandb"] = "wandb"
+    log_batch_freq: int = 1000
+    wandb_project: Union[str, None] = None
+    wandb_group: Union[str, None] = None
+    wandb_name: Union[str, None] = None
+    wandb_notes: Union[str, None] = None
 
     def __post_init__(self):
         self.dead_steps_threshold = (

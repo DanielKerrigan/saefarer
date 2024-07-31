@@ -215,10 +215,10 @@ class SAE(nn.Module):
     def load(
         cls,
         path: Union[str, PathLike],
-        device: Literal["cpu", "cuda"],
+        device: Literal["cpu", "cuda", "mps"],
     ) -> Self:
         """Load model from path."""
-        config, state = torch.load(path, map_location=device)
+        config, state = torch.load(path, map_location=device, weights_only=False)
 
         config.device = device
 

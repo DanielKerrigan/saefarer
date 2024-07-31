@@ -11,7 +11,9 @@ dependencies = [
     "transformers",
     "datasets",
     "einops",
-    "numpy < 2"
+    "numpy < 2",
+    "umap-learn",
+    "wandb"
 ]
 readme = "README.md"
 

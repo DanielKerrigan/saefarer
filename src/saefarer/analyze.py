@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
+import umap
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
 
@@ -24,7 +25,7 @@ from saefarer.utils import freedman_diaconis, top_k_indices
 
 
 @torch.inference_mode()
-def compute_visualization_data(
+def analyze_sae(
     sae: SAE,
     model: PreTrainedModel,
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
@@ -178,8 +179,9 @@ def _get_dead_alive_features(
 @torch.inference_mode()
 def _get_feature_projection(sae: SAE, feature_indices: List[int]) -> FeatureProjection:
     weights = sae.W_dec.numpy()
-    # TODO: get projection
-    weights_embedded = weights
+
+    reducer = umap.UMAP()
+    weights_embedded: np.ndarray = reducer.fit_transform(weights)  # type: ignore
 
     x = weights_embedded[:, 0].tolist()
     y = weights_embedded[:, 1].tolist()
