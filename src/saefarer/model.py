@@ -28,9 +28,9 @@ def normalized_mse(output, target):
     """Normalized MSE loss"""
     target_mu = target.mean(dim=0)
     target_mu_reshaped = target_mu.unsqueeze(0).broadcast_to(target.shape)
-    numerator = F.mse_loss(output, target, reduction="mean")
-    denominator = F.mse_loss(target_mu_reshaped, target, reduction="mean")
-    return numerator / denominator
+    mse = F.mse_loss(output, target, reduction="mean")
+    mse_naive = F.mse_loss(target_mu_reshaped, target, reduction="mean")
+    return mse / mse_naive
 
 
 def LN(
@@ -113,6 +113,14 @@ class SAE(nn.Module):
         x, mu, std = LN(x)
         return x, dict(mu=mu, std=std)
 
+    def unprocess(
+        self, x: torch.Tensor, info: dict[str, torch.Tensor] | None = None
+    ) -> torch.Tensor:
+        if self.cfg.normalize and info:
+            return x * info["std"] + info["mu"]
+        else:
+            return x
+
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """
         :param x: input data (shape: [batch, n_inputs])
@@ -129,11 +137,7 @@ class SAE(nn.Module):
         :return: reconstructed data (shape: [batch, n_inputs])
         """
         recontructed = latents @ self.W_dec + self.b_dec
-
-        if self.cfg.normalize and info:
-            recontructed = recontructed * info["std"] + info["mu"]
-
-        return recontructed
+        return self.unprocess(recontructed)
 
     def forward(self, x: torch.Tensor) -> ForwardOutput:
         """
@@ -142,12 +146,14 @@ class SAE(nn.Module):
                   autoencoder latents (shape: [batch, n_latents])
                   reconstructed data (shape: [batch, n_inputs])
         """
-        x, info = self.preprocess(x)
-        latents_pre_act = self.encode_pre_act(x)
+        x_preprocessed, info = self.preprocess(x)
+        latents_pre_act = self.encode_pre_act(x_preprocessed)
         latents = self.topk(latents_pre_act)
-        recons = self.decode(latents, info)
+        # not passing info to decode so that the reconstructed
+        # activations are still centered
+        recons = self.decode(latents)
 
-        mse_loss = normalized_mse(recons, x)
+        mse_loss = normalized_mse(recons, x_preprocessed)
 
         # set all indices of self.stats_last_nonzero where (latents != 0) to 0
         self.stats_last_nonzero *= (latents == 0).all(dim=0).long()
@@ -159,7 +165,7 @@ class SAE(nn.Module):
             aux_latents = self.aux_topk(self.auxk_masker(latents_pre_act))
             aux_recons = self.decode(aux_latents, info)
             aux_loss = self.cfg.aux_k_coef * normalized_mse(
-                aux_recons, x - recons.detach() + self.b_dec.detach()
+                aux_recons, x_preprocessed - recons.detach() + self.b_dec.detach()
             ).nan_to_num(0)
         else:
             aux_loss = mse_loss.new_tensor(0.0)
@@ -167,7 +173,7 @@ class SAE(nn.Module):
         loss = mse_loss + aux_loss
 
         return ForwardOutput(
-            reconstructions=recons,
+            reconstructions=self.unprocess(recons),
             loss=loss,
             mse_loss=mse_loss,
             aux_loss=aux_loss,

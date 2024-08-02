@@ -14,8 +14,9 @@ class Config:
     is_dataset_tokenized: bool = True
     dataset_column: str = "input_ids"
     # dimensions
-    d_sae: int = 128
     d_in: int = 64
+    expansion_factor: int = 4
+    d_sae: int = field(init=False)
     # loss
     k: int = 4
     aux_k: int = 32
@@ -56,3 +57,5 @@ class Config:
         self.total_training_batches = (
             self.total_training_tokens // self.sae_batch_size_tokens
         )
+
+        self.d_sae = self.d_in * self.expansion_factor
