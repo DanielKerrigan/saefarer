@@ -25,23 +25,27 @@ from saefarer.utils import freedman_diaconis, top_k_indices
 
 
 @torch.inference_mode()
-def analyze_sae(
+def analyze(
     sae: SAE,
     model: PreTrainedModel,
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
     tokens: torch.Tensor,
     feature_indices: List[int],
+    feature_batch_size: int,
     cfg: Config,
     output_dir: Union[str, os.PathLike],
 ):
-    sae_activations = _get_sae_activations(sae, model, tokens, cfg)
-
     output_dir = Path(output_dir)
 
     if not output_dir.exists():
         raise OSError(f"{output_dir} does not exist")
 
     dead_indices, alive_indices = _get_dead_alive_features(sae, feature_indices)
+
+    feature_batches = [
+        alive_indices[i : i + feature_batch_size]
+        for i in range(0, len(alive_indices), feature_batch_size)
+    ]
 
     firing_rates = []
 
@@ -52,27 +56,34 @@ def analyze_sae(
     features_dir = output_dir / "features"
     features_dir.mkdir(exist_ok=True)
 
-    for i in tqdm(alive_indices, desc="Computing data for feature"):
-        feature_activations = sae_activations[..., i]
+    for feature_batch in feature_batches:
+        sae_activations = _get_sae_activations(feature_batch, sae, model, tokens, cfg)
 
-        sequences = _get_sequence_data(tokenizer, tokens, feature_activations, cfg)
+        for i, feature in enumerate(
+            tqdm(alive_indices, desc="Computing data for feature")
+        ):
+            feature_activations = sae_activations[..., i]
 
-        positive_activations = feature_activations[feature_activations > 0]
-        firing_rate = positive_activations.numel() / feature_activations.numel()
+            sequences = _get_sequence_data(tokenizer, tokens, feature_activations, cfg)
 
-        firing_rates.append(firing_rate)
+            positive_activations = feature_activations[feature_activations > 0]
+            firing_rate = positive_activations.numel() / feature_activations.numel()
 
-        activations_histogram = _get_activation_histogram(positive_activations)
+            firing_rates.append(firing_rate)
 
-        feature_data = FeatureData(
-            firing_rate=firing_rate,
-            activations_histogram=activations_histogram,
-            sequences=sequences,
-        )
+            activations_histogram = _get_activation_histogram(positive_activations)
 
-        feature_path = features_dir / f"{i:0{num_digits}}.json"
-        feature_index_to_path[i] = feature_path.relative_to(output_dir).as_posix()
-        feature_path.write_text(json.dumps(feature_data), encoding="utf-8")
+            feature_data = FeatureData(
+                firing_rate=firing_rate,
+                activations_histogram=activations_histogram,
+                sequences=sequences,
+            )
+
+            feature_path = features_dir / f"{feature:0{num_digits}}.json"
+            feature_index_to_path[feature] = feature_path.relative_to(
+                output_dir
+            ).as_posix()
+            feature_path.write_text(json.dumps(feature_data), encoding="utf-8")
 
     firing_rate_histogram = _get_firing_rate_histogram(firing_rates)
 
@@ -93,7 +104,11 @@ def analyze_sae(
 
 @torch.inference_mode()
 def _get_sae_activations(
-    sae: SAE, model: PreTrainedModel, tokens: torch.Tensor, cfg: Config
+    feature_indices: List[int],
+    sae: SAE,
+    model: PreTrainedModel,
+    tokens: torch.Tensor,
+    cfg: Config,
 ) -> torch.Tensor:
     sae_activations = []
 
@@ -103,7 +118,7 @@ def _get_sae_activations(
         batch_model_output = model(token_batch, output_hidden_states=True)
         batch_model_acts = batch_model_output.hidden_states[cfg.hidden_state_index]
         batch_sae_acts, _ = sae.encode(batch_model_acts)
-        sae_activations.append(batch_sae_acts)
+        sae_activations.append(batch_sae_acts[..., feature_indices])
 
     sae_activations = torch.cat(sae_activations, dim=0)
 
