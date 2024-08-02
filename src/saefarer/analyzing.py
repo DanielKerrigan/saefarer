@@ -21,7 +21,7 @@ from saefarer.feature_data import (
     TokenSequence,
 )
 from saefarer.model import SAE
-from saefarer.utils import freedman_diaconis, top_k_indices
+from saefarer.utils import freedman_diaconis, top_k_indices, torch_histogram
 
 
 @torch.inference_mode()
@@ -56,12 +56,10 @@ def analyze(
     features_dir = output_dir / "features"
     features_dir.mkdir(exist_ok=True)
 
-    for feature_batch in feature_batches:
-        sae_activations = _get_sae_activations(feature_batch, sae, model, tokens, cfg)
+    for features in feature_batches:
+        sae_activations = _get_sae_activations(features, sae, model, tokens, cfg)
 
-        for i, feature in enumerate(
-            tqdm(alive_indices, desc="Computing data for feature")
-        ):
+        for i, feature in enumerate(tqdm(features, desc="Computing data for feature")):
             feature_activations = sae_activations[..., i]
 
             sequences = _get_sequence_data(tokenizer, tokens, feature_activations, cfg)
@@ -161,7 +159,7 @@ def _get_activation_histogram(
     positive_activations: torch.Tensor,
 ) -> Histogram:
     num_bins = freedman_diaconis(positive_activations)
-    counts, thresholds = torch.histogram(positive_activations, bins=num_bins)
+    counts, thresholds = torch_histogram(positive_activations, bins=num_bins)
     return Histogram(counts=counts.tolist(), thresholds=thresholds.tolist())
 
 
@@ -193,7 +191,7 @@ def _get_dead_alive_features(
 
 @torch.inference_mode()
 def _get_feature_projection(sae: SAE, feature_indices: List[int]) -> FeatureProjection:
-    weights = sae.W_dec.numpy()
+    weights = sae.W_dec.numpy(force=True)
 
     reducer = umap.UMAP()
     weights_embedded: np.ndarray = reducer.fit_transform(weights)  # type: ignore

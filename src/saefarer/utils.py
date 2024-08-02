@@ -1,5 +1,7 @@
 """Utility functions."""
 
+from typing import Tuple
+
 import numpy as np
 import torch
 
@@ -11,6 +13,15 @@ def top_k_indices(x: torch.Tensor, k: int, largest: bool = True) -> torch.Tensor
     rows = indices // x.size(1)
     cols = indices % x.size(1)
     return torch.stack((rows, cols), dim=1)
+
+
+def torch_histogram(xs: torch.Tensor, bins: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    # Like torch.histogram, but works with cuda
+    # https://github.com/pytorch/pytorch/issues/69519#issuecomment-1183866843
+    min, max = xs.min().item(), xs.max().item()
+    counts = torch.histc(xs, bins, min=min, max=max)
+    boundaries = torch.linspace(min, max, bins + 1)
+    return counts, boundaries
 
 
 def freedman_diaconis(x: torch.Tensor) -> int:
