@@ -74,6 +74,7 @@
     height: 100%;
     display: flex;
     flex-direction: row;
+    padding: 1em;
   }
 
   .col {

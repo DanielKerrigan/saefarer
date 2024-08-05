@@ -1,6 +1,6 @@
 <script lang="ts">
   import { scaleLinear } from "d3-scale";
-  import type { Histogram } from "../../types";
+  import type { FeatureProjection } from "../../types";
   import Axis from "./Axis.svelte";
   import { pairs, range } from "d3-array";
 
@@ -15,7 +15,7 @@
     xAxisLabel = "",
     yAxisLabel = "",
   }: {
-    data: Histogram;
+    data: FeatureProjection;
     width: number;
     height: number;
     marginLeft?: number;
@@ -28,32 +28,24 @@
 
   let x = $derived(
     scaleLinear()
-      .domain([data.thresholds[0], data.thresholds[data.thresholds.length - 1]])
+      .domain([Math.min(...data.x), Math.max(...data.x)])
       .range([marginLeft, width - marginRight])
   );
 
   let y = $derived(
     scaleLinear()
-      .domain([0, Math.max(...data.counts)])
+      .domain([Math.min(...data.y), Math.max(...data.y)])
       .range([height - marginBottom, marginTop])
       .nice()
   );
-
-  let I = $derived(range(data.counts.length));
-
-  let edges = $derived(pairs(data.thresholds));
 </script>
 
 <svg {width} {height}>
   <g>
-    {#each I as i}
-      <rect
-        x={x(edges[i][0])}
-        width={x(edges[i][1]) - x(edges[i][0])}
-        y={y(data.counts[i])}
-        height={y(0) - y(data.counts[i])}
-        fill={"black"}
-      />
+    {#each data.feature_index as i}
+      <circle cx={x(data.x[i])} cy={y(data.y[i])} r={2} fill={"black"}>
+        <title>Feature {i}</title>
+      </circle>
     {/each}
   </g>
 

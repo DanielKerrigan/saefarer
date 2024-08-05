@@ -15,10 +15,17 @@ export type FeatureData = {
   sequences: TokenSequence[];
 };
 
+export type FeatureProjection = {
+  feature_index: number[];
+  x: number[];
+  y: number[];
+};
+
 export type SAEData = {
   num_dead_features: number;
   num_alive_features: number;
   firing_rate_histogram: Histogram;
+  feature_projection: FeatureProjection;
   dead_feature_indices: number[];
   alive_feature_indices: number[];
   feature_index_to_path: Record<number, string>;
