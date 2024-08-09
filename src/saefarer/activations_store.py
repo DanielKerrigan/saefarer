@@ -1,16 +1,15 @@
 """"""
 
-from typing import Any, Iterator, Optional, Union
+from typing import Any, Iterator, Union
 
 import torch
 from datasets import Dataset, IterableDataset
 from einops import rearrange
 from torch.utils.data import DataLoader, TensorDataset
-from transformers import PreTrainedModel, PreTrainedTokenizer, PreTrainedTokenizerFast
+from transformers import PreTrainedModel
 
 from saefarer.config import Config
 from saefarer.constants import DTYPES
-from saefarer.tokenize_and_concat import tokenize_and_concat_iterator
 
 
 class ActivationsStore:
@@ -22,8 +21,7 @@ class ActivationsStore:
     def __init__(
         self,
         model: PreTrainedModel,
-        tokenizer: Optional[Union[PreTrainedTokenizer, PreTrainedTokenizerFast]],
-        dataset: Union[Dataset, IterableDataset],
+        dataset: Union[Dataset, IterableDataset, DataLoader],
         cfg: Config,
     ):
         self.dtype = DTYPES[cfg.dtype]
@@ -31,78 +29,58 @@ class ActivationsStore:
 
         self.model = model
 
-        self.tokenizer = tokenizer
-        self.dataset = dataset
+        # self.dataset = dataset
         self.cfg = cfg
 
-        self._dataloader: Union[Iterator[Any], None] = None
-        self._storage_buffer: Union[torch.Tensor, None] = None
+        self._activations_dataloader: Union[Iterator[Any], None] = None
+        self._activations_storage_buffer: Union[torch.Tensor, None] = None
 
-        if self.cfg.is_dataset_tokenized:
-            seq_length = next(iter(dataset))[self.cfg.dataset_column].shape[0]
-            assert (
-                seq_length == self.cfg.model_sequence_length
-            ), f"Dataset sequence length is {seq_length} but cfg.model_sequence_length = {self.cfg.model_sequence_length}"
+        if isinstance(dataset, Dataset) or isinstance(dataset, IterableDataset):
+            self.dataset_dataloader = DataLoader(
+                dataset,  # type: ignore
+                batch_size=self.cfg.model_batch_size_sequences,
+            )
+        else:
+            self.dataset_dataloader = dataset
 
-        self.tokenized_sequences = self._get_tokenized_sequences_iterator()
+        batch_shape = next(iter(self.dataset_dataloader))[self.cfg.dataset_column].shape
+
+        assert (
+            batch_shape[0] == self.cfg.model_batch_size_sequences
+        ), f"DataLoader batch size is {batch_shape[0]} but cfg.model_batch_size_sequences = {self.cfg.model_batch_size_sequences}"
+
+        assert (
+            batch_shape[1] == self.cfg.model_sequence_length
+        ), f"Dataset sequence length is {batch_shape[1]} but cfg.model_sequence_length = {self.cfg.model_sequence_length}"
+
+        self.dataset_batch_iter = iter(self.dataset_dataloader)
         self.num_samples_processed = 0
 
     @property
-    def storage_buffer(self) -> torch.Tensor:
+    def activations_storage_buffer(self) -> torch.Tensor:
         """
         The storage buffer contains half of the activations in the store.
         It is used to refill the dataloader when it runs out.
         """
-        if self._storage_buffer is None:
-            self._storage_buffer = self.get_buffer(self.cfg.n_batches_in_store // 2)
+        if self._activations_storage_buffer is None:
+            self._activations_storage_buffer = self.get_buffer(
+                self.cfg.n_batches_in_store // 2
+            )
 
-        return self._storage_buffer
+        return self._activations_storage_buffer
 
     @property
-    def dataloader(self) -> Iterator[Any]:
+    def activations_dataloader(self) -> Iterator[Any]:
         """
         The dataloader contains half of the activations in the store
         and is iterated over to get batches of activations.
         When it runs out, more activations are retrived and get shuffled
         with the storage buffer.
         """
-        if self._dataloader is None:
-            self._dataloader = self.get_data_loader()
+        if self._activations_dataloader is None:
+            self._activations_dataloader = self.get_activations_data_loader()
 
-        return self._dataloader
-
-    def _iterate_raw_dataset(self) -> Iterator[Union[torch.Tensor, list[int], str]]:
-        """Iterator over the rows of the dataset."""
-        for row in self.dataset:
-            yield row[self.cfg.dataset_column]  # type: ignore
-            self.num_samples_processed += 1
-
-    def _get_tokenized_sequences_iterator(self) -> Iterator[torch.Tensor]:
-        """Iterator over tokenized sequences."""
-
-        # if the dataset is tokenized, just iterate over the rows
-        if self.cfg.is_dataset_tokenized:
-            for row in self._iterate_raw_dataset():
-                if isinstance(row, torch.Tensor):
-                    yield row
-                else:
-                    yield torch.tensor(
-                        row, dtype=torch.long, device=self.device, requires_grad=False
-                    )
-        else:
-            # if the dataset is not tokenized, tokenize it on the fly
-            assert self.tokenizer is not None
-            bos_token_id = (
-                self.tokenizer.bos_token_id if self.cfg.prepend_bos_token else None
-            )
-            yield from tokenize_and_concat_iterator(
-                dataset_iterator=self._iterate_raw_dataset(),  # type: ignore
-                tokenizer=self.tokenizer,
-                context_size=self.cfg.model_sequence_length,
-                begin_batch_token_id=bos_token_id,
-                begin_sequence_token_id=None,
-                sequence_separator_token_id=bos_token_id,
-            )
+        return self._activations_dataloader
 
     @torch.no_grad()
     def get_buffer(self, n_batches, raise_at_epoch_end: bool = False) -> torch.Tensor:
@@ -130,7 +108,7 @@ class ActivationsStore:
 
         return new_buffer
 
-    def get_data_loader(self) -> Iterator[Any]:
+    def get_activations_data_loader(self) -> Iterator[Any]:
         """Create new dataloader."""
         try:
             new_samples = self.get_buffer(
@@ -139,7 +117,7 @@ class ActivationsStore:
         except StopIteration as e:
             print(e.value)
             # Dump current buffer so that samples aren't leaked between epochs
-            self._storage_buffer = None
+            self._activations_storage_buffer = None
 
             try:
                 new_samples = self.get_buffer(
@@ -148,10 +126,10 @@ class ActivationsStore:
             except StopIteration as e:
                 raise ValueError("Unable to fill buffer after starting new epoch.")
 
-        mixing_buffer = torch.cat([new_samples, self.storage_buffer], dim=0)
+        mixing_buffer = torch.cat([new_samples, self.activations_storage_buffer], dim=0)
         mixing_buffer = mixing_buffer[torch.randperm(mixing_buffer.shape[0])]
 
-        self._storage_buffer = mixing_buffer[: mixing_buffer.shape[0] // 2]
+        self._activations_storage_buffer = mixing_buffer[: mixing_buffer.shape[0] // 2]
 
         dataset = TensorDataset(mixing_buffer[mixing_buffer.shape[0] // 2 :])
 
@@ -167,25 +145,21 @@ class ActivationsStore:
 
     def get_batch_tokens(self, raise_at_epoch_end: bool = False) -> torch.Tensor:
         """Get batch of tokens from the dataset."""
+        try:
+            batch = next(self.dataset_batch_iter)[self.cfg.dataset_column]
+            self.num_samples_processed += self.cfg.model_batch_size_sequences
+            return batch.to(self.device)
+        except StopIteration:
+            self.dataset_batch_iter = iter(self.dataset_dataloader)
 
-        batch_sequences = []
-
-        for _ in range(self.cfg.model_batch_size_sequences):
-            try:
-                batch_sequences.append(next(self.tokenized_sequences))
-            except StopIteration:
-                self.tokenized_sequences = self._get_tokenized_sequences_iterator()
-
-                if raise_at_epoch_end:
-                    raise StopIteration(
-                        f"Ran out of tokens in dataset after {self.num_samples_processed} samples."
-                    )
-                else:
-                    batch_sequences.append(next(self.tokenized_sequences))
-
-        batch = torch.stack(batch_sequences, dim=0).to(self.device)
-
-        return batch
+            if raise_at_epoch_end:
+                raise StopIteration(
+                    f"Ran out of tokens in dataset after {self.num_samples_processed} samples."
+                )
+            else:
+                batch = next(self.dataset_batch_iter)[self.cfg.dataset_column]
+                self.num_samples_processed += self.cfg.model_batch_size_sequences
+                return batch.to(self.device)
 
     @torch.no_grad()
     def get_activations(self, batch_tokens: torch.Tensor) -> torch.Tensor:
@@ -200,8 +174,8 @@ class ActivationsStore:
     def next_batch(self):
         """Get batch of activations."""
         try:
-            return next(self.dataloader)[0]
+            return next(self.activations_dataloader)[0]
         except StopIteration:
             # if the dataloader is exhausted, create a new one
-            self._dataloader = self.get_data_loader()
-            return next(self.dataloader)[0]
+            self._activations_dataloader = self.get_activations_data_loader()
+            return next(self.activations_dataloader)[0]

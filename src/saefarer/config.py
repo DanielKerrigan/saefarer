@@ -11,7 +11,6 @@ class Config:
     device: Literal["cpu", "mps", "cuda"] = "cpu"
     dtype: Literal["float16", "bfloat16", "float32", "float64"] = "float32"
     # dataset
-    is_dataset_tokenized: bool = True
     dataset_column: str = "input_ids"
     # dimensions
     d_in: int = 64

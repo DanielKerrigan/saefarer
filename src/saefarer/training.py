@@ -12,14 +12,11 @@ import tqdm
 import wandb
 from datasets import (
     Dataset,
-    DatasetDict,
     IterableDataset,
-    IterableDatasetDict,
 )
+from torch.utils.data import DataLoader
 from transformers import (
     PreTrainedModel,
-    PreTrainedTokenizer,
-    PreTrainedTokenizerFast,
 )
 
 from saefarer.activations_store import ActivationsStore
@@ -42,8 +39,7 @@ class LogData(TypedDict):
 def train(
     cfg: Config,
     model: PreTrainedModel,
-    tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
-    dataset: Union[Dataset, DatasetDict, IterableDatasetDict, IterableDataset],
+    dataset: Union[Dataset, IterableDataset, DataLoader],
     save_path: Union[str, PathLike],
     log_path: Union[str, PathLike],
 ) -> SAE:
@@ -65,10 +61,7 @@ def train(
 
     sae = SAE(cfg)
 
-    if isinstance(dataset, DatasetDict) or isinstance(dataset, IterableDatasetDict):
-        dataset = dataset["train"]
-
-    store = ActivationsStore(model, tokenizer, dataset, cfg)
+    store = ActivationsStore(model, dataset, cfg)
 
     optimizer = torch.optim.Adam(
         sae.parameters(), lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), eps=cfg.eps
