@@ -21,7 +21,7 @@
   );
 </script>
 
-<div class="wv-data-container">
+<div class="features-container">
   <div class="col">
     <select bind:value={feature_index.value}>
       {#each sae_data.value.alive_feature_indices as i}
@@ -59,6 +59,7 @@
               style:color={hcl(color(seq.activation[i])).l > 50
                 ? "black"
                 : "white"}
+              style:font-weight={i === seq.max_index ? "bold" : "normal"}
             >
               {tok}
             </div>
@@ -70,7 +71,7 @@
 </div>
 
 <style>
-  .wv-data-container {
+  .features-container {
     height: 100%;
     display: flex;
     flex-direction: row;
@@ -79,6 +80,7 @@
 
   .col {
     flex: 1;
+    min-width: 0;
   }
 
   .sequences {
@@ -87,10 +89,11 @@
   }
 
   .sequence + .sequence {
-    padding: 0.25em;
+    padding-top: 0.25em;
   }
 
   .sequence {
+    overflow: auto;
     display: flex;
     white-space: pre;
   }

@@ -67,6 +67,7 @@
     {marginRight}
     {marginBottom}
     {marginLeft}
+    numTicks={5}
   />
   <Axis
     orientation={"left"}
@@ -78,5 +79,6 @@
     {marginRight}
     {marginBottom}
     {marginLeft}
+    numTicks={5}
   />
 </svg>
