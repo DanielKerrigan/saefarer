@@ -3,11 +3,7 @@
   import { interpolateBlues } from "d3-scale-chromatic";
   import { format } from "d3-format";
   import { hcl } from "d3-color";
-  import {
-    feature_data,
-    feature_index,
-    sae_data,
-  } from "../synced-state.svelte";
+  import { feature_data, feature_id, sae_data } from "../synced-state.svelte";
   import Histogram from "./vis/Histogram.svelte";
 
   const percentFormat = format(".3%");
@@ -23,8 +19,8 @@
 
 <div class="features-container">
   <div class="col">
-    <select bind:value={feature_index.value}>
-      {#each sae_data.value.alive_feature_indices as i}
+    <select bind:value={feature_id.value}>
+      {#each sae_data.value.alive_feature_ids as i}
         <option value={i}>
           {i}
         </option>

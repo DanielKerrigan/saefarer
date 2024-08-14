@@ -2,7 +2,7 @@
   import { scaleLinear } from "d3-scale";
   import type { FeatureProjection } from "../../types";
   import Axis from "./Axis.svelte";
-  import { pairs, range } from "d3-array";
+  import { range } from "d3-array";
 
   let {
     data,
@@ -38,13 +38,15 @@
       .range([height - marginBottom, marginTop])
       .nice()
   );
+
+  let I = $derived(range(data.x.length));
 </script>
 
 <svg {width} {height}>
   <g>
-    {#each data.feature_index as i}
+    {#each I as i}
       <circle cx={x(data.x[i])} cy={y(data.y[i])} r={2} fill={"black"}>
-        <title>Feature {i}</title>
+        <title>Feature {data.feature_id[i]}</title>
       </circle>
     {/each}
   </g>
@@ -60,6 +62,7 @@
     {marginBottom}
     {marginLeft}
   />
+
   <Axis
     orientation={"left"}
     scale={y}

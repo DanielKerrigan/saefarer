@@ -10,31 +10,35 @@ export type TokenSequence = {
 };
 
 export type FeatureData = {
+  feature_id: number;
+  sae_id: string;
   firing_rate: number;
   activations_histogram: Histogram;
   sequences: TokenSequence[];
 };
 
 export type FeatureProjection = {
-  feature_index: number[];
+  feature_id: number[];
   x: number[];
   y: number[];
 };
 
 export type SAEData = {
-  num_dead_features: number;
+  sae_id: string;
   num_alive_features: number;
+  num_dead_features: number;
+  alive_feature_ids: number[];
+  dead_feature_ids: number[];
   firing_rate_histogram: Histogram;
   feature_projection: FeatureProjection;
-  dead_feature_indices: number[];
-  alive_feature_indices: number[];
-  feature_index_to_path: Record<number, string>;
 };
 
 export type Model = {
   height: number;
+  sae_ids: string[];
+  sae_id: string;
+  feature_id: number;
   sae_data: SAEData;
-  feature_index: number;
   feature_data: FeatureData;
 };
 

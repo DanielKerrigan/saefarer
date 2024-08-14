@@ -1,11 +1,12 @@
 import os
+import sqlite3
 from pathlib import Path
 from typing import Union
 
 import anywidget
 import traitlets
 
-from saefarer.widget_utils import convert_keys_to_ints, read_feature_data, read_json
+import saefarer.database as db
 
 
 class Widget(anywidget.AnyWidget):
@@ -14,36 +15,38 @@ class Widget(anywidget.AnyWidget):
 
     height = traitlets.Int(0).tag(sync=True)
 
+    sae_ids = traitlets.List([]).tag(sync=True)
+
+    sae_id = traitlets.Unicode().tag(sync=True)
+    feature_id = traitlets.Int().tag(sync=True)
+
     sae_data = traitlets.Dict().tag(sync=True)
-    feature_index = traitlets.Int().tag(sync=True)
     feature_data = traitlets.Dict().tag(sync=True)
 
-    def __init__(self, root_dir: Union[str, os.PathLike], height: int = 600, **kwargs):
+    def __init__(self, path: Union[str, os.PathLike], height: int = 600, **kwargs):
         super().__init__(**kwargs)
 
-        root_dir = Path(root_dir)
+        path = Path(path)
 
-        if not root_dir.exists():
-            raise OSError(f"Cannot read {root_dir}")
+        if not path.exists():
+            raise OSError(f"Cannot read {path}")
 
-        self.root_dir = root_dir
+        self.con = sqlite3.connect(path.as_posix())
+        self.cur = self.con.cursor()
+
         self.height = height
 
-        self.sae_data = read_json(root_dir / "overview.json")
-        self.sae_data["feature_index_to_path"] = convert_keys_to_ints(
-            self.sae_data["feature_index_to_path"]
-        )
-        self.feature_index = self.sae_data["alive_feature_indices"][0]
-        self.feature_data = read_feature_data(
-            self.feature_index, self.sae_data, self.root_dir
-        )
+        self.sae_ids = db.read_sae_ids(self.cur)
+        self.sae_id = self.sae_ids[0]
+        self.sae_data = db.read_sae_data(self.sae_ids[0], self.cur)
 
-    @traitlets.observe("feature_index")
-    def _on_feature_index_change(self, change):
-        new_feature_index = change["new"]
-        new_feature_data = read_feature_data(
-            new_feature_index, self.sae_data, self.root_dir
-        )
+        self.feature_id = self.sae_data["alive_feature_ids"][0]
+        self.feature_data = db.read_feature_data(self.feature_id, self.sae_id, self.cur)
 
-        self.feature_index = new_feature_index
+    @traitlets.observe("feature_id")
+    def _on_feature_id_change(self, change):
+        new_feature_id = change["new"]
+        new_feature_data = db.read_feature_data(new_feature_id, self.sae_id, self.cur)
+
+        self.feature_id = new_feature_id
         self.feature_data = new_feature_data

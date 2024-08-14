@@ -48,8 +48,8 @@
   <g>
     {#each I as i}
       <rect
-        x={x(edges[i][0])}
-        width={x(edges[i][1]) - x(edges[i][0])}
+        x={x(edges[i][0]) + 0.5}
+        width={x(edges[i][1]) - x(edges[i][0]) - 1}
         y={y(data.counts[i])}
         height={y(0) - y(data.counts[i])}
         fill={"black"}

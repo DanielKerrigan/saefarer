@@ -1,14 +1,14 @@
 """Configuration for SAE and ActivationsStore."""
 
 from dataclasses import dataclass, field
-from typing import Literal, Union
+from typing import List, Literal, Union
 
 
 @dataclass
-class Config:
-    """Configuration class for SAE and ActivationsStore."""
+class TrainingConfig:
+    """Configuration class for training SAEs."""
 
-    device: Literal["cpu", "mps", "cuda"] = "cpu"
+    device: Literal["cpu", "mps", "cuda"] = "cuda"
     dtype: Literal["float16", "bfloat16", "float32", "float64"] = "float32"
     # dataset
     dataset_column: str = "input_ids"
@@ -30,8 +30,6 @@ class Config:
     model_batch_size_sequences: int = 32
     n_batches_in_store: int = 20
     sae_batch_size_tokens: int = 4096
-    # tokenization
-    prepend_bos_token: bool = True
     # adam
     lr: float = 3e-4
     beta1: float = 0.9
@@ -58,3 +56,28 @@ class Config:
         )
 
         self.d_sae = self.d_in * self.expansion_factor
+
+
+@dataclass
+class AnalysisConfig:
+    """Configuration class for analyzing SAEs."""
+
+    device: Literal["cpu", "mps", "cuda"] = "cuda"
+    # dataset
+    dataset_column: str = "input_ids"
+    # batch sizes
+    model_batch_size_sequences: int = 32
+    model_sequence_length: int = 128
+    feature_batch_size: int = 256
+    # analysis
+    total_analysis_tokens: int = 10_000_000
+    total_analysis_sequences: int = field(init=False)
+    feature_indices: List[int] = field(default_factory=list)
+    # ui
+    n_example_sequences: int = 10
+    n_context_tokens: int = 5
+
+    def __post_init__(self):
+        self.total_analysis_sequences = (
+            self.total_analysis_tokens // self.model_sequence_length
+        )

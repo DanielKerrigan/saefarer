@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing_extensions import Self
 
-from saefarer.config import Config
+from saefarer.config import TrainingConfig
 
 
 @dataclass
@@ -51,7 +51,7 @@ class SAE(nn.Module):
         recons = decoder(latents) + b_dec
     """
 
-    def __init__(self, cfg: Config) -> None:
+    def __init__(self, cfg: TrainingConfig) -> None:
         super().__init__()
 
         self.dtype = getattr(torch, cfg.dtype)

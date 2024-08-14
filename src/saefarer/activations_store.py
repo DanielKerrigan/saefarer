@@ -8,7 +8,7 @@ from einops import rearrange
 from torch.utils.data import DataLoader, TensorDataset
 from transformers import PreTrainedModel
 
-from saefarer.config import Config
+from saefarer.config import TrainingConfig
 from saefarer.constants import DTYPES
 
 
@@ -22,12 +22,12 @@ class ActivationsStore:
         self,
         model: PreTrainedModel,
         dataset: Union[Dataset, IterableDataset, DataLoader],
-        cfg: Config,
+        cfg: TrainingConfig,
     ):
         self.dtype = DTYPES[cfg.dtype]
         self.device = torch.device(cfg.device)
 
-        self.model = model
+        self.model = model.to(self.device)  # type: ignore
 
         # self.dataset = dataset
         self.cfg = cfg

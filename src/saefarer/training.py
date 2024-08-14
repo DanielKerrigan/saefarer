@@ -20,7 +20,7 @@ from transformers import (
 )
 
 from saefarer.activations_store import ActivationsStore
-from saefarer.config import Config
+from saefarer.config import TrainingConfig
 from saefarer.model import SAE, ForwardOutput
 
 
@@ -37,7 +37,7 @@ class LogData(TypedDict):
 
 
 def train(
-    cfg: Config,
+    cfg: TrainingConfig,
     model: PreTrainedModel,
     dataset: Union[Dataset, IterableDataset, DataLoader],
     save_path: Union[str, PathLike],
