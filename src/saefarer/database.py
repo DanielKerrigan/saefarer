@@ -19,6 +19,7 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
             dead_feature_ids BLOB,
             activation_rate_histogram BLOB,
             dimensionality_histogram BLOB,
+            cumsum_percent_l1_norm_range BLOB,
             feature_projection BLOB
         )
     """)
@@ -51,6 +52,7 @@ def insert_sae(data: SAEData, con: sqlite3.Connection, cur: sqlite3.Cursor):
             :dead_feature_ids,
             :activation_rate_histogram,
             :dimensionality_histogram,
+            :cumsum_percent_l1_norm_range,
             :feature_projection
         )
         """,
@@ -104,12 +106,13 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
     )
     (
         sae_id,
-        num_dead_features,
         num_alive_features,
+        num_dead_features,
         alive_feature_ids,
         dead_feature_ids,
         activation_rate_histogram,
         dimensionality_histogram,
+        cumsum_percent_l1_norm_range,
         feature_projection,
     ) = res.fetchone()
 
@@ -121,6 +124,7 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
         dead_feature_ids=json.loads(dead_feature_ids),
         activation_rate_histogram=json.loads(activation_rate_histogram),
         dimensionality_histogram=json.loads(dimensionality_histogram),
+        cumsum_percent_l1_norm_range=json.load(cumsum_percent_l1_norm_range),
         feature_projection=json.loads(feature_projection),
     )
 

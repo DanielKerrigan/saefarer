@@ -12,8 +12,6 @@
     marginTop = 0,
     marginRight = 0,
     marginBottom = 0,
-    xAxisLabel = "",
-    yAxisLabel = "",
   }: {
     data: FeatureProjection;
     width: number;
@@ -22,8 +20,6 @@
     marginTop?: number;
     marginRight?: number;
     marginBottom?: number;
-    xAxisLabel?: string;
-    yAxisLabel?: string;
   } = $props();
 
   let x = $derived(
@@ -43,6 +39,7 @@
 </script>
 
 <svg {width} {height}>
+  <rect {width} {height} fill="var(--gray-0)" />
   <g>
     {#each I as i}
       <circle cx={x(data.x[i])} cy={y(data.y[i])} r={2} fill={"black"}>
@@ -50,28 +47,4 @@
       </circle>
     {/each}
   </g>
-
-  <Axis
-    orientation={"bottom"}
-    scale={x}
-    translateY={height - marginBottom}
-    title={xAxisLabel}
-    titleAnchor="right"
-    {marginTop}
-    {marginRight}
-    {marginBottom}
-    {marginLeft}
-  />
-
-  <Axis
-    orientation={"left"}
-    scale={y}
-    translateX={marginLeft}
-    title={yAxisLabel}
-    titleAnchor="top"
-    {marginTop}
-    {marginRight}
-    {marginBottom}
-    {marginLeft}
-  />
 </svg>

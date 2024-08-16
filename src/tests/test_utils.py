@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from saefarer.utils import freedman_diaconis
+from saefarer.utils import freedman_diaconis_torch
 
 
 def test_freedman_diaconis():
@@ -9,4 +9,4 @@ def test_freedman_diaconis():
 
     expected_n_bins = np.histogram_bin_edges(xn, bins="fd").shape[0] - 1
 
-    assert freedman_diaconis(xt) == expected_n_bins
+    assert freedman_diaconis_torch(xt) == expected_n_bins

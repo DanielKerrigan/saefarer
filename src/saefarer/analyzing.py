@@ -21,6 +21,7 @@ from saefarer.config import AnalysisConfig
 from saefarer.model import SAE
 from saefarer.types import (
     CumSumPercentL1Norm,
+    CumSumPercentL1NormRange,
     FeatureData,
     FeatureProjection,
     Histogram,
@@ -28,7 +29,8 @@ from saefarer.types import (
     TokenSequence,
 )
 from saefarer.utils import (
-    freedman_diaconis,
+    freedman_diaconis_np,
+    freedman_diaconis_torch,
     top_k_indices,
     torch_histogram,
 )
@@ -74,6 +76,9 @@ def analyze(
     features_processed = 0
     progress_bar = tqdm(total=num_alive_features, desc="Calculating feature data")
 
+    min_cumsum_percent_l1_norm: torch.Tensor = torch.empty(0)
+    max_cumsum_percent_l1_norm: torch.Tensor = torch.empty(0)
+
     for features in feature_batches:
         sae_activations = _get_sae_activations(features, sae, model, ds, cfg)
 
@@ -83,6 +88,21 @@ def analyze(
             feature_data = _get_feature_data(
                 feature, sae_id, sae, feature_activations, decode_fn, ds, cfg
             )
+
+            cumsum: torch.Tensor = torch.Tensor(
+                feature_data["cumsum_percent_l1_norm"]["cum_sum"]
+            )
+
+            if min_cumsum_percent_l1_norm.numel() == 0:
+                min_cumsum_percent_l1_norm = cumsum
+                max_cumsum_percent_l1_norm = cumsum
+            else:
+                min_cumsum_percent_l1_norm = torch.min(
+                    input=torch.cat((min_cumsum_percent_l1_norm, cumsum), dim=0), dim=0
+                ).values
+                max_cumsum_percent_l1_norm = torch.max(
+                    torch.cat((max_cumsum_percent_l1_norm, cumsum), dim=0), dim=0
+                ).values
 
             activation_rates.append(feature_data["activation_rate"])
             n_neurons_majority_l1_norm.append(
@@ -102,6 +122,11 @@ def analyze(
 
     dimensionality_histogram = _get_dimensionality_histogram(n_neurons_majority_l1_norm)
 
+    cumsum_percent_l1_norm_range = CumSumPercentL1NormRange(
+        mins=min_cumsum_percent_l1_norm.tolist(),
+        maxs=min_cumsum_percent_l1_norm.tolist(),
+    )
+
     sae_data = SAEData(
         sae_id=sae_id,
         num_alive_features=num_alive_features,
@@ -110,6 +135,7 @@ def analyze(
         dead_feature_ids=dead_feature_ids,
         activation_rate_histogram=activation_rate_histogram,
         dimensionality_histogram=dimensionality_histogram,
+        cumsum_percent_l1_norm_range=cumsum_percent_l1_norm_range,
         feature_projection=feature_projection,
     )
 
@@ -241,7 +267,7 @@ def _get_sequence_data(
 def _get_activation_histogram(
     positive_activations: torch.Tensor,
 ) -> Histogram:
-    num_bins = min(freedman_diaconis(positive_activations), 64)
+    num_bins = min(freedman_diaconis_torch(positive_activations), 64)
     counts, thresholds = torch_histogram(positive_activations, bins=num_bins)
     return Histogram(counts=counts.tolist(), thresholds=thresholds.tolist())
 
@@ -257,9 +283,9 @@ def _get_activation_rate_histogram(
 
 @torch.inference_mode()
 def _get_dimensionality_histogram(n_neurons_majority_l1_norm: List[int]) -> Histogram:
-    counts, thresholds = np.histogram(
-        n_neurons_majority_l1_norm, bins=min(64, len(n_neurons_majority_l1_norm))
-    )
+    array = np.array(n_neurons_majority_l1_norm)
+    num_bins = min(freedman_diaconis_np(array), 64)
+    counts, thresholds = np.histogram(array, bins=num_bins)
     return Histogram(counts=counts.tolist(), thresholds=thresholds.tolist())
 
 
@@ -311,7 +337,8 @@ def _get_cumsum_percent_l1_norm(
     cum_sum_abs_weights = torch.cumsum(
         weights.abs().sort(descending=True).values, dim=0
     )
-    cumsum_percent_l1_norm = cum_sum_abs_weights / weights.norm(p=1)
+    # imprecision can lead to value slightly above 1
+    cumsum_percent_l1_norm = torch.clamp(cum_sum_abs_weights / weights.norm(p=1), max=1)
     step_size = math.ceil(weights.shape[0] / 64)
     indices = torch.arange(0, d_in, step_size)
 

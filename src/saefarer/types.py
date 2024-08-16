@@ -17,6 +17,11 @@ class CumSumPercentL1Norm(TypedDict):
     cum_sum: List[float]
 
 
+class CumSumPercentL1NormRange(TypedDict):
+    mins: List[float]
+    maxs: List[float]
+
+
 class FeatureData(TypedDict):
     sae_id: str
     feature_id: int
@@ -42,4 +47,5 @@ class SAEData(TypedDict):
     dead_feature_ids: List[int]
     activation_rate_histogram: Histogram
     dimensionality_histogram: Histogram
+    cumsum_percent_l1_norm_range: CumSumPercentL1NormRange
     feature_projection: FeatureProjection

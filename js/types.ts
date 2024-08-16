@@ -9,12 +9,20 @@ export type TokenSequence = {
   max_index: number;
 };
 
+export type CumSumPercentL1Norm = {
+  n_neurons: number[];
+  cum_sum: number[];
+};
+
 export type FeatureData = {
+  sae_id: number;
   feature_id: number;
-  sae_id: string;
-  firing_rate: number;
+  activation_rate: number;
+  max_activation: number;
+  n_neurons_majority_l1_norm: number;
+  cumsum_percent_l1_norm: CumSumPercentL1Norm;
   activations_histogram: Histogram;
-  sequences: TokenSequence[];
+  sequences: Record<string, TokenSequence[]>;
 };
 
 export type FeatureProjection = {
@@ -23,13 +31,20 @@ export type FeatureProjection = {
   y: number[];
 };
 
+export type CumSumPercentL1NormRange = {
+  min: number[];
+  max: number[];
+};
+
 export type SAEData = {
   sae_id: string;
   num_alive_features: number;
   num_dead_features: number;
   alive_feature_ids: number[];
   dead_feature_ids: number[];
-  firing_rate_histogram: Histogram;
+  activation_rate_histogram: Histogram;
+  dimensionality_histogram: Histogram;
+  cumsum_percent_l1_norm_range: CumSumPercentL1NormRange;
   feature_projection: FeatureProjection;
 };
 

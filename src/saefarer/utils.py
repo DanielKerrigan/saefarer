@@ -24,7 +24,7 @@ def torch_histogram(xs: torch.Tensor, bins: int) -> Tuple[torch.Tensor, torch.Te
     return counts, boundaries
 
 
-def freedman_diaconis(x: torch.Tensor) -> int:
+def freedman_diaconis_torch(x: torch.Tensor) -> int:
     """Freedman Diaconis Estimator for determining
     the number of bins in a histogram."""
     iqr = torch.quantile(x, 0.75) - torch.quantile(x, 0.25)
@@ -35,3 +35,16 @@ def freedman_diaconis(x: torch.Tensor) -> int:
 
     n_bins = (x.max() - x.min()) / bin_width
     return int(np.ceil(n_bins.item()))
+
+
+def freedman_diaconis_np(x: np.ndarray) -> int:
+    """Freedman Diaconis Estimator for determining
+    the number of bins in a histogram."""
+    iqr = np.quantile(x, 0.75) - np.quantile(x, 0.25)
+    bin_width = 2 * iqr / np.cbrt(x.size)
+
+    if bin_width == 0:
+        return 1
+
+    n_bins = (x.max() - x.min()) / bin_width
+    return int(np.ceil(n_bins))
