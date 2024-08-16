@@ -73,6 +73,8 @@ class SAE(nn.Module):
             )
         )
 
+        # each row of W_dec corresponds to one feature
+        # each col corresponds to one neuron
         self.W_dec = nn.Parameter(self.W_enc.t().clone())
 
         self.set_decoder_norm_to_unit_norm()

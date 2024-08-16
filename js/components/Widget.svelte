@@ -12,20 +12,20 @@
   }
 </script>
 
-<div class="wv-widget-container" style:height="{height.value}px">
+<div class="sae-widget-container" style:height="{height.value}px">
   <Tabs {selectedTab} {changeTab} />
 
-  <div class="wv-tab-content" class:wv-hide={selectedTab !== "overview"}>
+  <div class="sae-tab-content" class:sae-hide={selectedTab !== "overview"}>
     <Overview />
   </div>
 
-  <div class="wv-tab-content" class:wv-hide={selectedTab !== "features"}>
+  <div class="sae-tab-content" class:sae-hide={selectedTab !== "features"}>
     <Features />
   </div>
 </div>
 
 <style>
-  .wv-widget-container {
+  .sae-widget-container {
     box-sizing: border-box;
     width: 100%;
     display: flex;
@@ -36,7 +36,7 @@
     color: black;
   }
 
-  .wv-tab-content {
+  .sae-tab-content {
     flex: 1;
     min-height: 0;
   }

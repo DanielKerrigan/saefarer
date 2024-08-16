@@ -76,6 +76,7 @@ class AnalysisConfig:
     # ui
     n_example_sequences: int = 10
     n_context_tokens: int = 5
+    n_sequence_intervals: int = 10
 
     def __post_init__(self):
         self.total_analysis_sequences = (

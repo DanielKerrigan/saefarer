@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import Dict, List, TypedDict
 
 
 class Histogram(TypedDict):
@@ -12,12 +12,20 @@ class TokenSequence(TypedDict):
     max_index: int
 
 
+class CumSumPercentL1Norm(TypedDict):
+    n_neurons: List[int]
+    cum_sum: List[float]
+
+
 class FeatureData(TypedDict):
-    feature_id: int
     sae_id: str
-    firing_rate: float
+    feature_id: int
+    activation_rate: float
+    max_activation: float
+    n_neurons_majority_l1_norm: int
+    cumsum_percent_l1_norm: CumSumPercentL1Norm
     activations_histogram: Histogram
-    sequences: List[TokenSequence]
+    sequences: Dict[str, List[TokenSequence]]
 
 
 class FeatureProjection(TypedDict):
@@ -32,5 +40,6 @@ class SAEData(TypedDict):
     num_dead_features: int
     alive_feature_ids: List[int]
     dead_feature_ids: List[int]
-    firing_rate_histogram: Histogram
+    activation_rate_histogram: Histogram
+    dimensionality_histogram: Histogram
     feature_projection: FeatureProjection

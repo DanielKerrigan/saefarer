@@ -4,7 +4,7 @@
   import Histogram from "./vis/Histogram.svelte";
 </script>
 
-<div class="wv-data-container">
+<div class="sae-data-container">
   <Histogram
     data={sae_data.value.firing_rate_histogram}
     marginTop={20}
@@ -31,7 +31,7 @@
 </div>
 
 <style>
-  .wv-data-container {
+  .sae-data-container {
     height: 100%;
     display: flex;
     padding: 1em;

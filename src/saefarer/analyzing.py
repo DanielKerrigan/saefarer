@@ -1,5 +1,6 @@
-"""Evaluate sparse autoencoder."""
+"""Analyze sparse autoencoder."""
 
+import math
 import os
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple, Union
@@ -19,6 +20,7 @@ import saefarer.database as db
 from saefarer.config import AnalysisConfig
 from saefarer.model import SAE
 from saefarer.types import (
+    CumSumPercentL1Norm,
     FeatureData,
     FeatureProjection,
     Histogram,
@@ -66,7 +68,8 @@ def analyze(
         for i in range(0, num_alive_features, cfg.feature_batch_size)
     ]
 
-    firing_rates = []
+    activation_rates = []
+    n_neurons_majority_l1_norm = []
 
     features_processed = 0
     progress_bar = tqdm(total=num_alive_features, desc="Calculating feature data")
@@ -78,9 +81,13 @@ def analyze(
             feature_activations = sae_activations[..., i]
 
             feature_data = _get_feature_data(
-                feature, sae_id, feature_activations, decode_fn, ds, cfg
+                feature, sae_id, sae, feature_activations, decode_fn, ds, cfg
             )
-            firing_rates.append(feature_data["firing_rate"])
+
+            activation_rates.append(feature_data["activation_rate"])
+            n_neurons_majority_l1_norm.append(
+                feature_data["n_neurons_majority_l1_norm"]
+            )
 
             db.insert_feature(feature_data, con, cur)
 
@@ -89,9 +96,11 @@ def analyze(
 
     progress_bar.close()
 
-    firing_rate_histogram = _get_firing_rate_histogram(firing_rates)
+    activation_rate_histogram = _get_activation_rate_histogram(activation_rates)
 
     feature_projection = _get_feature_projection(sae, alive_feature_ids)
+
+    dimensionality_histogram = _get_dimensionality_histogram(n_neurons_majority_l1_norm)
 
     sae_data = SAEData(
         sae_id=sae_id,
@@ -99,7 +108,8 @@ def analyze(
         num_dead_features=num_dead_features,
         alive_feature_ids=alive_feature_ids,
         dead_feature_ids=dead_feature_ids,
-        firing_rate_histogram=firing_rate_histogram,
+        activation_rate_histogram=activation_rate_histogram,
+        dimensionality_histogram=dimensionality_histogram,
         feature_projection=feature_projection,
     )
 
@@ -130,9 +140,11 @@ def _get_sae_activations(
     return sae_activations
 
 
+@torch.inference_mode()
 def _get_feature_data(
     feature_id: int,
     sae_id: str,
+    sae: SAE,
     feature_activations: torch.Tensor,
     decode_fn: Callable[[torch.Tensor], List[str]],
     ds: Dict[str, torch.Tensor],
@@ -141,14 +153,20 @@ def _get_feature_data(
     sequences = _get_sequence_data(decode_fn, ds, feature_activations, cfg)
 
     positive_activations = feature_activations[feature_activations > 0]
-    firing_rate = positive_activations.numel() / feature_activations.numel()
+    activation_rate = positive_activations.numel() / feature_activations.numel()
 
     activations_histogram = _get_activation_histogram(positive_activations)
+    cumsum_percent_l1_norm, n_neurons_majority_l1_norm = _get_cumsum_percent_l1_norm(
+        sae.W_dec[feature_id]
+    )
 
     return FeatureData(
-        feature_id=feature_id,
         sae_id=sae_id,
-        firing_rate=firing_rate,
+        feature_id=feature_id,
+        activation_rate=activation_rate,
+        max_activation=feature_activations.max().item(),
+        n_neurons_majority_l1_norm=n_neurons_majority_l1_norm,
+        cumsum_percent_l1_norm=cumsum_percent_l1_norm,
         activations_histogram=activations_histogram,
         sequences=sequences,
     )
@@ -160,29 +178,61 @@ def _get_sequence_data(
     ds: Dict[str, torch.Tensor],
     feature_activations: torch.Tensor,
     cfg: AnalysisConfig,
-) -> List[TokenSequence]:
+) -> Dict[str, List[TokenSequence]]:
+    sequence_indices: Dict[str, torch.Tensor] = {}
+
     top_indices = top_k_indices(
         feature_activations, k=cfg.n_example_sequences, largest=True
     )
 
-    sequences: List[TokenSequence] = []
+    sequence_indices["Max Activations"] = top_indices
 
-    for point in top_indices:
-        seq_i = int(point[0].item())
-        tok_i = int(point[1].item())
+    max_act = feature_activations.max()
+    activation_ranges = torch.linspace(0, max_act, cfg.n_sequence_intervals + 1)
+    interval_min_max = reversed(list(zip(activation_ranges, activation_ranges[1:])))
 
-        min_tok_i = max(0, tok_i - cfg.n_context_tokens)
-        max_tok_i = min(cfg.model_sequence_length, tok_i + cfg.n_context_tokens)
-
-        tok_ids = ds[cfg.dataset_column][seq_i, min_tok_i : max_tok_i + 1]
-        acts = feature_activations[seq_i, min_tok_i : max_tok_i + 1]
-
-        token_sequence = TokenSequence(
-            token=decode_fn(tok_ids),
-            activation=acts.tolist(),
-            max_index=tok_i - min_tok_i,
+    for i, (interval_min, interval_max) in enumerate(interval_min_max):
+        valid_indices = torch.stack(
+            torch.where(
+                (feature_activations >= interval_min)
+                & (feature_activations < interval_max)
+            ),
+            dim=-1,
         )
-        sequences.append(token_sequence)
+
+        if valid_indices.shape[0] > cfg.n_example_sequences:
+            rand_indices = torch.multinomial(
+                input=torch.ones(valid_indices.shape[0]),
+                num_samples=cfg.n_example_sequences,
+                replacement=False,
+            )
+            valid_indices = valid_indices[rand_indices]
+
+        sequence_indices[f"Interval {i + 1}"] = valid_indices
+
+    sequences: Dict[str, List[TokenSequence]] = {}
+
+    for key, indices in sequence_indices.items():
+        key_seq: List[TokenSequence] = []
+
+        for point in indices:
+            seq_i = int(point[0].item())
+            tok_i = int(point[1].item())
+
+            min_tok_i = max(0, tok_i - cfg.n_context_tokens)
+            max_tok_i = min(cfg.model_sequence_length, tok_i + cfg.n_context_tokens)
+
+            tok_ids = ds[cfg.dataset_column][seq_i, min_tok_i : max_tok_i + 1]
+            acts = feature_activations[seq_i, min_tok_i : max_tok_i + 1]
+
+            token_sequence = TokenSequence(
+                token=decode_fn(tok_ids),
+                activation=acts.tolist(),
+                max_index=tok_i - min_tok_i,
+            )
+            key_seq.append(token_sequence)
+
+        sequences[key] = key_seq
 
     return sequences
 
@@ -191,17 +241,25 @@ def _get_sequence_data(
 def _get_activation_histogram(
     positive_activations: torch.Tensor,
 ) -> Histogram:
-    num_bins = min(freedman_diaconis(positive_activations), 100)
+    num_bins = min(freedman_diaconis(positive_activations), 64)
     counts, thresholds = torch_histogram(positive_activations, bins=num_bins)
     return Histogram(counts=counts.tolist(), thresholds=thresholds.tolist())
 
 
 @torch.inference_mode()
-def _get_firing_rate_histogram(
-    firing_rates: List[float],
+def _get_activation_rate_histogram(
+    activation_rates: List[float],
 ) -> Histogram:
-    log_rates = np.log10(firing_rates)
+    log_rates = np.log10(activation_rates)
     counts, thresholds = np.histogram(log_rates, bins="fd")
+    return Histogram(counts=counts.tolist(), thresholds=thresholds.tolist())
+
+
+@torch.inference_mode()
+def _get_dimensionality_histogram(n_neurons_majority_l1_norm: List[int]) -> Histogram:
+    counts, thresholds = np.histogram(
+        n_neurons_majority_l1_norm, bins=min(64, len(n_neurons_majority_l1_norm))
+    )
     return Histogram(counts=counts.tolist(), thresholds=thresholds.tolist())
 
 
@@ -245,6 +303,29 @@ def _get_feature_projection(sae: SAE, feature_ids: List[int]) -> FeatureProjecti
     return FeatureProjection(feature_id=feature_ids, x=x, y=y)
 
 
+@torch.inference_mode()
+def _get_cumsum_percent_l1_norm(
+    weights: torch.Tensor,
+) -> Tuple[CumSumPercentL1Norm, int]:
+    d_in = weights.shape[0]
+    cum_sum_abs_weights = torch.cumsum(
+        weights.abs().sort(descending=True).values, dim=0
+    )
+    cumsum_percent_l1_norm = cum_sum_abs_weights / weights.norm(p=1)
+    step_size = math.ceil(weights.shape[0] / 64)
+    indices = torch.arange(0, d_in, step_size)
+
+    n_neurons_majority_l1_norm = int(
+        torch.where(cumsum_percent_l1_norm >= 0.5)[0][0] + 1
+    )
+
+    return CumSumPercentL1Norm(
+        n_neurons=(indices + 1).tolist(),
+        cum_sum=cumsum_percent_l1_norm[indices].tolist(),
+    ), n_neurons_majority_l1_norm
+
+
+@torch.inference_mode()
 def _get_dataset(
     dataset: Union[Dataset, IterableDataset, DataLoader], cfg: AnalysisConfig
 ) -> Dict[str, torch.Tensor]:
