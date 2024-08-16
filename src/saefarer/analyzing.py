@@ -123,17 +123,9 @@ def analyze(
 
     dimensionality_histogram = _get_dimensionality_histogram(n_neurons_majority_l1_norm)
 
-    # cumsum_percent_l1_norm_range = CumSumPercentL1NormRange(
-    #     mins=min_cumsum_percent_l1_norm.tolist(),
-    #     maxs=max_cumsum_percent_l1_norm.tolist(),
-    # )
-
-    print(min_cumsum_percent_l1_norm.tolist())
-    print(max_cumsum_percent_l1_norm.tolist())
-
     cumsum_percent_l1_norm_range = CumSumPercentL1NormRange(
-        mins=[],
-        maxs=[],
+        mins=min_cumsum_percent_l1_norm.tolist(),
+        maxs=max_cumsum_percent_l1_norm.tolist(),
     )
 
     sae_data = SAEData(
