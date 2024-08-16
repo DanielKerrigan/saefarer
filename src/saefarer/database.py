@@ -124,7 +124,7 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
         dead_feature_ids=json.loads(dead_feature_ids),
         activation_rate_histogram=json.loads(activation_rate_histogram),
         dimensionality_histogram=json.loads(dimensionality_histogram),
-        cumsum_percent_l1_norm_range=json.load(cumsum_percent_l1_norm_range),
+        cumsum_percent_l1_norm_range=json.loads(cumsum_percent_l1_norm_range),
         feature_projection=json.loads(feature_projection),
     )
 

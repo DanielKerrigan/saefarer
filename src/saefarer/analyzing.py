@@ -98,10 +98,11 @@ def analyze(
                 max_cumsum_percent_l1_norm = cumsum
             else:
                 min_cumsum_percent_l1_norm = torch.min(
-                    input=torch.cat((min_cumsum_percent_l1_norm, cumsum), dim=0), dim=0
+                    input=torch.stack((min_cumsum_percent_l1_norm, cumsum), dim=0),
+                    dim=0,
                 ).values
                 max_cumsum_percent_l1_norm = torch.max(
-                    torch.cat((max_cumsum_percent_l1_norm, cumsum), dim=0), dim=0
+                    torch.stack((max_cumsum_percent_l1_norm, cumsum), dim=0), dim=0
                 ).values
 
             activation_rates.append(feature_data["activation_rate"])
@@ -365,13 +366,14 @@ def _get_dataset(
             batch_size=cfg.total_analysis_sequences,
         )
     else:
-        dataloader = dataset
-
-    original_batch_size = dataloader.batch_size
-    dataloader.batch_size = cfg.total_analysis_sequences
+        dataloader = DataLoader(
+            dataset=dataset.dataset,
+            shuffle=False,
+            batch_size=cfg.total_analysis_sequences,
+            collate_fn=dataset.collate_fn,
+            num_workers=dataset.num_workers,
+        )
 
     ds = next(iter(dataloader))
-
-    dataloader.batch_size = original_batch_size
 
     return ds

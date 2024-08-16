@@ -32,8 +32,8 @@ export type FeatureProjection = {
 };
 
 export type CumSumPercentL1NormRange = {
-  min: number[];
-  max: number[];
+  mins: number[];
+  maxs: number[];
 };
 
 export type SAEData = {

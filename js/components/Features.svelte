@@ -58,6 +58,8 @@
       <LineChart
         xs={feature_data.value.cumsum_percent_l1_norm.n_neurons}
         ys={feature_data.value.cumsum_percent_l1_norm.cum_sum}
+        bandY0={sae_data.value.cumsum_percent_l1_norm_range.mins}
+        bandY1={sae_data.value.cumsum_percent_l1_norm_range.maxs}
         marginTop={20}
         marginRight={20}
         marginLeft={50}
