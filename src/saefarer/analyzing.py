@@ -73,7 +73,6 @@ def analyze(
     activation_rates = []
     n_neurons_majority_l1_norm = []
 
-    features_processed = 0
     progress_bar = tqdm(total=num_alive_features, desc="Calculating feature data")
 
     min_cumsum_percent_l1_norm: torch.Tensor = torch.empty(0)
@@ -112,8 +111,7 @@ def analyze(
 
             db.insert_feature(feature_data, con, cur)
 
-            features_processed += 1
-            progress_bar.update(features_processed)
+            progress_bar.update()
 
     progress_bar.close()
 
@@ -347,10 +345,13 @@ def _get_cumsum_percent_l1_norm(
         torch.where(cumsum_percent_l1_norm >= 0.5)[0][0] + 1
     )
 
-    return CumSumPercentL1Norm(
-        n_neurons=(indices + 1).tolist(),
-        cum_sum=cumsum_percent_l1_norm[indices].tolist(),
-    ), n_neurons_majority_l1_norm
+    return (
+        CumSumPercentL1Norm(
+            n_neurons=(indices + 1).tolist(),
+            cum_sum=cumsum_percent_l1_norm[indices].tolist(),
+        ),
+        n_neurons_majority_l1_norm,
+    )
 
 
 @torch.inference_mode()

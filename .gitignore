@@ -4,6 +4,9 @@ dist
 .DS_Store
 .vscode
 scratch
+*.pt
+*.db
+examples/TinyStories-1M/TinyStories_tokenized_128
 
 # Python
 __pycache__
