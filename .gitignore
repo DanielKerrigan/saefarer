@@ -7,6 +7,7 @@ scratch
 *.pt
 *.db
 examples/TinyStories-1M/TinyStories_tokenized_128
+wandb
 
 # Python
 __pycache__
