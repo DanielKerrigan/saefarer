@@ -63,15 +63,11 @@
 </script>
 
 <svg {width} {height}>
-  <path d={line(I)} stroke="black" fill="none" />
-
   {#if bandY0 && bandY1}
-    <path
-      d={area(zip(xs, bandY0, bandY1))}
-      stroke="var(--gray-1)"
-      fill="none"
-    />
+    <path d={area(zip(xs, bandY0, bandY1))} fill="var(--gray-1)" />
   {/if}
+
+  <path d={line(I)} stroke="black" fill="none" />
 
   <Axis
     orientation={"bottom"}
