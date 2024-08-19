@@ -8,6 +8,7 @@ scratch
 *.db
 examples/TinyStories-1M/TinyStories_tokenized_128
 wandb
+examples/**/*.sh
 
 # Python
 __pycache__
