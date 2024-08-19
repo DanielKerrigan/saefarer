@@ -16,6 +16,8 @@
   );
 
   let chosenInterval = $state(Object.keys(feature_data.value.sequences)[0]);
+
+  let wrapSequences = $state(false);
 </script>
 
 <div class="sae-features-container">
@@ -73,9 +75,9 @@
   </div>
 
   <div class="sae-right">
-    <div class="sae-section">
-      <div class="sae-header">Example Activations</div>
+    <div class="sae-header">Example Activations</div>
 
+    <div class="sae-sequences-controls">
       <select bind:value={chosenInterval}>
         {#each Object.keys(feature_data.value.sequences) as intervalName}
           <option value={intervalName}>
@@ -84,24 +86,34 @@
         {/each}
       </select>
 
-      <div class="sae-sequences">
-        {#each feature_data.value.sequences[chosenInterval] as seq}
-          <div class="sae-sequence">
-            {#each seq.token as tok, i}
-              <div
-                class="sae-token"
-                style:background={color(seq.activation[i])}
-                style:color={hcl(color(seq.activation[i])).l > 50
-                  ? "black"
-                  : "white"}
-                style:font-weight={i === seq.max_index ? "bold" : "normal"}
-              >
-                {tok}
-              </div>
-            {/each}
-          </div>
-        {/each}
-      </div>
+      <label>
+        <input type="checkbox" bind:checked={wrapSequences} />
+        <span>Wrap</span>
+      </label>
+    </div>
+
+    <div class="sae-sequences">
+      {#each feature_data.value.sequences[chosenInterval] as seq}
+        <div
+          class="sae-sequence"
+          style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}
+        >
+          {#each seq.token as tok, i}
+            <div
+              class="sae-token"
+              style:background={seq.activation[i]
+                ? color(seq.activation[i])
+                : "white"}
+              style:color={hcl(color(seq.activation[i])).l > 50
+                ? "black"
+                : "white"}
+              style:font-weight={i === seq.max_index ? "bold" : "normal"}
+            >
+              {tok}
+            </div>
+          {/each}
+        </div>
+      {/each}
     </div>
   </div>
 </div>
@@ -123,15 +135,19 @@
   }
 
   .sae-middle {
+    min-width: 300px;
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
   }
 
   .sae-right {
+    min-width: 0;
     flex: 2;
     display: flex;
     flex-direction: column;
+    gap: 0.25em;
   }
 
   .sae-section {
@@ -143,14 +159,16 @@
   .sae-sequences {
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    gap: 0.25em;
   }
 
   .sae-sequence + .sae-sequence {
     padding-top: 0.25em;
+    border-top: 2px solid var(--gray-1);
   }
 
   .sae-sequence {
-    overflow: auto;
     display: flex;
     white-space: pre;
   }
@@ -161,5 +179,16 @@
 
   select {
     align-self: flex-start;
+  }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+  }
+
+  .sae-sequences-controls {
+    display: flex;
+    justify-content: space-between;
   }
 </style>

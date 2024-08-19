@@ -3,6 +3,7 @@
   import type { Histogram } from "../../types";
   import Axis from "./Axis.svelte";
   import { pairs, range } from "d3-array";
+  import { defaultFormat } from "./vis-utils";
 
   let {
     data,
@@ -75,6 +76,7 @@
     translateX={marginLeft}
     title={yAxisLabel}
     titleAnchor="top"
+    tickFormat={defaultFormat}
     {marginTop}
     {marginRight}
     {marginBottom}
