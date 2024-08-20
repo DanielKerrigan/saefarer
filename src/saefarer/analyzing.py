@@ -260,8 +260,8 @@ def _get_sequence_data(
 
                 values = ds[col][seq_i]
 
-                if values.shape[0] == 1:
-                    values = [values[0].item()] * tok_ids.shape[0]
+                if values.dim() == 0:
+                    values = [values.item()] * tok_ids.shape[0]
                 else:
                     values = values[min_tok_i : max_tok_i + 1].tolist()
 
