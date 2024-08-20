@@ -1,7 +1,7 @@
 """Configuration for SAE and ActivationsStore."""
 
 from dataclasses import dataclass, field
-from typing import List, Literal, Union
+from typing import Any, Callable, List, Literal, Tuple, Union
 
 
 @dataclass
@@ -77,6 +77,9 @@ class AnalysisConfig:
     n_example_sequences: int = 10
     n_context_tokens: int = 5
     n_sequence_intervals: int = 10
+    extra_token_columns: List[Union[str, Tuple[str, Callable[[Any], str]]]] = field(
+        default_factory=list
+    )
 
     def __post_init__(self):
         self.total_analysis_sequences = (

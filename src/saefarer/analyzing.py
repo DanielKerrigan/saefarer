@@ -24,9 +24,9 @@ from saefarer.types import (
     CumSumPercentL1NormRange,
     FeatureData,
     FeatureProjection,
+    FeatureTokenSequence,
     Histogram,
     SAEData,
-    TokenSequence,
 )
 from saefarer.utils import (
     freedman_diaconis_np,
@@ -203,7 +203,7 @@ def _get_sequence_data(
     ds: Dict[str, torch.Tensor],
     feature_activations: torch.Tensor,
     cfg: AnalysisConfig,
-) -> Dict[str, List[TokenSequence]]:
+) -> Dict[str, List[FeatureTokenSequence]]:
     sequence_indices: Dict[str, torch.Tensor] = {}
 
     top_indices = top_k_indices(
@@ -235,10 +235,10 @@ def _get_sequence_data(
 
         sequence_indices[f"Interval {i + 1}"] = valid_indices
 
-    sequences: Dict[str, List[TokenSequence]] = {}
+    sequences: Dict[str, List[FeatureTokenSequence]] = {}
 
     for key, indices in sequence_indices.items():
-        key_seq: List[TokenSequence] = []
+        key_seq: List[FeatureTokenSequence] = []
 
         for point in indices:
             seq_i = int(point[0].item())
@@ -250,9 +250,32 @@ def _get_sequence_data(
             tok_ids = ds[cfg.dataset_column][seq_i, min_tok_i : max_tok_i + 1]
             acts = feature_activations[seq_i, min_tok_i : max_tok_i + 1]
 
-            token_sequence = TokenSequence(
+            extras: Dict[str, List[str]] = {}
+
+            for entry in cfg.extra_token_columns:
+                if isinstance(entry, str):
+                    col, fmt = entry, str
+                else:
+                    col, fmt = entry
+
+                values = ds[col].tolist()
+
+                n_values = len(values)
+
+                if n_values != 1 or n_values != tok_ids.shape[0]:
+                    raise ValueError(
+                        f"Column {col} has a length of {n_values}. The length should be 1 or {tok_ids.shape[0]}"
+                    )
+
+                if n_values == 1:
+                    values = values * tok_ids.shape[0]
+
+                extras[col] = [fmt(value) for value in values]
+
+            token_sequence = FeatureTokenSequence(
                 token=decode_fn(tok_ids),
                 activation=acts.tolist(),
+                extras=extras,
                 max_index=tok_i - min_tok_i,
             )
             key_seq.append(token_sequence)

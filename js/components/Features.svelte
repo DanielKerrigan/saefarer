@@ -6,6 +6,7 @@
   import { feature_data, feature_id, sae_data } from "../synced-state.svelte";
   import Histogram from "./vis/Histogram.svelte";
   import LineChart from "./vis/LineChart.svelte";
+  import Tooltip from "./Tooltip.svelte";
 
   const percentFormat = format(".3%");
 
@@ -18,6 +19,8 @@
   let chosenInterval = $state(Object.keys(feature_data.value.sequences)[0]);
 
   let wrapSequences = $state(false);
+
+  let tooltipToShow = $state({ sequence: -1, token: -1 });
 </script>
 
 <div class="sae-features-container">
@@ -93,23 +96,28 @@
     </div>
 
     <div class="sae-sequences">
-      {#each feature_data.value.sequences[chosenInterval] as seq}
+      {#each feature_data.value.sequences[chosenInterval] as seq, seqIndex}
         <div
           class="sae-sequence"
           style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}
         >
-          {#each seq.token as tok, i}
+          {#each seq.token as token, tokIndex}
+            {@const act = seq.activation[tokIndex]}
+            <!-- TODO: do this properly -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
               class="sae-token"
-              style:background={seq.activation[i]
-                ? color(seq.activation[i])
-                : "white"}
-              style:color={hcl(color(seq.activation[i])).l > 50
-                ? "black"
-                : "white"}
-              style:font-weight={i === seq.max_index ? "bold" : "normal"}
+              style:background={act > 0 ? color(act) : "white"}
+              style:color={hcl(color(act)).l > 50 ? "black" : "white"}
+              style:font-weight={tokIndex === seq.max_index ? "bold" : "normal"}
+              onmouseenter={() =>
+                (tooltipToShow = { sequence: seqIndex, token: tokIndex })}
+              onmouseleave={() => (tooltipToShow = { sequence: -1, token: -1 })}
             >
-              {tok}
+              <span class="sae-token-name">{token}</span>
+              {#if tooltipToShow.token === tokIndex && tooltipToShow.sequence === seqIndex}
+                <Tooltip sequence={seq} index={tokIndex} />
+              {/if}
             </div>
           {/each}
         </div>
@@ -170,6 +178,13 @@
 
   .sae-sequence {
     display: flex;
+  }
+
+  .sae-token {
+    position: relative;
+  }
+
+  .sae-token-name {
     white-space: pre;
   }
 

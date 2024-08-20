@@ -7,6 +7,7 @@ export type TokenSequence = {
   token: string[];
   activation: number[];
   max_index: number;
+  extras: Record<string, string[]>;
 };
 
 export type CumSumPercentL1Norm = {

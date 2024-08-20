@@ -6,9 +6,10 @@ class Histogram(TypedDict):
     thresholds: List[float]
 
 
-class TokenSequence(TypedDict):
+class FeatureTokenSequence(TypedDict):
     token: List[str]
     activation: List[float]
+    extras: Dict[str, List[str]]
     max_index: int
 
 
@@ -30,7 +31,7 @@ class FeatureData(TypedDict):
     n_neurons_majority_l1_norm: int
     cumsum_percent_l1_norm: CumSumPercentL1Norm
     activations_histogram: Histogram
-    sequences: Dict[str, List[TokenSequence]]
+    sequences: Dict[str, List[FeatureTokenSequence]]
 
 
 class FeatureProjection(TypedDict):
