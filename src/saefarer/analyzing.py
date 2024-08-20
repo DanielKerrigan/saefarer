@@ -258,17 +258,12 @@ def _get_sequence_data(
                 else:
                     col, fmt = entry
 
-                values = ds[col].tolist()
+                values = ds[col][seq_i]
 
-                n_values = len(values)
-
-                if n_values != 1 or n_values != tok_ids.shape[0]:
-                    raise ValueError(
-                        f"Column {col} has a length of {n_values}. The length should be 1 or {tok_ids.shape[0]}"
-                    )
-
-                if n_values == 1:
-                    values = values * tok_ids.shape[0]
+                if values.shape[0] == 1:
+                    values = [values[0].item()] * tok_ids.shape[0]
+                else:
+                    values = values[min_tok_i : max_tok_i + 1].tolist()
 
                 extras[col] = [fmt(value) for value in values]
 
