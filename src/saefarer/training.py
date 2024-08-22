@@ -1,15 +1,11 @@
 """Code for training a sparse autoencoder."""
 
-import json
 import time
-from dataclasses import asdict
 from os import PathLike
-from pathlib import Path
-from typing import TypedDict, Union
+from typing import Union
 
 import torch
 import tqdm
-import wandb
 from datasets import (
     Dataset,
     IterableDataset,
@@ -19,21 +15,11 @@ from transformers import (
     PreTrainedModel,
 )
 
+from saefarer import logger
 from saefarer.activations_store import ActivationsStore
 from saefarer.config import TrainingConfig
 from saefarer.model import SAE, ForwardOutput
-
-
-class LogData(TypedDict):
-    elapsed_seconds: float
-    n_training_batches: int
-    n_training_tokens: int
-    loss: float
-    mse_loss: float
-    aux_loss: float
-    n_dead_features: int
-    mean_n_batches_since_fired: float
-    max_n_batches_since_fired: int
+from saefarer.types import LogData
 
 
 def train(
@@ -45,19 +31,7 @@ def train(
 ) -> SAE:
     """Train the SAE"""
 
-    log_path = Path(log_path)
-
-    if cfg.logger == "wandb":
-        wandb.init(
-            config=asdict(cfg),
-            project=cfg.wandb_project,
-            group=cfg.wandb_group,
-            name=cfg.wandb_name,
-            notes=cfg.wandb_notes,
-            dir=log_path,
-        )
-    else:
-        log_file = log_path.open("a")
+    log = logger.from_cfg(cfg, log_path)
 
     sae = SAE(cfg)
 
@@ -71,7 +45,9 @@ def train(
 
     start_time = time.time()
 
-    for i in tqdm.trange(1, cfg.total_training_batches + 1):
+    for i in tqdm.trange(
+        1, cfg.total_training_batches + 1, disable=not cfg.show_progress
+    ):
         # get next batch of model activations
         x = store.next_batch()
 
@@ -91,7 +67,7 @@ def train(
         # logging
 
         if i % cfg.log_batch_freq == 0:
-            info = LogData(
+            log_data = LogData(
                 elapsed_seconds=time.time() - start_time,
                 n_training_batches=i,
                 n_training_tokens=i * sae.cfg.sae_batch_size_tokens,
@@ -105,22 +81,12 @@ def train(
                 max_n_batches_since_fired=int(sae.stats_last_nonzero.max().item()),
             )
 
-            json_line = json.dumps(info)
-
-            print(json_line)
-
-            if cfg.logger == "wandb":
-                wandb.log(data=info, step=i)
-            else:
-                log_file.write(json_line + "\n")
+            log.write(log_data)
 
     print("Saving final model")
 
     sae.save(save_path)
 
-    if cfg.logger == "wandb":
-        wandb.finish()
-    else:
-        log_file.close()
+    log.close()
 
     return sae

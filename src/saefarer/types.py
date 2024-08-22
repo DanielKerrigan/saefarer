@@ -50,3 +50,15 @@ class SAEData(TypedDict):
     dimensionality_histogram: Histogram
     cumsum_percent_l1_norm_range: CumSumPercentL1NormRange
     feature_projection: FeatureProjection
+
+
+class LogData(TypedDict):
+    elapsed_seconds: float
+    n_training_batches: int
+    n_training_tokens: int
+    loss: float
+    mse_loss: float
+    aux_loss: float
+    n_dead_features: int
+    mean_n_batches_since_fired: float
+    max_n_batches_since_fired: int

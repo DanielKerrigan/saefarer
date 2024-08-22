@@ -73,7 +73,11 @@ def analyze(
     activation_rates = []
     n_neurons_majority_l1_norm = []
 
-    progress_bar = tqdm(total=num_alive_features, desc="Calculating feature data")
+    progress_bar = tqdm(
+        total=num_alive_features,
+        desc="Calculating feature data",
+        disable=not cfg.show_progress,
+    )
 
     min_cumsum_percent_l1_norm: torch.Tensor = torch.empty(0)
     max_cumsum_percent_l1_norm: torch.Tensor = torch.empty(0)

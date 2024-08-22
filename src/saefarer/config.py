@@ -39,7 +39,8 @@ class TrainingConfig:
     total_training_tokens: int = 100_000_000
     total_training_batches: int = field(init=False)
     # logging
-    logger: Literal["local", "wandb"] = "wandb"
+    show_progress: bool = True
+    logger: Literal["jsonl", "wandb", "tensorboard"] = "jsonl"
     log_batch_freq: int = 1000
     wandb_project: Union[str, None] = None
     wandb_group: Union[str, None] = None
@@ -80,6 +81,8 @@ class AnalysisConfig:
     extra_token_columns: List[Union[str, Tuple[str, Callable[[Any], str]]]] = field(
         default_factory=list
     )
+    # logging
+    show_progress: bool = True
 
     def __post_init__(self):
         self.total_analysis_sequences = (

@@ -13,16 +13,24 @@ dependencies = [
     "einops",
     "numpy < 2",
     "umap-learn",
-    "wandb"
 ]
 readme = "README.md"
 
 [project.optional-dependencies]
-dev = ["watchfiles", "jupyterlab"]
+dev = [
+    "watchfiles",
+    "jupyterlab",
+]
+tensorboard = [
+    "tensorboard",
+]
+wandb = [
+    "wandb",
+]
 
-# automatically add the dev feature to the default env (e.g., hatch shell)
+# automatically add the dev and logging features to the default env (e.g., hatch shell)
 [tool.hatch.envs.default]
-features = ["dev"]
+features = ["dev", "tensorboard", "wandb"]
 
 
 [tool.hatch.build]
