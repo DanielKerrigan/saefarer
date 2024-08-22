@@ -2,11 +2,10 @@
   import { scaleSequential } from "d3-scale";
   import { interpolateBlues } from "d3-scale-chromatic";
   import { format } from "d3-format";
-  import { hcl } from "d3-color";
   import { feature_data, feature_id, sae_data } from "../synced-state.svelte";
   import Histogram from "./vis/Histogram.svelte";
   import LineChart from "./vis/LineChart.svelte";
-  import Tooltip from "./Tooltip.svelte";
+  import FeatureTokenSequences from "./FeatureTokenSequences.svelte";
 
   const percentFormat = format(".3%");
 
@@ -15,12 +14,6 @@
       .domain([0, feature_data.value.max_activation])
       .interpolator(interpolateBlues)
   );
-
-  let chosenInterval = $state(Object.keys(feature_data.value.sequences)[0]);
-
-  let wrapSequences = $state(false);
-
-  let tooltipToShow = $state({ sequence: -1, token: -1 });
 </script>
 
 <div class="sae-features-container">
@@ -80,49 +73,7 @@
   <div class="sae-right">
     <div class="sae-header">Example Activations</div>
 
-    <div class="sae-sequences-controls">
-      <select bind:value={chosenInterval}>
-        {#each Object.keys(feature_data.value.sequences) as intervalName}
-          <option value={intervalName}>
-            {intervalName}
-          </option>
-        {/each}
-      </select>
-
-      <label>
-        <input type="checkbox" bind:checked={wrapSequences} />
-        <span>Wrap</span>
-      </label>
-    </div>
-
-    <div class="sae-sequences">
-      {#each feature_data.value.sequences[chosenInterval] as seq, seqIndex}
-        <div
-          class="sae-sequence"
-          style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}
-        >
-          {#each seq.token as token, tokIndex}
-            {@const act = seq.activation[tokIndex]}
-            <!-- TODO: do this properly -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="sae-token"
-              style:background={act > 0 ? color(act) : "white"}
-              style:color={hcl(color(act)).l > 50 ? "black" : "white"}
-              style:font-weight={tokIndex === seq.max_index ? "bold" : "normal"}
-              onmouseenter={() =>
-                (tooltipToShow = { sequence: seqIndex, token: tokIndex })}
-              onmouseleave={() => (tooltipToShow = { sequence: -1, token: -1 })}
-            >
-              <span class="sae-token-name">{token}</span>
-              {#if tooltipToShow.token === tokIndex && tooltipToShow.sequence === seqIndex}
-                <Tooltip sequence={seq} index={tokIndex} />
-              {/if}
-            </div>
-          {/each}
-        </div>
-      {/each}
-    </div>
+    <FeatureTokenSequences {color} />
   </div>
 </div>
 
@@ -164,46 +115,11 @@
     gap: 0.25em;
   }
 
-  .sae-sequences {
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    gap: 0.25em;
-  }
-
-  .sae-sequence + .sae-sequence {
-    padding-top: 0.25em;
-    border-top: 2px solid var(--gray-1);
-  }
-
-  .sae-sequence {
-    display: flex;
-  }
-
-  .sae-token {
-    position: relative;
-  }
-
-  .sae-token-name {
-    white-space: pre;
-  }
-
   .sae-header {
     font-weight: bold;
   }
 
   select {
     align-self: flex-start;
-  }
-
-  label {
-    display: flex;
-    align-items: center;
-    gap: 0.25em;
-  }
-
-  .sae-sequences-controls {
-    display: flex;
-    justify-content: space-between;
   }
 </style>

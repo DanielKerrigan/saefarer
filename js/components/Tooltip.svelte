@@ -1,46 +1,56 @@
 <script lang="ts">
-  import type { TokenSequence } from "../types";
-  import { format } from "d3-format";
+  import type { Snippet } from "svelte";
+  import { BorderBoxSize } from "../state.svelte";
 
   let {
-    sequence,
-    index,
+    rootRect,
+    targetRect,
+    content,
   }: {
-    sequence: TokenSequence;
-    index: number;
+    rootRect: DOMRect;
+    targetRect: DOMRect;
+    content: Snippet;
   } = $props();
 
-  const actFormat = format(".3f");
+  const space = 4;
 
-  let borderBoxSize: ResizeObserverSize[] | undefined = $state();
+  const tooltipDimensions = new BorderBoxSize([]);
 
-  const width = $derived(borderBoxSize ? borderBoxSize[0].inlineSize : 100);
-  const height = $derived(borderBoxSize ? borderBoxSize[0].blockSize : 100);
+  function getTop(tooltipDimensions: BorderBoxSize, rootRect: DOMRect, targetRect: DOMRect) {
+    if (targetRect.top - tooltipDimensions.height < rootRect.top) {
+      // tooltip needs to go below target
+      return targetRect.bottom - rootRect.top + space;
+    } else {
+      // tooltip defaults to above target
+      return targetRect.top - rootRect.top - tooltipDimensions.height - space;
+    }
+  }
+
+  function getLeft(tooltipDimensions: BorderBoxSize, rootRect: DOMRect, targetRect: DOMRect) {
+    const halfTooltipWidth = tooltipDimensions.width / 2
+
+    if (targetRect.left - halfTooltipWidth < rootRect.left) {
+      // tooltip needs to the right
+      return targetRect.right - rootRect.left + space;
+    } else if (targetRect.right + halfTooltipWidth > rootRect.right) {
+      // tooltip needs to the left
+      return targetRect.left - rootRect.left - tooltipDimensions.width - space;
+    } else {
+      // tooltip goes in center
+      return targetRect.left - rootRect.left + (targetRect.width / 2) - halfTooltipWidth;
+    }
+  }
+
+  let top = $derived(getTop(tooltipDimensions, rootRect, targetRect));
+  let left = $derived(getLeft(tooltipDimensions, rootRect, targetRect));
 </script>
 
 <div
   class="sae-tooltip"
-  bind:borderBoxSize
-  style="left: {-width / 2}px; top: 2em;"
+  bind:borderBoxSize={tooltipDimensions.borderBoxSize}
+  style="left: {left}px; top: {top}px;"
 >
-  <table class="sae-tooltip-table">
-    <tbody>
-      <tr>
-        <td class="sae-string">Token:</td>
-        <td class="sae-string">{sequence.token[index]}</td>
-      </tr>
-      <tr>
-        <td class="sae-string">Activation:</td>
-        <td class="sae-number">{actFormat(sequence.activation[index])}</td>
-      </tr>
-      {#each Object.entries(sequence.extras) as [name, values]}
-        <tr>
-          <td class="sae-string">{name}:</td>
-          <td class="sae-string">{values[index]}</td>
-        </tr>
-      {/each}
-    </tbody>
-  </table>
+  {@render content()}
 </div>
 
 <style>
@@ -54,34 +64,5 @@
     pointer-events: none;
     box-sizing: border-box;
     z-index: 10;
-  }
-
-  .sae-tooltip-table {
-    border-collapse: collapse;
-  }
-
-  .sae-tooltip-table td {
-    padding: 0em 0.5em 0.25em 0em;
-    line-height: 1;
-    vertical-align: middle;
-  }
-
-  /* no right padding for last column in table */
-  .sae-tooltip-table tr > td:last-of-type {
-    padding-right: 0;
-  }
-
-  /* no bottom padding for last row in table */
-  .sae-tooltip-table tbody > tr:last-of-type > td {
-    padding-bottom: 0;
-  }
-
-  .sae-tooltip-table td.sae-number {
-    font-variant-numeric: lining-nums tabular-nums;
-    text-align: right;
-  }
-
-  .sae-tooltip-table .sae-string {
-    text-align: left;
   }
 </style>

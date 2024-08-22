@@ -1,3 +1,5 @@
+// Aligned with types.py
+
 export type Histogram = {
   counts: number[];
   thresholds: number[];
@@ -58,4 +60,12 @@ export type Model = {
   feature_data: FeatureData;
 };
 
+// Front end only
+
 export type Tab = "overview" | "features";
+
+export type FeatureToken = {
+  token: string;
+  activation: number;
+  extras: { key: string; value: string }[];
+};
