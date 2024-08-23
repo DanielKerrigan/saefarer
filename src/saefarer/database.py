@@ -34,7 +34,7 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
             n_neurons_majority_l1_norm INTEGER,
             cumsum_percent_l1_norm BLOB,
             activations_histogram BLOB,
-            sequences BLOB,
+            sequence_intervals BLOB,
             PRIMARY KEY (sae_id, feature_id)
         )
     """)
@@ -74,7 +74,7 @@ def insert_feature(data: FeatureData, con: sqlite3.Connection, cur: sqlite3.Curs
             :n_neurons_majority_l1_norm,
             :cumsum_percent_l1_norm,
             :activations_histogram,
-            :sequences
+            :sequence_intervals
         )
         """,
         convert_dict_for_db(data),
