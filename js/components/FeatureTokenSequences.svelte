@@ -68,20 +68,21 @@
   </div>
 
   <div class="sae-sequences">
-    {#each feature_data.value.sequences[chosenInterval] as seq, seqIndex}
+    {#each feature_data.value.sequences[chosenInterval] as seq}
       <div
         class="sae-sequence"
         style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}
       >
         {#each seq.token as token, tokIndex}
-          {@const act = seq.activation[tokIndex]}
+          {@const col = color(seq.activation[tokIndex])}
           <!-- TODO: do this properly -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             class="sae-token"
-            style:background={act > 0 ? color(act) : "white"}
-            style:color={hcl(color(act)).l > 50 ? "black" : "white"}
+            style:background={col}
+            style:color={hcl(col).l > 50 ? "black" : "white"}
             style:font-weight={tokIndex === seq.max_index ? "bold" : "normal"}
+            style:--border-color={col}
             onmouseenter={(event) =>
               onMouseEnterToken(event, seq, tokIndex)}
             onmouseleave={onMouseLeaveToken}
@@ -115,6 +116,12 @@
     gap: 0.25em;
   }
 
+  .sae-sequence-container {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
   .sae-sequences-controls {
     display: flex;
     justify-content: space-between;
@@ -138,5 +145,13 @@
 
   .sae-token-name {
     white-space: pre;
+  }
+
+  .sae-token {
+    border: 1px solid var(--border-color);
+  }
+
+  .sae-token:hover {
+    border-color: red;
   }
 </style>
