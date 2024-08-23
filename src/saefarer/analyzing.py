@@ -153,18 +153,26 @@ def _get_sae_activations(
     ds: Dict[str, torch.Tensor],
     cfg: AnalysisConfig,
 ) -> torch.Tensor:
-    sae_activations = []
+    tokens = ds[cfg.dataset_column]
 
-    token_batches = ds[cfg.dataset_column].split(cfg.model_batch_size_sequences)
+    sae_activations = torch.zeros(
+        tokens.shape + (len(feature_indices),), device=cfg.device, dtype=sae.dtype
+    )
+    offset = 0
+
+    token_batches = tokens.split(cfg.model_batch_size_sequences)
 
     for token_batch in token_batches:
         token_batch = token_batch.to(cfg.device)
         batch_model_output = model(token_batch, output_hidden_states=True)
         batch_model_acts = batch_model_output.hidden_states[sae.cfg.hidden_state_index]
         batch_sae_acts, _ = sae.encode(batch_model_acts)
-        sae_activations.append(batch_sae_acts[..., feature_indices])
 
-    sae_activations = torch.cat(sae_activations, dim=0)
+        start = offset
+        offset += batch_sae_acts.shape[0]
+        end = offset
+
+        sae_activations[start:end, :, :] = batch_sae_acts[..., feature_indices]
 
     return sae_activations
 
