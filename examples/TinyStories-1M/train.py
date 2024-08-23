@@ -1,8 +1,8 @@
-from saefarer.config import TrainingConfig
-from saefarer.training import train
+from datasets import load_from_disk
 from transformers import AutoModelForCausalLM
 
-from datasets import load_from_disk
+from saefarer.config import TrainingConfig
+from saefarer.training import train
 
 
 def main():

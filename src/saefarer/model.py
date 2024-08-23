@@ -73,8 +73,8 @@ class SAE(nn.Module):
             )
         )
 
-        # each row of W_dec corresponds to one feature
-        # each col corresponds to one neuron
+        # each row of W_dec corresponds to one feature of the SAE
+        # each col corresponds to one neuron in the model
         self.W_dec = nn.Parameter(self.W_enc.t().clone())
 
         self.set_decoder_norm_to_unit_norm()
@@ -139,7 +139,7 @@ class SAE(nn.Module):
         :return: reconstructed data (shape: [batch, n_inputs])
         """
         recontructed = latents @ self.W_dec + self.b_dec
-        return self.unprocess(recontructed)
+        return self.unprocess(recontructed, info)
 
     def forward(self, x: torch.Tensor) -> ForwardOutput:
         """
@@ -153,6 +153,8 @@ class SAE(nn.Module):
         latents = self.topk(latents_pre_act)
         # not passing info to decode so that the reconstructed
         # activations are still centered
+        # TODO: would it be better uncenter the reconstructed activations
+        # and then compare against x rather than x_preprocessed?
         recons = self.decode(latents)
 
         mse_loss = normalized_mse(recons, x_preprocessed)
@@ -165,7 +167,7 @@ class SAE(nn.Module):
 
         if num_dead > 0:
             aux_latents = self.aux_topk(self.auxk_masker(latents_pre_act))
-            aux_recons = self.decode(aux_latents, info)
+            aux_recons = self.decode(aux_latents)
             aux_loss = self.cfg.aux_k_coef * normalized_mse(
                 aux_recons, x_preprocessed - recons.detach() + self.b_dec.detach()
             ).nan_to_num(0)
