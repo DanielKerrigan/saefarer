@@ -5,8 +5,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Union
 
-from torch.utils.tensorboard.writer import SummaryWriter
-
 from saefarer.config import TrainingConfig
 from saefarer.types import LogData
 
@@ -48,6 +46,9 @@ class WAndBLogger(Logger):
 class TensorboardLogger(Logger):
     def __init__(self, cfg: TrainingConfig, log_path: Union[str, PathLike]):
         super().__init__(cfg, log_path)
+
+        from torch.utils.tensorboard.writer import SummaryWriter
+
         self.writer = SummaryWriter(self.log_path)
 
     def write(self, data: LogData):
