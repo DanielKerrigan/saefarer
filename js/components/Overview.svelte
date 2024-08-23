@@ -5,9 +5,14 @@
   import { format } from "d3-format";
 
   const percentFormat = format(".1%");
+
   const percentDead = $derived(
-    sae_data.value.num_dead_features /
-      (sae_data.value.num_dead_features + sae_data.value.num_alive_features)
+    sae_data.value.num_dead_features / sae_data.value.num_total_features
+  );
+
+  const percentNonActivating = $derived(
+    sae_data.value.num_non_activating_features /
+      sae_data.value.num_total_features
   );
 
   let borderBoxSizeLeft: ResizeObserverSize[] | undefined = $state();
@@ -28,7 +33,20 @@
   <div class="sae-left" bind:borderBoxSize={borderBoxSizeLeft}>
     <div class="sae-section">
       <div class="sae-header">Feature Activation Rates</div>
-      <div>{percentFormat(percentDead)} of features are dead.</div>
+
+      {#if percentDead > 0}
+        <div>
+          {percentFormat(percentDead)} of features died during training.
+        </div>
+      {/if}
+
+      {#if percentNonActivating > 0}
+        <div>
+          {percentFormat(percentNonActivating)} of features did not activate during
+          analysis.
+        </div>
+      {/if}
+
       <Histogram
         data={sae_data.value.activation_rate_histogram}
         marginTop={20}

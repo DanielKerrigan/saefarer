@@ -13,10 +13,11 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
     cur.execute("""
         CREATE TABLE sae(
             sae_id STRING PRIMARY KEY,
+            num_total_features INTEGER,
             num_alive_features INTEGER,
             num_dead_features INTEGER,
+            num_non_activating_features INTEGER,
             alive_feature_ids BLOB,
-            dead_feature_ids BLOB,
             activation_rate_histogram BLOB,
             dimensionality_histogram BLOB,
             cumsum_percent_l1_norm_range BLOB,
@@ -46,10 +47,11 @@ def insert_sae(data: SAEData, con: sqlite3.Connection, cur: sqlite3.Cursor):
         """
         INSERT INTO sae VALUES(
             :sae_id,
+            :num_total_features,
             :num_alive_features,
             :num_dead_features,
+            :num_non_activating_features,
             :alive_feature_ids,
-            :dead_feature_ids,
             :activation_rate_histogram,
             :dimensionality_histogram,
             :cumsum_percent_l1_norm_range,
@@ -106,10 +108,11 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
     )
     (
         sae_id,
+        num_total_features,
         num_alive_features,
         num_dead_features,
+        num_non_activating_features,
         alive_feature_ids,
-        dead_feature_ids,
         activation_rate_histogram,
         dimensionality_histogram,
         cumsum_percent_l1_norm_range,
@@ -118,10 +121,11 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
 
     return SAEData(
         sae_id=sae_id,
-        num_dead_features=num_dead_features,
+        num_total_features=num_total_features,
         num_alive_features=num_alive_features,
+        num_dead_features=num_dead_features,
+        num_non_activating_features=num_non_activating_features,
         alive_feature_ids=json.loads(alive_feature_ids),
-        dead_feature_ids=json.loads(dead_feature_ids),
         activation_rate_histogram=json.loads(activation_rate_histogram),
         dimensionality_histogram=json.loads(dimensionality_histogram),
         cumsum_percent_l1_norm_range=json.loads(cumsum_percent_l1_norm_range),

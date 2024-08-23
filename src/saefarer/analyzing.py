@@ -82,42 +82,64 @@ def analyze(
     min_cumsum_percent_l1_norm: torch.Tensor = torch.empty(0)
     max_cumsum_percent_l1_norm: torch.Tensor = torch.empty(0)
 
+    non_activating_feature_ids = []
+
     for features in feature_batches:
         sae_activations = _get_sae_activations(features, sae, model, ds, cfg)
 
         for i, feature in enumerate(features):
             feature_activations = sae_activations[..., i]
 
-            feature_data = _get_feature_data(
-                feature, sae_id, sae, feature_activations, decode_fn, ds, cfg
-            )
+            positive_activations = feature_activations[feature_activations > 0]
 
-            cumsum: torch.Tensor = torch.Tensor(
-                feature_data["cumsum_percent_l1_norm"]["cum_sum"]
-            )
-
-            if min_cumsum_percent_l1_norm.numel() == 0:
-                min_cumsum_percent_l1_norm = cumsum
-                max_cumsum_percent_l1_norm = cumsum
+            if positive_activations.numel() == 0:
+                non_activating_feature_ids.append(feature)
             else:
-                min_cumsum_percent_l1_norm = torch.min(
-                    input=torch.stack((min_cumsum_percent_l1_norm, cumsum), dim=0),
-                    dim=0,
-                ).values
-                max_cumsum_percent_l1_norm = torch.max(
-                    torch.stack((max_cumsum_percent_l1_norm, cumsum), dim=0), dim=0
-                ).values
+                feature_data = _get_feature_data(
+                    feature,
+                    sae_id,
+                    sae,
+                    feature_activations,
+                    positive_activations,
+                    decode_fn,
+                    ds,
+                    cfg,
+                )
 
-            activation_rates.append(feature_data["activation_rate"])
-            n_neurons_majority_l1_norm.append(
-                feature_data["n_neurons_majority_l1_norm"]
-            )
+                cumsum: torch.Tensor = torch.Tensor(
+                    feature_data["cumsum_percent_l1_norm"]["cum_sum"]
+                )
 
-            db.insert_feature(feature_data, con, cur)
+                if min_cumsum_percent_l1_norm.numel() == 0:
+                    min_cumsum_percent_l1_norm = cumsum
+                    max_cumsum_percent_l1_norm = cumsum
+                else:
+                    min_cumsum_percent_l1_norm = torch.min(
+                        input=torch.stack((min_cumsum_percent_l1_norm, cumsum), dim=0),
+                        dim=0,
+                    ).values
+                    max_cumsum_percent_l1_norm = torch.max(
+                        torch.stack((max_cumsum_percent_l1_norm, cumsum), dim=0), dim=0
+                    ).values
+
+                activation_rates.append(feature_data["activation_rate"])
+                n_neurons_majority_l1_norm.append(
+                    feature_data["n_neurons_majority_l1_norm"]
+                )
+
+                db.insert_feature(feature_data, con, cur)
 
             progress_bar.update()
 
     progress_bar.close()
+
+    if non_activating_feature_ids:
+        alive_feature_ids = list(
+            set(alive_feature_ids) - set(non_activating_feature_ids)
+        )
+        num_alive_features = len(alive_feature_ids)
+
+    num_non_activating_features = len(non_activating_feature_ids)
 
     activation_rate_histogram = _get_activation_rate_histogram(activation_rates)
 
@@ -132,10 +154,11 @@ def analyze(
 
     sae_data = SAEData(
         sae_id=sae_id,
+        num_total_features=len(feature_indices),
         num_alive_features=num_alive_features,
         num_dead_features=num_dead_features,
+        num_non_activating_features=num_non_activating_features,
         alive_feature_ids=alive_feature_ids,
-        dead_feature_ids=dead_feature_ids,
         activation_rate_histogram=activation_rate_histogram,
         dimensionality_histogram=dimensionality_histogram,
         cumsum_percent_l1_norm_range=cumsum_percent_l1_norm_range,
@@ -183,13 +206,13 @@ def _get_feature_data(
     sae_id: str,
     sae: SAE,
     feature_activations: torch.Tensor,
+    positive_activations: torch.Tensor,
     decode_fn: Callable[[torch.Tensor], List[str]],
     ds: Dict[str, torch.Tensor],
     cfg: AnalysisConfig,
 ) -> FeatureData:
     sequences = _get_sequence_data(decode_fn, ds, feature_activations, cfg)
 
-    positive_activations = feature_activations[feature_activations > 0]
     activation_rate = positive_activations.numel() / feature_activations.numel()
 
     activations_histogram = _get_activation_histogram(positive_activations)

@@ -42,10 +42,11 @@ class FeatureProjection(TypedDict):
 
 class SAEData(TypedDict):
     sae_id: str
+    num_total_features: int
     num_alive_features: int
     num_dead_features: int
+    num_non_activating_features: int
     alive_feature_ids: List[int]
-    dead_feature_ids: List[int]
     activation_rate_histogram: Histogram
     dimensionality_histogram: Histogram
     cumsum_percent_l1_norm_range: CumSumPercentL1NormRange

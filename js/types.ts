@@ -41,10 +41,11 @@ export type CumSumPercentL1NormRange = {
 
 export type SAEData = {
   sae_id: string;
+  num_total_features: number;
   num_alive_features: number;
   num_dead_features: number;
+  num_non_activating_features: number;
   alive_feature_ids: number[];
-  dead_feature_ids: number[];
   activation_rate_histogram: Histogram;
   dimensionality_histogram: Histogram;
   cumsum_percent_l1_norm_range: CumSumPercentL1NormRange;
