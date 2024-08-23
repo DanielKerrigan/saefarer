@@ -5,7 +5,7 @@ export type Histogram = {
   thresholds: number[];
 };
 
-export type TokenSequence = {
+export type FeatureTokenSequence = {
   token: string[];
   activation: number[];
   max_index: number;
@@ -17,6 +17,12 @@ export type CumSumPercentL1Norm = {
   cum_sum: number[];
 };
 
+export type SequenceInterval = {
+  min_activation: number;
+  max_activation: number;
+  sequences: FeatureTokenSequence[];
+};
+
 export type FeatureData = {
   sae_id: number;
   feature_id: number;
@@ -25,7 +31,7 @@ export type FeatureData = {
   n_neurons_majority_l1_norm: number;
   cumsum_percent_l1_norm: CumSumPercentL1Norm;
   activations_histogram: Histogram;
-  sequences: Record<string, TokenSequence[]>;
+  sequence_intervals: Record<string, SequenceInterval>;
 };
 
 export type FeatureProjection = {

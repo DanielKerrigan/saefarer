@@ -4,12 +4,13 @@
   import Tooltip from "./Tooltip.svelte";
   import type { ScaleSequential } from "d3-scale";
   import { rootDiv } from "../state.svelte";
-  import type { FeatureToken, TokenSequence } from "../types";
+  import type { FeatureToken, FeatureTokenSequence } from "../types";
   import FeatureTokenSequencesTooltip from "./FeatureTokenSequencesTooltip.svelte";
 
   let { color }: { color: ScaleSequential<string> } = $props();
 
-  let chosenInterval = $state(Object.keys(feature_data.value.sequences)[0]);
+  let chosenIntervalKey = $state(Object.keys(feature_data.value.sequence_intervals)[0]);
+  let seqInterval = $derived(feature_data.value.sequence_intervals[chosenIntervalKey]);
 
   let wrapSequences = $state(false);
 
@@ -22,7 +23,7 @@
 
   function onMouseEnterToken(
     event: MouseEvent,
-    sequence: TokenSequence,
+    sequence: FeatureTokenSequence,
     tokIndex: number
   ) {
     if (!event.target || !rootDiv.value) {
@@ -53,8 +54,8 @@
 
 <div class="sae-sequence-container">
   <div class="sae-sequences-controls">
-    <select bind:value={chosenInterval}>
-      {#each Object.keys(feature_data.value.sequences) as intervalName}
+    <select bind:value={chosenIntervalKey}>
+      {#each Object.keys(feature_data.value.sequence_intervals) as intervalName}
         <option value={intervalName}>
           {intervalName}
         </option>
@@ -68,7 +69,7 @@
   </div>
 
   <div class="sae-sequences">
-    {#each feature_data.value.sequences[chosenInterval] as seq}
+    {#each seqInterval.sequences as seq}
       <div
         class="sae-sequence"
         style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}

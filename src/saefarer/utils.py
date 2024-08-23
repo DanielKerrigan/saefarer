@@ -6,13 +6,16 @@ import numpy as np
 import torch
 
 
-def top_k_indices(x: torch.Tensor, k: int, largest: bool = True) -> torch.Tensor:
+def top_k_indices_values(
+    x: torch.Tensor, k: int, largest: bool = True
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """Given a 2D matrix x, return the row and column indices of
     the k largest or smallest values."""
-    indices = x.flatten().topk(k=k, largest=largest).indices
+    top = x.flatten().topk(k=k, largest=largest)
+    indices = top.indices
     rows = indices // x.size(1)
     cols = indices % x.size(1)
-    return torch.stack((rows, cols), dim=1)
+    return torch.stack((rows, cols), dim=1), top.values
 
 
 def torch_histogram(xs: torch.Tensor, bins: int) -> Tuple[torch.Tensor, torch.Tensor]:

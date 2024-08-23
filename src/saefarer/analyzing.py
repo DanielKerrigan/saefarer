@@ -27,11 +27,12 @@ from saefarer.types import (
     FeatureTokenSequence,
     Histogram,
     SAEData,
+    SequenceInterval,
 )
 from saefarer.utils import (
     freedman_diaconis_np,
     freedman_diaconis_torch,
-    top_k_indices,
+    top_k_indices_values,
     torch_histogram,
 )
 
@@ -51,6 +52,8 @@ def analyze(
         raise OSError(f"{output_path} already exists")
 
     model.to(cfg.device)  # type: ignore
+
+    rng = np.random.default_rng()
 
     ds = _get_dataset(dataset, cfg)
 
@@ -104,6 +107,7 @@ def analyze(
                     decode_fn,
                     ds,
                     cfg,
+                    rng,
                 )
 
                 cumsum: torch.Tensor = torch.Tensor(
@@ -184,7 +188,8 @@ def _get_sae_activations(
     offset = 0
 
     token_batches = tokens.split(cfg.model_batch_size_sequences)
-
+    # TODO: consider caching these activations so that they don't have to be
+    # re-computed for each batch of features.
     for token_batch in token_batches:
         token_batch = token_batch.to(cfg.device)
         batch_model_output = model(token_batch, output_hidden_states=True)
@@ -210,8 +215,11 @@ def _get_feature_data(
     decode_fn: Callable[[torch.Tensor], List[str]],
     ds: Dict[str, torch.Tensor],
     cfg: AnalysisConfig,
+    rng: np.random.Generator,
 ) -> FeatureData:
-    sequences = _get_sequence_data(decode_fn, ds, feature_activations, cfg)
+    sequence_intervals = _get_sequence_data(
+        decode_fn, ds, feature_activations, positive_activations, cfg, rng
+    )
 
     activation_rate = positive_activations.numel() / feature_activations.numel()
 
@@ -228,7 +236,7 @@ def _get_feature_data(
         n_neurons_majority_l1_norm=n_neurons_majority_l1_norm,
         cumsum_percent_l1_norm=cumsum_percent_l1_norm,
         activations_histogram=activations_histogram,
-        sequences=sequences,
+        sequence_intervals=sequence_intervals,
     )
 
 
@@ -237,18 +245,27 @@ def _get_sequence_data(
     decode_fn: Callable[[torch.Tensor], List[str]],
     ds: Dict[str, torch.Tensor],
     feature_activations: torch.Tensor,
+    positive_activations: torch.Tensor,
     cfg: AnalysisConfig,
-) -> Dict[str, List[FeatureTokenSequence]]:
-    sequence_indices: Dict[str, torch.Tensor] = {}
+    rng: np.random.Generator,
+) -> Dict[str, SequenceInterval]:
+    sequence_indices: Dict[str, Tuple[float, float, torch.Tensor]] = {}
 
-    top_indices = top_k_indices(
+    top_indices, top_values = top_k_indices_values(
         feature_activations, k=cfg.n_example_sequences, largest=True
     )
 
-    sequence_indices["Max Activations"] = top_indices
+    sequence_indices["Max Activations"] = (
+        top_values.min().item(),
+        top_values.max().item(),
+        top_indices,
+    )
 
-    max_act = feature_activations.max()
-    activation_ranges = torch.linspace(0, max_act, cfg.n_sequence_intervals + 1)
+    min_act = positive_activations.min()
+    max_act = positive_activations.max()
+
+    activation_ranges = torch.linspace(min_act, max_act, cfg.n_sequence_intervals + 1)
+
     interval_min_max = reversed(list(zip(activation_ranges, activation_ranges[1:])))
 
     for i, (interval_min, interval_max) in enumerate(interval_min_max):
@@ -261,18 +278,26 @@ def _get_sequence_data(
         )
 
         if valid_indices.shape[0] > cfg.n_example_sequences:
-            rand_indices = torch.multinomial(
-                input=torch.ones(valid_indices.shape[0]),
-                num_samples=cfg.n_example_sequences,
-                replacement=False,
+            # https://stackoverflow.com/a/60564584
+            rand_indices = torch.tensor(
+                rng.choice(
+                    valid_indices.shape[0],
+                    cfg.n_example_sequences,
+                    replace=False,
+                )
             )
+
             valid_indices = valid_indices[rand_indices]
 
-        sequence_indices[f"Interval {i + 1}"] = valid_indices
+        sequence_indices[f"Interval {i + 1}"] = (
+            interval_min.item(),
+            interval_max.item(),
+            valid_indices,
+        )
 
-    sequences: Dict[str, List[FeatureTokenSequence]] = {}
+    sequence_intervals: Dict[str, SequenceInterval] = {}
 
-    for key, indices in sequence_indices.items():
+    for key, (interval_min, interval_max, indices) in sequence_indices.items():
         key_seq: List[FeatureTokenSequence] = []
 
         for point in indices:
@@ -310,9 +335,11 @@ def _get_sequence_data(
             )
             key_seq.append(token_sequence)
 
-        sequences[key] = key_seq
+        sequence_intervals[key] = SequenceInterval(
+            min_activation=interval_min, max_activation=interval_max, sequences=key_seq
+        )
 
-    return sequences
+    return sequence_intervals
 
 
 @torch.inference_mode()

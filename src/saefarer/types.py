@@ -23,6 +23,12 @@ class CumSumPercentL1NormRange(TypedDict):
     maxs: List[float]
 
 
+class SequenceInterval(TypedDict):
+    min_activation: float
+    max_activation: float
+    sequences: List[FeatureTokenSequence]
+
+
 class FeatureData(TypedDict):
     sae_id: str
     feature_id: int
@@ -31,7 +37,7 @@ class FeatureData(TypedDict):
     n_neurons_majority_l1_norm: int
     cumsum_percent_l1_norm: CumSumPercentL1Norm
     activations_histogram: Histogram
-    sequences: Dict[str, List[FeatureTokenSequence]]
+    sequence_intervals: Dict[str, SequenceInterval]
 
 
 class FeatureProjection(TypedDict):

@@ -152,7 +152,7 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
         n_neurons_majority_l1_norm,
         cumsum_percent_l1_norm,
         activations_histogram,
-        sequences,
+        sequence_intervals,
     ) = res.fetchone()
 
     return FeatureData(
@@ -163,5 +163,5 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
         n_neurons_majority_l1_norm=n_neurons_majority_l1_norm,
         cumsum_percent_l1_norm=json.loads(cumsum_percent_l1_norm),
         activations_histogram=json.loads(activations_histogram),
-        sequences=json.loads(sequences),
+        sequence_intervals=json.loads(sequence_intervals),
     )
