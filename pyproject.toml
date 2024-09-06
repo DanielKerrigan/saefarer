@@ -7,19 +7,24 @@ name = "saefarer"
 version = "0.0.0"
 dependencies = [
     "anywidget",
+    "numba",
+    "numpy",
     "torch",
     "transformers",
-    "datasets",
+    "datasets>=2.21.0",
     "einops",
-    "numpy < 2",
     "umap-learn",
 ]
 readme = "README.md"
+requires-python = ">=3.8"
 
 [project.optional-dependencies]
 dev = [
-    "watchfiles",
-    "jupyterlab",
+    "anywidget[dev]>=0.9.13",
+    "build",
+    "jupyterlab>=4.2.5",
+    "ruff>=0.6.2",
+    "sphinx",
 ]
 tensorboard = [
     "tensorboard",
@@ -27,11 +32,6 @@ tensorboard = [
 wandb = [
     "wandb",
 ]
-
-# automatically add the dev and logging features to the default env (e.g., hatch shell)
-[tool.hatch.envs.default]
-features = ["dev", "tensorboard", "wandb"]
-
 
 [tool.hatch.build]
 only-packages = true
@@ -46,6 +46,36 @@ dependencies = ["hatch-jupyter-builder>=0.5.0"]
 [tool.hatch.build.hooks.jupyter-builder.build-kwargs]
 npm = "npm"
 build_cmd = "build"
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64", "win-64"]
+
+[tool.pixi.dependencies]
+python = "3.10.*"
+nodejs = ">=22.7.0,<23"
+
+[tool.pixi.pypi-dependencies]
+saefarer = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = {features = ["dev", "tensorboard", "wandb"], solve-group = "default"}
+
+[tool.pixi.tasks]
+# linting and formatting
+lint-py = "ruff check"
+lint-js = "npm run lint"
+lint = { depends-on = ["lint-py", "lint-js"] }
+format-py = "ruff format"
+format-js = "npm run format"
+format = { depends-on = ["format-py", "format-js"] }
+style = { depends-on = ["lint", "format"] }
+# generating documentation
+docs = "cd docs && make html"
+# building
+# build the Python package and possibly the JS package
+# based on the `skip-if-exists` config above
+build = "python -m build"
 
 [tool.ruff]
 extend-include = ["*.ipynb"]

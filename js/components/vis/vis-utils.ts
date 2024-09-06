@@ -5,7 +5,7 @@ export function scaleCanvas(
   canvas: HTMLCanvasElement,
   context: CanvasRenderingContext2D,
   width: number,
-  height: number
+  height: number,
 ): void {
   // assume the device pixel ratio is 1 if the browser doesn't specify it
   const devicePixelRatio = window.devicePixelRatio || 1;
@@ -39,7 +39,7 @@ export function defaultFormat(x: number): string {
 function binarySearch(
   maxIndex: number,
   getValue: (guess: number) => number,
-  targetValue: number
+  targetValue: number,
 ) {
   let minIndex = 0;
 
@@ -63,7 +63,7 @@ function binarySearch(
 export function fitString(
   ctx: CanvasRenderingContext2D,
   str: string,
-  maxWidth: number
+  maxWidth: number,
 ) {
   const width = ctx.measureText(str).width;
   const ellipsis = "…";
@@ -76,7 +76,7 @@ export function fitString(
   const index = binarySearch(
     str.length - 1,
     (guess) => ctx.measureText(str.substring(0, guess)).width,
-    maxWidth - ellipsisWidth
+    maxWidth - ellipsisWidth,
   );
 
   return str.substring(0, index) + ellipsis;

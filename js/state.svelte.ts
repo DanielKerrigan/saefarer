@@ -2,11 +2,11 @@ export class BorderBoxSize {
   borderBoxSize: ResizeObserverSize[] = $state([]);
 
   width: number = $derived(
-    this.borderBoxSize.length ? this.borderBoxSize[0].inlineSize : 0
+    this.borderBoxSize.length ? this.borderBoxSize[0].inlineSize : 0,
   );
 
   height: number = $derived(
-    this.borderBoxSize.length ? this.borderBoxSize[0].blockSize : 0
+    this.borderBoxSize.length ? this.borderBoxSize[0].blockSize : 0,
   );
 
   constructor(borderBoxSize: ResizeObserverSize[]) {

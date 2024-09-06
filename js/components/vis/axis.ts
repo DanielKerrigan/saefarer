@@ -37,7 +37,7 @@ export function axis<Domain extends number | string | Date>(
     showTickMarks?: boolean;
     showTickLabels?: boolean;
     tickLabelSpace?: number;
-  } = {}
+  } = {},
 ): void {
   const k = orient === "top" || orient === "left" ? -1 : 1;
   const spacing = Math.max(tickSize, 0) + tickPadding;

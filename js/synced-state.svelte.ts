@@ -5,7 +5,7 @@ type SyncedState<T> = { value: T };
 
 export function createSyncedState<K extends keyof Model>(
   key: K,
-  model: AnyModel<Model>
+  model: AnyModel<Model>,
 ): SyncedState<Model[K]> {
   let value = $state(model.get(key));
 

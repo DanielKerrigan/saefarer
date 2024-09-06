@@ -2,7 +2,7 @@
 
 ## Development installation
 
-Create a virtual environment and and install saefarer in *editable* mode with the
+Create a virtual environment and and install saefarer in _editable_ mode with the
 optional development dependencies:
 
 ```sh
