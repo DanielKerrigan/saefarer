@@ -2,6 +2,7 @@
 
 import time
 from os import PathLike
+from pathlib import Path
 from typing import Union
 
 import torch
@@ -28,6 +29,7 @@ def train(
     dataset: Union[Dataset, IterableDataset, DataLoader],
     save_path: Union[str, PathLike],
     log_path: Union[str, PathLike],
+    checkpoint_path: Union[str, PathLike, None] = None,
 ) -> SAE:
     """Train the SAE"""
 
@@ -38,7 +40,10 @@ def train(
     store = ActivationsStore(model, dataset, cfg)
 
     optimizer = torch.optim.Adam(
-        sae.parameters(), lr=cfg.lr, betas=(cfg.beta1, cfg.beta2), eps=cfg.eps
+        sae.parameters(),
+        lr=cfg.lr,
+        betas=(cfg.beta1, cfg.beta2),
+        eps=cfg.eps,
     )
 
     print("Beginning training")
@@ -66,7 +71,7 @@ def train(
 
         # logging
 
-        if i % cfg.log_batch_freq == 0:
+        if cfg.log_batch_freq and i % cfg.log_batch_freq == 0:
             log_data = LogData(
                 elapsed_seconds=time.time() - start_time,
                 n_training_batches=i,
@@ -82,6 +87,14 @@ def train(
             )
 
             log.write(log_data)
+
+        if (
+            cfg.checkpoint_batch_freq
+            and checkpoint_path
+            and i % cfg.checkpoint_batch_freq == 0
+        ):
+            print(f"Saving checkpoint after batch {i}")
+            sae.save(Path(checkpoint_path) / f"batch_{i}.pt")
 
     print("Saving final model")
 

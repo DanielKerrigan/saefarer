@@ -16,7 +16,11 @@
 
   const tooltipDimensions = new BorderBoxSize([]);
 
-  function getTop(tooltipDimensions: BorderBoxSize, rootRect: DOMRect, targetRect: DOMRect) {
+  function getTop(
+    tooltipDimensions: BorderBoxSize,
+    rootRect: DOMRect,
+    targetRect: DOMRect,
+  ) {
     if (targetRect.top - tooltipDimensions.height < rootRect.top) {
       // tooltip needs to go below target
       return targetRect.bottom - rootRect.top + space;
@@ -26,8 +30,12 @@
     }
   }
 
-  function getLeft(tooltipDimensions: BorderBoxSize, rootRect: DOMRect, targetRect: DOMRect) {
-    const halfTooltipWidth = tooltipDimensions.width / 2
+  function getLeft(
+    tooltipDimensions: BorderBoxSize,
+    rootRect: DOMRect,
+    targetRect: DOMRect,
+  ) {
+    const halfTooltipWidth = tooltipDimensions.width / 2;
 
     if (targetRect.left - halfTooltipWidth < rootRect.left) {
       // tooltip needs to the right
@@ -37,7 +45,12 @@
       return targetRect.left - rootRect.left - tooltipDimensions.width - space;
     } else {
       // tooltip goes in center
-      return targetRect.left - rootRect.left + (targetRect.width / 2) - halfTooltipWidth;
+      return (
+        targetRect.left -
+        rootRect.left +
+        targetRect.width / 2 -
+        halfTooltipWidth
+      );
     }
   }
 

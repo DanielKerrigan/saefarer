@@ -1,3 +1,7 @@
+"""
+This is based on `tokenization_and_batching.py` from SAELens.
+"""
+
 from typing import Iterator, Optional, Tuple, Union
 
 import torch

@@ -12,6 +12,7 @@ class TrainingConfig:
     dtype: Literal["float16", "bfloat16", "float32", "float64"] = "float32"
     # dataset
     dataset_column: str = "input_ids"
+    attn_mask_column: str = ""
     # dimensions
     d_in: int = 64
     expansion_factor: int = 4
@@ -46,6 +47,8 @@ class TrainingConfig:
     wandb_group: Union[str, None] = None
     wandb_name: Union[str, None] = None
     wandb_notes: Union[str, None] = None
+    # checkpointing
+    checkpoint_batch_freq: int = 10_000
 
     def __post_init__(self):
         self.dead_steps_threshold = (

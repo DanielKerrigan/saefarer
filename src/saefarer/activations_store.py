@@ -1,6 +1,8 @@
-""""""
+"""
+This is based on `activations_store.py` from SAELens.
+"""
 
-from typing import Any, Iterator, Union
+from typing import Any, Iterator, Tuple, Union
 
 import torch
 from datasets import Dataset, IterableDataset
@@ -29,7 +31,6 @@ class ActivationsStore:
 
         self.model = model.to(self.device)  # type: ignore
 
-        # self.dataset = dataset
         self.cfg = cfg
 
         self._activations_dataloader: Union[Iterator[Any], None] = None
@@ -39,6 +40,7 @@ class ActivationsStore:
             self.dataset_dataloader = DataLoader(
                 dataset,  # type: ignore
                 batch_size=self.cfg.model_batch_size_sequences,
+                drop_last=True,
             )
         else:
             self.dataset_dataloader = dataset
@@ -74,7 +76,7 @@ class ActivationsStore:
         """
         The dataloader contains half of the activations in the store
         and is iterated over to get batches of activations.
-        When it runs out, more activations are retrived and get shuffled
+        When it runs out, more activations are retrieved and get shuffled
         with the storage buffer.
         """
         if self._activations_dataloader is None:
@@ -97,8 +99,8 @@ class ActivationsStore:
         )
 
         for i in range(n_batches):
-            tokens = self.get_batch_tokens(raise_at_epoch_end)
-            activations = self.get_activations(tokens)
+            tokens, attn_mask = self.get_batch_tokens(raise_at_epoch_end)
+            activations = self.get_activations(tokens, attn_mask)
 
             start = i * n_tokens_in_model_batch
             end = start + n_tokens_in_model_batch
@@ -115,15 +117,16 @@ class ActivationsStore:
                 self.cfg.n_batches_in_store // 2, raise_at_epoch_end=True
             )
         except StopIteration as e:
-            print(e.value)
             # Dump current buffer so that samples aren't leaked between epochs
             self._activations_storage_buffer = None
+
+            print(str(e))
 
             try:
                 new_samples = self.get_buffer(
                     self.cfg.n_batches_in_store // 2, raise_at_epoch_end=True
                 )
-            except StopIteration as e:
+            except StopIteration:
                 raise ValueError("Unable to fill buffer after starting new epoch.")
 
         mixing_buffer = torch.cat([new_samples, self.activations_storage_buffer], dim=0)
@@ -143,12 +146,24 @@ class ActivationsStore:
 
         return dataloader_iterator
 
-    def get_batch_tokens(self, raise_at_epoch_end: bool = False) -> torch.Tensor:
+    def get_batch_tokens(
+        self, raise_at_epoch_end: bool = False
+    ) -> Tuple[torch.Tensor, Union[torch.Tensor, None]]:
         """Get batch of tokens from the dataset."""
-        try:
-            batch = next(self.dataset_batch_iter)[self.cfg.dataset_column]
+
+        def get_tokens_and_attn_mask():
+            batch = next(self.dataset_batch_iter)
+            tokens = batch[self.cfg.dataset_column].to(self.device)
+            mask = (
+                batch[self.cfg.attn_mask_column].to(self.device)
+                if self.cfg.attn_mask_column
+                else None
+            )
             self.num_samples_processed += self.cfg.model_batch_size_sequences
-            return batch.to(self.device)
+            return tokens, mask
+
+        try:
+            return get_tokens_and_attn_mask()
         except StopIteration:
             self.dataset_batch_iter = iter(self.dataset_dataloader)
 
@@ -157,14 +172,16 @@ class ActivationsStore:
                     f"Ran out of tokens in dataset after {self.num_samples_processed} samples."
                 )
             else:
-                batch = next(self.dataset_batch_iter)[self.cfg.dataset_column]
-                self.num_samples_processed += self.cfg.model_batch_size_sequences
-                return batch.to(self.device)
+                return get_tokens_and_attn_mask()
 
     @torch.no_grad()
-    def get_activations(self, batch_tokens: torch.Tensor) -> torch.Tensor:
+    def get_activations(
+        self, batch_tokens: torch.Tensor, attn_mask: Union[torch.Tensor, None]
+    ) -> torch.Tensor:
         """Get activations for tokens."""
-        batch_output = self.model(batch_tokens, output_hidden_states=True)
+        batch_output = self.model(
+            batch_tokens, attention_mask=attn_mask, output_hidden_states=True
+        )
         batch_activations = batch_output.hidden_states[self.cfg.hidden_state_index]
         flat_activations = rearrange(
             batch_activations, "batches seq_len d_in -> (batches seq_len) d_in"
