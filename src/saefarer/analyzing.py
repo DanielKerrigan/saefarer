@@ -181,6 +181,7 @@ def _get_sae_activations(
     cfg: AnalysisConfig,
 ) -> torch.Tensor:
     tokens = ds[cfg.dataset_column]
+    attn_masks = ds[cfg.attn_mask_column]
 
     sae_activations = torch.zeros(
         tokens.shape + (len(feature_indices),), device=cfg.device, dtype=sae.dtype
@@ -188,11 +189,17 @@ def _get_sae_activations(
     offset = 0
 
     token_batches = tokens.split(cfg.model_batch_size_sequences)
+    attn_mask_batches = attn_masks.split(cfg.model_batch_size_sequences)
     # TODO: consider caching these activations so that they don't have to be
     # re-computed for each batch of features.
-    for token_batch in token_batches:
+    for token_batch, attn_mask_batch in zip(token_batches, attn_mask_batches):
         token_batch = token_batch.to(cfg.device)
-        batch_model_output = model(token_batch, output_hidden_states=True)
+        attn_mask_batch = attn_mask_batch.to(cfg.device)
+        batch_model_output = model(
+            token_batch,
+            attention_mask=attn_mask_batch,
+            output_hidden_states=True,
+        )
         batch_model_acts = batch_model_output.hidden_states[sae.cfg.hidden_state_index]
         batch_sae_acts, _ = sae.encode(batch_model_acts)
 

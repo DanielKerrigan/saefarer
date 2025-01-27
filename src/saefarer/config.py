@@ -69,6 +69,7 @@ class AnalysisConfig:
     device: Literal["cpu", "mps", "cuda"] = "cuda"
     # dataset
     dataset_column: str = "input_ids"
+    attn_mask_column: str = ""
     # batch sizes
     model_batch_size_sequences: int = 32
     model_sequence_length: int = 128
