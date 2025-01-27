@@ -90,21 +90,30 @@ class ActivationsStore:
         n_tokens_in_model_batch = (
             self.cfg.model_batch_size_sequences * self.cfg.model_sequence_length
         )
+        n_tokens_in_buffer = n_batches * n_tokens_in_model_batch
 
         new_buffer = torch.zeros(
-            (n_batches * n_tokens_in_model_batch, self.cfg.d_in),
+            (n_tokens_in_buffer, self.cfg.d_in),
             dtype=self.dtype,
             requires_grad=False,
             device=self.device,
         )
 
-        for i in range(n_batches):
+        n_tokens_read = 0
+
+        while n_tokens_read < n_tokens_in_buffer:
             tokens, attn_mask = self.get_batch_tokens(raise_at_epoch_end)
             activations = self.get_activations(tokens, attn_mask)
 
-            start = i * n_tokens_in_model_batch
-            end = start + n_tokens_in_model_batch
-            new_buffer[start:end] = activations
+            n_tokens = activations.shape[0]
+            # TODO: don't drop unused tokens
+            n_tokens_to_use = min(n_tokens, n_tokens_in_buffer - n_tokens_read)
+
+            start = n_tokens_read
+            end = start + n_tokens_to_use
+            new_buffer[start:end] = activations[0:n_tokens_to_use]
+
+            n_tokens_read += n_tokens_to_use
 
         new_buffer = new_buffer[torch.randperm(new_buffer.shape[0])]
 
@@ -136,6 +145,7 @@ class ActivationsStore:
 
         dataset = TensorDataset(mixing_buffer[mixing_buffer.shape[0] // 2 :])
 
+        # TODO: check that batch size is smaller than dataset size
         dataloader = DataLoader(
             dataset,
             batch_size=self.cfg.sae_batch_size_tokens,
@@ -186,6 +196,14 @@ class ActivationsStore:
         flat_activations = rearrange(
             batch_activations, "batches seq_len d_in -> (batches seq_len) d_in"
         )
+
+        if attn_mask is not None:
+            flat_attn_mask = rearrange(
+                attn_mask, "batches seq_len -> (batches seq_len)"
+            ).bool()
+
+            flat_activations = flat_activations[flat_attn_mask]
+
         return flat_activations
 
     def next_batch(self):
