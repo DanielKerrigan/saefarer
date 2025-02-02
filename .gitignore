@@ -6,7 +6,7 @@ dist
 scratch
 *.pt
 *.db
-examples/TinyStories-1M/TinyStories_tokenized_128
+examples/*/*/
 wandb
 examples/**/*.sh
 docs/build

@@ -28,6 +28,7 @@ dev = [
 ]
 tensorboard = ["tensorboard"]
 wandb = ["wandb"]
+examples = ["openpyxl"]
 
 [tool.hatch.build]
 only-packages = true
@@ -59,6 +60,7 @@ default = { features = [
     "dev",
     "tensorboard",
     "wandb",
+    "examples",
 ], solve-group = "default" }
 
 [tool.pixi.tasks]
