@@ -495,12 +495,31 @@ def _get_dataset_with_predictions(
 
         ds = next(iter(dataloader))
 
-    output = model(
-        ds[cfg.dataset_column].to(cfg.device),
-        attention_mask=ds[cfg.attn_mask_column].to(cfg.device),
+    tokens = ds[cfg.dataset_column]
+    attn_masks = ds[cfg.attn_mask_column]
+
+    predicted_probabilities = torch.zeros(
+        (tokens.shape[0], 3), device=torch.device("cpu"), dtype=torch.float32
     )
-    probs = F.softmax(output.logits, dim=1)
-    ds["predicted_probabilities"] = probs
-    ds["predicted_label"] = probs.argmax(dim=1)
+    offset = 0
+
+    token_batches = tokens.split(cfg.model_batch_size_sequences)
+    attn_mask_batches = attn_masks.split(cfg.model_batch_size_sequences)
+
+    for token_batch, attn_mask_batch in zip(token_batches, attn_mask_batches):
+        output = model(
+            token_batch.to(cfg.device),
+            attention_mask=attn_mask_batch.to(cfg.device),
+        )
+        probs = F.softmax(output.logits, dim=1)
+
+        start = offset
+        offset += probs.shape[0]
+        end = offset
+
+        predicted_probabilities[start:end, :] = probs.to("cpu")
+
+    ds["predicted_probabilities"] = predicted_probabilities
+    ds["predicted_label"] = predicted_probabilities.argmax(dim=1)
 
     return ds
