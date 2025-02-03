@@ -7,11 +7,13 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import umap
 from datasets import (
     Dataset,
     IterableDataset,
 )
+from scipy import stats
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer
@@ -26,6 +28,7 @@ from saefarer.types import (
     FeatureProjection,
     FeatureTokenSequence,
     Histogram,
+    MarginalEffects,
     SAEData,
     SequenceInterval,
 )
@@ -55,7 +58,7 @@ def analyze(
 
     rng = np.random.default_rng()
 
-    ds = _get_dataset(dataset, cfg)
+    ds = _get_dataset_with_predictions(model, dataset, cfg)
 
     con, cur = db.create_database(output_path)
 
@@ -93,9 +96,9 @@ def analyze(
         for i, feature in enumerate(features):
             feature_activations = sae_activations[..., i]
 
-            positive_activations = feature_activations[feature_activations > 0]
+            positive_activation_mask = feature_activations > 0
 
-            if positive_activations.numel() == 0:
+            if positive_activation_mask.sum() == 0:
                 non_activating_feature_ids.append(feature)
             else:
                 feature_data = _get_feature_data(
@@ -103,7 +106,7 @@ def analyze(
                     sae_id,
                     sae,
                     feature_activations,
-                    positive_activations,
+                    positive_activation_mask,
                     tokenizer,
                     ds,
                     cfg,
@@ -218,12 +221,14 @@ def _get_feature_data(
     sae_id: str,
     sae: SAE,
     feature_activations: torch.Tensor,
-    positive_activations: torch.Tensor,
+    positive_activation_mask: torch.Tensor,
     tokenizer: PreTrainedTokenizer,
     ds: Dict[str, torch.Tensor],
     cfg: AnalysisConfig,
     rng: np.random.Generator,
 ) -> FeatureData:
+    positive_activations = feature_activations[positive_activation_mask]
+
     sequence_intervals = _get_sequence_data(
         tokenizer, ds, feature_activations, positive_activations, cfg, rng
     )
@@ -231,6 +236,9 @@ def _get_feature_data(
     activation_rate = positive_activations.numel() / feature_activations.numel()
 
     activations_histogram = _get_activation_histogram(positive_activations)
+    marginal_effects = _get_marginal_effects(
+        positive_activations, positive_activation_mask, ds
+    )
     cumsum_percent_l1_norm, n_neurons_majority_l1_norm = _get_cumsum_percent_l1_norm(
         sae.W_dec[feature_id]
     )
@@ -243,6 +251,7 @@ def _get_feature_data(
         n_neurons_majority_l1_norm=n_neurons_majority_l1_norm,
         cumsum_percent_l1_norm=cumsum_percent_l1_norm,
         activations_histogram=activations_histogram,
+        marginal_effects=marginal_effects,
         sequence_intervals=sequence_intervals,
     )
 
@@ -359,6 +368,26 @@ def _get_activation_histogram(
 
 
 @torch.inference_mode()
+def _get_marginal_effects(
+    positive_activations: torch.Tensor,
+    positive_activation_mask: torch.Tensor,
+    ds: Dict[str, torch.Tensor],
+) -> MarginalEffects:
+    num_bins = min(freedman_diaconis_torch(positive_activations), 64)
+
+    statistic, bin_edges, _ = stats.binned_statistic(
+        positive_activations.numpy(force=True),
+        ds["predicted_probabilities"][positive_activation_mask, 0].numpy(force=True),
+        statistic="mean",
+        bins=num_bins,
+    )
+
+    return MarginalEffects(
+        probabilities=statistic.tolist(), thresholds=bin_edges.tolist()
+    )
+
+
+@torch.inference_mode()
 def _get_activation_rate_histogram(
     activation_rates: List[float],
 ) -> Histogram:
@@ -442,26 +471,36 @@ def _get_cumsum_percent_l1_norm(
 
 
 @torch.inference_mode()
-def _get_dataset(
-    dataset: Union[Dataset, IterableDataset, DataLoader], cfg: AnalysisConfig
+def _get_dataset_with_predictions(
+    model: PreTrainedModel,
+    dataset: Union[Dataset, IterableDataset, DataLoader],
+    cfg: AnalysisConfig,
 ) -> Dict[str, torch.Tensor]:
     if isinstance(dataset, Dataset):
-        return dataset[0 : cfg.total_analysis_sequences]
-
-    if isinstance(dataset, IterableDataset):
-        dataloader = DataLoader(
-            dataset,  # type: ignore
-            batch_size=cfg.total_analysis_sequences,
-        )
+        ds = dataset[0 : cfg.total_analysis_sequences]
     else:
-        dataloader = DataLoader(
-            dataset=dataset.dataset,
-            shuffle=False,
-            batch_size=cfg.total_analysis_sequences,
-            collate_fn=dataset.collate_fn,
-            num_workers=dataset.num_workers,
-        )
+        if isinstance(dataset, IterableDataset):
+            dataloader = DataLoader(
+                dataset,  # type: ignore
+                batch_size=cfg.total_analysis_sequences,
+            )
+        else:
+            dataloader = DataLoader(
+                dataset=dataset.dataset,
+                shuffle=False,
+                batch_size=cfg.total_analysis_sequences,
+                collate_fn=dataset.collate_fn,
+                num_workers=dataset.num_workers,
+            )
 
-    ds = next(iter(dataloader))
+        ds = next(iter(dataloader))
+
+    output = model(
+        ds[cfg.dataset_column].to(cfg.device),
+        attention_mask=ds[cfg.attn_mask_column].to(cfg.device),
+    )
+    probs = F.softmax(output.logits, dim=1)
+    ds["predicted_probabilities"] = probs
+    ds["predicted_label"] = probs.argmax(dim=1)
 
     return ds

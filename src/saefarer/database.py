@@ -34,6 +34,7 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
             n_neurons_majority_l1_norm INTEGER,
             cumsum_percent_l1_norm BLOB,
             activations_histogram BLOB,
+            marginal_effects BLOB,
             sequence_intervals BLOB,
             PRIMARY KEY (sae_id, feature_id)
         )
@@ -74,6 +75,7 @@ def insert_feature(data: FeatureData, con: sqlite3.Connection, cur: sqlite3.Curs
             :n_neurons_majority_l1_norm,
             :cumsum_percent_l1_norm,
             :activations_histogram,
+            :marginal_effects,
             :sequence_intervals
         )
         """,
@@ -152,6 +154,7 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
         n_neurons_majority_l1_norm,
         cumsum_percent_l1_norm,
         activations_histogram,
+        marginal_effects,
         sequence_intervals,
     ) = res.fetchone()
 
@@ -163,5 +166,6 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
         n_neurons_majority_l1_norm=n_neurons_majority_l1_norm,
         cumsum_percent_l1_norm=json.loads(cumsum_percent_l1_norm),
         activations_histogram=json.loads(activations_histogram),
+        marginal_effects=json.loads(marginal_effects),
         sequence_intervals=json.loads(sequence_intervals),
     )

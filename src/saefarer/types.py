@@ -6,6 +6,11 @@ class Histogram(TypedDict):
     thresholds: List[float]
 
 
+class MarginalEffects(TypedDict):
+    probabilities: List[float]
+    thresholds: List[float]
+
+
 class FeatureTokenSequence(TypedDict):
     token: List[str]
     activation: List[float]
@@ -37,6 +42,7 @@ class FeatureData(TypedDict):
     n_neurons_majority_l1_norm: int
     cumsum_percent_l1_norm: CumSumPercentL1Norm
     activations_histogram: Histogram
+    marginal_effects: MarginalEffects
     sequence_intervals: Dict[str, SequenceInterval]
 
 
