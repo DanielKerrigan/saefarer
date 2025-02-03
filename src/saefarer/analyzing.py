@@ -3,7 +3,7 @@
 import math
 import os
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -14,7 +14,7 @@ from datasets import (
 )
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import PreTrainedModel
+from transformers import PreTrainedModel, PreTrainedTokenizer
 
 import saefarer.database as db
 from saefarer.config import AnalysisConfig
@@ -43,7 +43,7 @@ def analyze(
     model: PreTrainedModel,
     dataset: Union[Dataset, IterableDataset, DataLoader],
     sae: SAE,
-    decode_fn: Callable[[torch.Tensor], List[str]],
+    tokenizer: PreTrainedTokenizer,
     output_path: Union[str, os.PathLike],
 ):
     output_path = Path(output_path)
@@ -104,7 +104,7 @@ def analyze(
                     sae,
                     feature_activations,
                     positive_activations,
-                    decode_fn,
+                    tokenizer,
                     ds,
                     cfg,
                     rng,
@@ -219,13 +219,13 @@ def _get_feature_data(
     sae: SAE,
     feature_activations: torch.Tensor,
     positive_activations: torch.Tensor,
-    decode_fn: Callable[[torch.Tensor], List[str]],
+    tokenizer: PreTrainedTokenizer,
     ds: Dict[str, torch.Tensor],
     cfg: AnalysisConfig,
     rng: np.random.Generator,
 ) -> FeatureData:
     sequence_intervals = _get_sequence_data(
-        decode_fn, ds, feature_activations, positive_activations, cfg, rng
+        tokenizer, ds, feature_activations, positive_activations, cfg, rng
     )
 
     activation_rate = positive_activations.numel() / feature_activations.numel()
@@ -249,7 +249,7 @@ def _get_feature_data(
 
 @torch.inference_mode()
 def _get_sequence_data(
-    decode_fn: Callable[[torch.Tensor], List[str]],
+    tokenizer: PreTrainedTokenizer,
     ds: Dict[str, torch.Tensor],
     feature_activations: torch.Tensor,
     positive_activations: torch.Tensor,
@@ -335,7 +335,7 @@ def _get_sequence_data(
                 extras[col] = [fmt(value) for value in values]
 
             token_sequence = FeatureTokenSequence(
-                token=decode_fn(tok_ids),
+                token=tokenizer.batch_decode(tok_ids),
                 activation=acts.tolist(),
                 extras=extras,
                 max_index=tok_i - min_tok_i,

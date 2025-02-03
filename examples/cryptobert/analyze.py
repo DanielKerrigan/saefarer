@@ -37,7 +37,7 @@ def main():
         model=model,
         dataset=dataset,  # type: ignore
         sae=sae,
-        decode_fn=tokenizer.batch_decode,  # type: ignore
+        tokenizer=tokenizer,  # type: ignore
         output_path=output_path,
     )
 
