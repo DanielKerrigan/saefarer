@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { BorderBoxSize } from "../state.svelte";
 
   let {
     rootRect,
@@ -14,35 +13,38 @@
 
   const space = 4;
 
-  const tooltipDimensions = new BorderBoxSize([]);
+  let width = $state(0);
+  let height = $state(0);
 
   function getTop(
-    tooltipDimensions: BorderBoxSize,
+    width: number,
+    height: number,
     rootRect: DOMRect,
     targetRect: DOMRect,
   ) {
-    if (targetRect.top - tooltipDimensions.height < rootRect.top) {
+    if (targetRect.top - height < rootRect.top) {
       // tooltip needs to go below target
       return targetRect.bottom - rootRect.top + space;
     } else {
       // tooltip defaults to above target
-      return targetRect.top - rootRect.top - tooltipDimensions.height - space;
+      return targetRect.top - rootRect.top - height - space;
     }
   }
 
   function getLeft(
-    tooltipDimensions: BorderBoxSize,
+    width: number,
+    height: number,
     rootRect: DOMRect,
     targetRect: DOMRect,
   ) {
-    const halfTooltipWidth = tooltipDimensions.width / 2;
+    const halfTooltipWidth = width / 2;
 
     if (targetRect.left - halfTooltipWidth < rootRect.left) {
       // tooltip needs to the right
       return targetRect.right - rootRect.left + space;
     } else if (targetRect.right + halfTooltipWidth > rootRect.right) {
       // tooltip needs to the left
-      return targetRect.left - rootRect.left - tooltipDimensions.width - space;
+      return targetRect.left - rootRect.left - width - space;
     } else {
       // tooltip goes in center
       return (
@@ -54,13 +56,14 @@
     }
   }
 
-  let top = $derived(getTop(tooltipDimensions, rootRect, targetRect));
-  let left = $derived(getLeft(tooltipDimensions, rootRect, targetRect));
+  let top = $derived(getTop(width, height, rootRect, targetRect));
+  let left = $derived(getLeft(width, height, rootRect, targetRect));
 </script>
 
 <div
   class="sae-tooltip"
-  bind:borderBoxSize={tooltipDimensions.borderBoxSize}
+  bind:offsetWidth={width}
+  bind:offsetHeight={height}
   style="left: {left}px; top: {top}px;"
 >
   {@render content()}

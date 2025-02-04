@@ -4,7 +4,7 @@
   import { height } from "../synced-state.svelte";
   import Overview from "./Overview.svelte";
   import Features from "./Features.svelte";
-  import { widgetDimensions, rootDiv } from "../state.svelte";
+  import { rootDiv } from "../state.svelte";
 
   let selectedTab: Tab = $state("overview");
 
@@ -16,7 +16,6 @@
 <div
   class="sae-widget-container"
   style:height="{height.value}px"
-  bind:borderBoxSize={widgetDimensions.borderBoxSize}
   bind:this={rootDiv.value}
 >
   <Tabs {selectedTab} {changeTab} />

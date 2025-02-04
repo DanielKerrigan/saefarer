@@ -7,30 +7,21 @@
   const percentFormat = format(".1%");
 
   const percentDead = $derived(
-    sae_data.value.num_dead_features / sae_data.value.num_total_features
+    sae_data.value.num_dead_features / sae_data.value.num_total_features,
   );
 
   const percentNonActivating = $derived(
     sae_data.value.num_non_activating_features /
-      sae_data.value.num_total_features
+      sae_data.value.num_total_features,
   );
 
-  let borderBoxSizeLeft: ResizeObserverSize[] | undefined = $state();
-  const leftWidth = $derived(
-    borderBoxSizeLeft ? borderBoxSizeLeft[0].inlineSize : 0
-  );
-
-  let borderBoxSizeRight: ResizeObserverSize[] | undefined = $state();
-  const rightWidth = $derived(
-    borderBoxSizeRight ? borderBoxSizeRight[0].inlineSize : 0
-  );
-  const height = $derived(
-    borderBoxSizeRight ? borderBoxSizeRight[0].blockSize : 0
-  );
+  let leftWidth = $state(0);
+  let rightWidth = $state(0);
+  let height = $state(0);
 </script>
 
 <div class="sae-overview-container">
-  <div class="sae-left" bind:borderBoxSize={borderBoxSizeLeft}>
+  <div class="sae-left" bind:offsetWidth={leftWidth} bind:offsetHeight={height}>
     <div class="sae-section">
       <div class="sae-header">Feature Activation Rates</div>
 
@@ -76,7 +67,7 @@
     </div>
   </div>
 
-  <div class="sae-right" bind:borderBoxSize={borderBoxSizeRight}>
+  <div class="sae-right" bind:offsetWidth={rightWidth}>
     <div class="sae-section">
       <div class="sae-header">Feature Projection</div>
       <FeatureProjectionScatter

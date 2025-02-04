@@ -5,6 +5,11 @@ export type Histogram = {
   thresholds: number[];
 };
 
+export type MarginalEffects = {
+  probabilities: number[];
+  thresholds: number[];
+};
+
 export type FeatureTokenSequence = {
   token: string[];
   activation: number[];
@@ -31,6 +36,7 @@ export type FeatureData = {
   n_neurons_majority_l1_norm: number;
   cumsum_percent_l1_norm: CumSumPercentL1Norm;
   activations_histogram: Histogram;
+  marginal_effects: MarginalEffects;
   sequence_intervals: Record<string, SequenceInterval>;
 };
 

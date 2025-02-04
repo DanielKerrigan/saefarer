@@ -6,13 +6,14 @@
   import Histogram from "./vis/Histogram.svelte";
   import LineChart from "./vis/LineChart.svelte";
   import FeatureTokenSequences from "./FeatureTokenSequences.svelte";
+  import MarginalEffectsPlot from "./vis/MarginalEffectsPlot.svelte";
 
   const percentFormat = format(".3%");
 
   let color = $derived(
     scaleSequential()
       .domain([0, feature_data.value.max_activation])
-      .interpolator(interpolateBlues)
+      .interpolator(interpolateBlues),
   );
 </script>
 
@@ -51,21 +52,18 @@
     </div>
 
     <div class="sae-section">
-      <div class="sae-header">Dimensionality</div>
+      <div class="sae-header">Marginal Effects</div>
 
-      <LineChart
-        xs={feature_data.value.cumsum_percent_l1_norm.n_neurons}
-        ys={feature_data.value.cumsum_percent_l1_norm.cum_sum}
-        bandY0={sae_data.value.cumsum_percent_l1_norm_range.mins}
-        bandY1={sae_data.value.cumsum_percent_l1_norm_range.maxs}
+      <MarginalEffectsPlot
+        data={feature_data.value.marginal_effects}
         marginTop={20}
         marginRight={20}
         marginLeft={50}
         marginBottom={40}
         width={300}
         height={200}
-        xAxisLabel={"Number of dimensions"}
-        yAxisLabel={"Percent of L1 norm"}
+        xAxisLabel={"Activation value"}
+        yAxisLabel={"Average probability"}
       />
     </div>
   </div>
