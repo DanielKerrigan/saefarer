@@ -398,6 +398,8 @@ def _get_activation_rate_histogram(
 
 @torch.inference_mode()
 def _get_dimensionality_histogram(n_neurons_majority_l1_norm: List[int]) -> Histogram:
+    if not n_neurons_majority_l1_norm:
+        return Histogram(counts=[], thresholds=[])
     array = np.array(n_neurons_majority_l1_norm)
     num_bins = min(freedman_diaconis_np(array), 64)
     counts, thresholds = np.histogram(array, bins=num_bins)
@@ -495,12 +497,28 @@ def _get_dataset_with_predictions(
 
         ds = next(iter(dataloader))
 
+    predicted_probabilities = _get_model_predictions(model, ds, cfg)
+    ds["predicted_probabilities"] = predicted_probabilities
+    ds["predicted_label"] = predicted_probabilities.argmax(dim=1)
+
+    return ds
+
+
+@torch.inference_mode()
+def _get_model_predictions(
+    model: PreTrainedModel,
+    ds: Dict[str, torch.Tensor],
+    cfg: AnalysisConfig,
+) -> torch.Tensor:
     tokens = ds[cfg.dataset_column]
     attn_masks = ds[cfg.attn_mask_column]
 
     predicted_probabilities = torch.zeros(
-        (tokens.shape[0], 3), device=torch.device("cpu"), dtype=torch.float32
+        (tokens.shape[0], len(model.config.id2label)),
+        device=torch.device("cpu"),
+        dtype=model.dtype,
     )
+
     offset = 0
 
     token_batches = tokens.split(cfg.model_batch_size_sequences)
@@ -519,7 +537,4 @@ def _get_dataset_with_predictions(
 
         predicted_probabilities[start:end, :] = probs.to("cpu")
 
-    ds["predicted_probabilities"] = predicted_probabilities
-    ds["predicted_label"] = predicted_probabilities.argmax(dim=1)
-
-    return ds
+    return predicted_probabilities
