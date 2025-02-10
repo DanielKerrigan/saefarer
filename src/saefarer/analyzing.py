@@ -375,9 +375,14 @@ def _get_marginal_effects(
 ) -> MarginalEffects:
     num_bins = min(freedman_diaconis_torch(positive_activations), 64)
 
+    predictions = ds["predicted_probabilities"]
+    predictions_reshaped = predictions.unsqueeze(1).expand(
+        (predictions.shape[0], positive_activation_mask.shape[1], predictions.shape[1])
+    )
+
     statistic, bin_edges, _ = stats.binned_statistic(
         positive_activations.numpy(force=True),
-        ds["predicted_probabilities"][positive_activation_mask, 0].numpy(force=True),
+        predictions_reshaped[positive_activation_mask.to("cpu")][:,0].numpy(force=True),
         statistic="mean",
         bins=num_bins,
     )
