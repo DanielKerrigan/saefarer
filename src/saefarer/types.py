@@ -7,7 +7,7 @@ class Histogram(TypedDict):
 
 
 class MarginalEffects(TypedDict):
-    probabilities: List[float]
+    probabilities: List[List[float]]
     thresholds: List[float]
 
 

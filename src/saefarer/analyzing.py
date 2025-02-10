@@ -374,22 +374,34 @@ def _get_marginal_effects(
     ds: Dict[str, torch.Tensor],
 ) -> MarginalEffects:
     num_bins = min(freedman_diaconis_torch(positive_activations), 64)
+    positive_activations_numpy = positive_activations.numpy(force=True)
+    bin_edges = np.histogram_bin_edges(positive_activations_numpy, num_bins)
 
-    predictions = ds["predicted_probabilities"]
-    predictions_reshaped = predictions.unsqueeze(1).expand(
-        (predictions.shape[0], positive_activation_mask.shape[1], predictions.shape[1])
+    n_tokens, n_classes = ds["predicted_probabilities"].shape
+
+    predictions_reshaped = (
+        ds["predicted_probabilities"]
+        .unsqueeze(1)
+        .expand((n_tokens, positive_activation_mask.shape[1], n_classes))
     )
 
-    statistic, bin_edges, _ = stats.binned_statistic(
-        positive_activations.numpy(force=True),
-        predictions_reshaped[positive_activation_mask.to("cpu")][:,0].numpy(force=True),
-        statistic="mean",
-        bins=num_bins,
-    )
+    positive_predictions_numpy = predictions_reshaped[
+        positive_activation_mask.to("cpu")
+    ].numpy(force=True)
 
-    return MarginalEffects(
-        probabilities=statistic.tolist(), thresholds=bin_edges.tolist()
-    )
+    probabilities = []
+
+    for i in range(n_classes):
+        statistic, _, _ = stats.binned_statistic(
+            positive_activations_numpy,
+            positive_predictions_numpy[:, i],
+            statistic="mean",
+            bins=bin_edges,
+        )
+
+        probabilities.append(statistic.tolist())
+
+    return MarginalEffects(probabilities=probabilities, thresholds=bin_edges.tolist())
 
 
 @torch.inference_mode()
