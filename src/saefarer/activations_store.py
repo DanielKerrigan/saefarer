@@ -47,13 +47,13 @@ class ActivationsStore:
 
         batch_shape = next(iter(self.dataset_dataloader))[self.cfg.dataset_column].shape
 
-        assert (
-            batch_shape[0] == self.cfg.model_batch_size_sequences
-        ), f"DataLoader batch size is {batch_shape[0]} but cfg.model_batch_size_sequences = {self.cfg.model_batch_size_sequences}"
+        assert batch_shape[0] == self.cfg.model_batch_size_sequences, (
+            f"DataLoader batch size is {batch_shape[0]} but cfg.model_batch_size_sequences = {self.cfg.model_batch_size_sequences}"
+        )
 
-        assert (
-            batch_shape[1] == self.cfg.model_sequence_length
-        ), f"Dataset sequence length is {batch_shape[1]} but cfg.model_sequence_length = {self.cfg.model_sequence_length}"
+        assert batch_shape[1] == self.cfg.model_sequence_length, (
+            f"Dataset sequence length is {batch_shape[1]} but cfg.model_sequence_length = {self.cfg.model_sequence_length}"
+        )
 
         self.dataset_batch_iter = iter(self.dataset_dataloader)
         self.num_samples_processed = 0

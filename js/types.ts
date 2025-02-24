@@ -6,20 +6,21 @@ export type Histogram = {
 };
 
 export type MarginalEffects = {
-  probabilities: number[];
+  probabilities: number[][];
   thresholds: number[];
 };
 
-export type FeatureTokenSequence = {
-  token: string[];
-  activation: number[];
-  max_index: number;
+export type DisplayToken = {
+  display: string;
+  token_ids: number[];
+  activations: number[];
+  max_activation: number;
   extras: Record<string, string[]>;
 };
 
-export type CumSumPercentL1Norm = {
-  n_neurons: number[];
-  cum_sum: number[];
+export type FeatureTokenSequence = {
+  display_tokens: DisplayToken[];
+  max_index: number;
 };
 
 export type SequenceInterval = {
@@ -33,22 +34,15 @@ export type FeatureData = {
   feature_id: number;
   activation_rate: number;
   max_activation: number;
-  n_neurons_majority_l1_norm: number;
-  cumsum_percent_l1_norm: CumSumPercentL1Norm;
   activations_histogram: Histogram;
   marginal_effects: MarginalEffects;
   sequence_intervals: Record<string, SequenceInterval>;
 };
 
 export type FeatureProjection = {
-  feature_id: number[];
-  x: number[];
-  y: number[];
-};
-
-export type CumSumPercentL1NormRange = {
-  mins: number[];
-  maxs: number[];
+  feature_ids: number[];
+  xs: number[];
+  ys: number[];
 };
 
 export type SAEData = {
@@ -59,8 +53,6 @@ export type SAEData = {
   num_non_activating_features: number;
   alive_feature_ids: number[];
   activation_rate_histogram: Histogram;
-  dimensionality_histogram: Histogram;
-  cumsum_percent_l1_norm_range: CumSumPercentL1NormRange;
   feature_projection: FeatureProjection;
 };
 

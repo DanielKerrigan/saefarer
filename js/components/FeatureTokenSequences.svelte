@@ -9,11 +9,14 @@
 
   let { color }: { color: ScaleSequential<string> } = $props();
 
-  let chosenIntervalKey = $state(Object.keys(feature_data.value.sequence_intervals)[0]);
-  let seqInterval = $derived(feature_data.value.sequence_intervals[chosenIntervalKey]);
+  let chosenIntervalKey = $state(
+    Object.keys(feature_data.value.sequence_intervals)[0],
+  );
+  let seqInterval = $derived(
+    feature_data.value.sequence_intervals[chosenIntervalKey],
+  );
 
   let wrapSequences = $state(false);
-
 
   let tooltipInfo: {
     data: FeatureToken;
@@ -24,7 +27,7 @@
   function onMouseEnterToken(
     event: MouseEvent,
     sequence: FeatureTokenSequence,
-    tokIndex: number
+    tokIndex: number,
   ) {
     if (!event.target || !rootDiv.value) {
       return;
@@ -35,16 +38,19 @@
     const rootRect = rootDiv.value.getBoundingClientRect();
 
     const data = {
-      token: sequence.token[tokIndex],
-      activation: sequence.activation[tokIndex],
-      extras: Object.entries(sequence.extras).map(([key, values]) => ({ key, value: values[tokIndex]}))
+      token: sequence.tokens[tokIndex],
+      activation: sequence.activations[tokIndex],
+      extras: Object.entries(sequence.extras).map(([key, values]) => ({
+        key,
+        value: values[tokIndex],
+      })),
     };
 
     tooltipInfo = {
       data,
       rootRect,
-      targetRect
-    }
+      targetRect,
+    };
   }
 
   function onMouseLeaveToken() {
@@ -74,8 +80,8 @@
         class="sae-sequence"
         style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}
       >
-        {#each seq.token as token, tokIndex}
-          {@const col = color(seq.activation[tokIndex])}
+        {#each seq.tokens as token, tokIndex}
+          {@const col = color(seq.activations[tokIndex])}
           <!-- TODO: do this properly -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
@@ -84,8 +90,7 @@
             style:color={hcl(col).l > 50 ? "black" : "white"}
             style:font-weight={tokIndex === seq.max_index ? "bold" : "normal"}
             style:--border-color={col}
-            onmouseenter={(event) =>
-              onMouseEnterToken(event, seq, tokIndex)}
+            onmouseenter={(event) => onMouseEnterToken(event, seq, tokIndex)}
             onmouseleave={onMouseLeaveToken}
           >
             <span class="sae-token-name">{token}</span>

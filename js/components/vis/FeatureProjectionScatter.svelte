@@ -24,26 +24,26 @@
 
   let x = $derived(
     scaleLinear()
-      .domain([Math.min(...data.x), Math.max(...data.x)])
-      .range([marginLeft, width - marginRight])
+      .domain([Math.min(...data.xs), Math.max(...data.xs)])
+      .range([marginLeft, width - marginRight]),
   );
 
   let y = $derived(
     scaleLinear()
-      .domain([Math.min(...data.y), Math.max(...data.y)])
+      .domain([Math.min(...data.ys), Math.max(...data.ys)])
       .range([height - marginBottom, marginTop])
-      .nice()
+      .nice(),
   );
 
-  let I = $derived(range(data.x.length));
+  let I = $derived(range(data.xs.length));
 </script>
 
 <svg {width} {height}>
   <rect {width} {height} fill="var(--gray-0)" />
   <g>
     {#each I as i}
-      <circle cx={x(data.x[i])} cy={y(data.y[i])} r={2} fill={"black"}>
-        <title>Feature {data.feature_id[i]}</title>
+      <circle cx={x(data.xs[i])} cy={y(data.ys[i])} r={2} fill={"black"}>
+        <title>Feature {data.feature_ids[i]}</title>
       </circle>
     {/each}
   </g>

@@ -19,8 +19,6 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
             num_non_activating_features INTEGER,
             alive_feature_ids BLOB,
             activation_rate_histogram BLOB,
-            dimensionality_histogram BLOB,
-            cumsum_percent_l1_norm_range BLOB,
             feature_projection BLOB
         )
     """)
@@ -31,8 +29,6 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
             feature_id INTEGER,
             activation_rate REAL,    
             max_activation REAL,
-            n_neurons_majority_l1_norm INTEGER,
-            cumsum_percent_l1_norm BLOB,
             activations_histogram BLOB,
             marginal_effects BLOB,
             sequence_intervals BLOB,
@@ -54,8 +50,6 @@ def insert_sae(data: SAEData, con: sqlite3.Connection, cur: sqlite3.Cursor):
             :num_non_activating_features,
             :alive_feature_ids,
             :activation_rate_histogram,
-            :dimensionality_histogram,
-            :cumsum_percent_l1_norm_range,
             :feature_projection
         )
         """,
@@ -72,8 +66,6 @@ def insert_feature(data: FeatureData, con: sqlite3.Connection, cur: sqlite3.Curs
             :feature_id,
             :activation_rate,
             :max_activation,
-            :n_neurons_majority_l1_norm,
-            :cumsum_percent_l1_norm,
             :activations_histogram,
             :marginal_effects,
             :sequence_intervals
@@ -116,8 +108,6 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
         num_non_activating_features,
         alive_feature_ids,
         activation_rate_histogram,
-        dimensionality_histogram,
-        cumsum_percent_l1_norm_range,
         feature_projection,
     ) = res.fetchone()
 
@@ -129,8 +119,6 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
         num_non_activating_features=num_non_activating_features,
         alive_feature_ids=json.loads(alive_feature_ids),
         activation_rate_histogram=json.loads(activation_rate_histogram),
-        dimensionality_histogram=json.loads(dimensionality_histogram),
-        cumsum_percent_l1_norm_range=json.loads(cumsum_percent_l1_norm_range),
         feature_projection=json.loads(feature_projection),
     )
 
@@ -151,8 +139,6 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
         feature_id,
         activation_rate,
         max_activation,
-        n_neurons_majority_l1_norm,
-        cumsum_percent_l1_norm,
         activations_histogram,
         marginal_effects,
         sequence_intervals,
@@ -163,8 +149,6 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
         feature_id=feature_id,
         activation_rate=activation_rate,
         max_activation=max_activation,
-        n_neurons_majority_l1_norm=n_neurons_majority_l1_norm,
-        cumsum_percent_l1_norm=json.loads(cumsum_percent_l1_norm),
         activations_histogram=json.loads(activations_histogram),
         marginal_effects=json.loads(marginal_effects),
         sequence_intervals=json.loads(sequence_intervals),

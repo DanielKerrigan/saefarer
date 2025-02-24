@@ -11,21 +11,17 @@ class MarginalEffects(TypedDict):
     thresholds: List[float]
 
 
-class FeatureTokenSequence(TypedDict):
-    token: List[str]
-    activation: List[float]
+class DisplayToken(TypedDict):
+    display: str
+    token_ids: List[int]
+    activations: List[float]
+    max_activation: float
     extras: Dict[str, List[str]]
+
+
+class FeatureTokenSequence(TypedDict):
+    display_tokens: List[DisplayToken]
     max_index: int
-
-
-class CumSumPercentL1Norm(TypedDict):
-    n_neurons: List[int]
-    cum_sum: List[float]
-
-
-class CumSumPercentL1NormRange(TypedDict):
-    mins: List[float]
-    maxs: List[float]
 
 
 class SequenceInterval(TypedDict):
@@ -39,17 +35,15 @@ class FeatureData(TypedDict):
     feature_id: int
     activation_rate: float
     max_activation: float
-    n_neurons_majority_l1_norm: int
-    cumsum_percent_l1_norm: CumSumPercentL1Norm
     activations_histogram: Histogram
     marginal_effects: MarginalEffects
     sequence_intervals: Dict[str, SequenceInterval]
 
 
 class FeatureProjection(TypedDict):
-    feature_id: List[int]
-    x: List[float]
-    y: List[float]
+    feature_ids: List[int]
+    xs: List[float]
+    ys: List[float]
 
 
 class SAEData(TypedDict):
@@ -60,8 +54,6 @@ class SAEData(TypedDict):
     num_non_activating_features: int
     alive_feature_ids: List[int]
     activation_rate_histogram: Histogram
-    dimensionality_histogram: Histogram
-    cumsum_percent_l1_norm_range: CumSumPercentL1NormRange
     feature_projection: FeatureProjection
 
 

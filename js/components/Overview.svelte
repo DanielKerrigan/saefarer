@@ -50,21 +50,6 @@
         yAxisLabel={"Feature count"}
       />
     </div>
-
-    <div class="sae-section">
-      <div class="sae-header">Feature Dimensionality</div>
-      <Histogram
-        data={sae_data.value.dimensionality_histogram}
-        marginTop={20}
-        marginRight={20}
-        marginLeft={50}
-        marginBottom={40}
-        width={leftWidth}
-        height={200}
-        xAxisLabel={"Number of dimensions to explain majority of L1 norm"}
-        yAxisLabel={"Feature count"}
-      />
-    </div>
   </div>
 
   <div class="sae-right" bind:offsetWidth={rightWidth}>

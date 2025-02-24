@@ -11,6 +11,7 @@ def top_k_indices_values(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Given a 2D matrix x, return the row and column indices of
     the k largest or smallest values."""
+    # This code is adapted from sae-vis.
     top = x.flatten().topk(k=k, largest=largest)
     indices = top.indices
     rows = indices // x.size(1)

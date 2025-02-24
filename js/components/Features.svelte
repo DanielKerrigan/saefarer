@@ -4,7 +4,6 @@
   import { format } from "d3-format";
   import { feature_data, feature_id, sae_data } from "../synced-state.svelte";
   import Histogram from "./vis/Histogram.svelte";
-  import LineChart from "./vis/LineChart.svelte";
   import FeatureTokenSequences from "./FeatureTokenSequences.svelte";
   import MarginalEffectsPlot from "./vis/MarginalEffectsPlot.svelte";
 

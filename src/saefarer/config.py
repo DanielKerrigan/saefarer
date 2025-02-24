@@ -78,6 +78,7 @@ class AnalysisConfig:
     total_analysis_tokens: int = 10_000_000
     total_analysis_sequences: int = field(init=False)
     feature_indices: List[int] = field(default_factory=list)
+    num_histogram_bins: int = 32
     # ui
     n_example_sequences: int = 10
     n_context_tokens: int = 5
