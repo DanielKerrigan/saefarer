@@ -1,8 +1,8 @@
 <script lang="ts">
   import { format } from "d3-format";
-  import type { FeatureToken } from "../types";
+  import type { DisplayToken } from "../types";
 
-  let { data }: { data: FeatureToken } = $props();
+  let { data }: { data: DisplayToken } = $props();
 
   const actFormat = format(".3f");
 </script>
@@ -12,18 +12,18 @@
     <tbody>
       <tr>
         <td class="sae-string">Token:</td>
-        <td class="sae-string">{data.token}</td>
+        <td class="sae-string">{data.display}</td>
       </tr>
       <tr>
         <td class="sae-string">Activation:</td>
-        <td class="sae-number">{actFormat(data.activation)}</td>
+        <td class="sae-number">{actFormat(data.max_activation)}</td>
       </tr>
-      {#each data.extras as { key, value }}
+      <!-- {#each data.extras as { key, value }}
         <tr>
           <td class="sae-string">{key}:</td>
           <td class="sae-string">{value}</td>
         </tr>
-      {/each}
+      {/each} -->
     </tbody>
   </table>
 </div>

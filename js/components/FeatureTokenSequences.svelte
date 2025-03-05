@@ -4,7 +4,7 @@
   import Tooltip from "./Tooltip.svelte";
   import type { ScaleSequential } from "d3-scale";
   import { rootDiv } from "../state.svelte";
-  import type { FeatureToken, FeatureTokenSequence } from "../types";
+  import type { DisplayToken } from "../types";
   import FeatureTokenSequencesTooltip from "./FeatureTokenSequencesTooltip.svelte";
 
   let { color }: { color: ScaleSequential<string> } = $props();
@@ -19,16 +19,12 @@
   let wrapSequences = $state(false);
 
   let tooltipInfo: {
-    data: FeatureToken;
+    data: DisplayToken;
     rootRect: DOMRect;
     targetRect: DOMRect;
   } | null = $state(null);
 
-  function onMouseEnterToken(
-    event: MouseEvent,
-    sequence: FeatureTokenSequence,
-    tokIndex: number,
-  ) {
+  function onMouseEnterToken(event: MouseEvent, token: DisplayToken) {
     if (!event.target || !rootDiv.value) {
       return;
     }
@@ -37,14 +33,7 @@
     const targetRect = div.getBoundingClientRect();
     const rootRect = rootDiv.value.getBoundingClientRect();
 
-    const data = {
-      token: sequence.tokens[tokIndex],
-      activation: sequence.activations[tokIndex],
-      extras: Object.entries(sequence.extras).map(([key, values]) => ({
-        key,
-        value: values[tokIndex],
-      })),
-    };
+    const data = token;
 
     tooltipInfo = {
       data,
@@ -80,20 +69,20 @@
         class="sae-sequence"
         style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}
       >
-        {#each seq.tokens as token, tokIndex}
-          {@const col = color(seq.activations[tokIndex])}
+        {#each seq.display_tokens as dt, i}
+          {@const col = color(dt.max_activation)}
           <!-- TODO: do this properly -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             class="sae-token"
             style:background={col}
             style:color={hcl(col).l > 50 ? "black" : "white"}
-            style:font-weight={tokIndex === seq.max_index ? "bold" : "normal"}
+            style:font-weight={i === seq.max_index ? "bold" : "normal"}
             style:--border-color={col}
-            onmouseenter={(event) => onMouseEnterToken(event, seq, tokIndex)}
+            onmouseenter={(event) => onMouseEnterToken(event, dt)}
             onmouseleave={onMouseLeaveToken}
           >
-            <span class="sae-token-name">{token}</span>
+            <span class="sae-token-name">{dt.display}</span>
           </div>
         {/each}
       </div>

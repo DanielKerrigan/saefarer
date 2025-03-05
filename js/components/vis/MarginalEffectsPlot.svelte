@@ -29,6 +29,15 @@
     yAxisLabel?: string;
   } = $props();
 
+  const probabilities = $derived(
+    data.probabilities.map((probs) =>
+      probs.map((p) => (p.toString() === "nan" ? NaN : p)),
+    ),
+  );
+
+  $effect(() => console.log("data", $state.snapshot(data)));
+  $effect(() => console.log("probs", $state.snapshot(probabilities)));
+
   const edges = $derived(pairs(data.thresholds));
 
   const x = $derived(
@@ -39,20 +48,26 @@
 
   const y = $derived(
     scaleLinear()
-      .domain([0, Math.max(...data.probabilities.flat())])
+      .domain([
+        0,
+        Math.max(...probabilities.flat().filter((d) => !Number.isNaN(d))),
+      ])
       .range([height - marginBottom, marginTop])
       .nice(),
   );
 
+  $effect(() => console.log("domain", y.domain()));
+
   const line = $derived(
     d3line<number>()
       .x((d, i) => x((edges[i][0] + edges[i][1]) / 2))
-      .y((d, i) => y(d)),
+      .y((d, i) => y(d))
+      .defined((d) => !Number.isNaN(d)),
   );
 
   const color = $derived(
     scaleOrdinal<number, string>()
-      .domain(range(data.probabilities.length))
+      .domain(range(probabilities.length))
       .range(schemeObservable10),
   );
 </script>
@@ -68,7 +83,7 @@
 
 <svg {width} {height}>
   <g>
-    {#each data.probabilities as probs, i}
+    {#each probabilities as probs, i}
       <path d={line(probs)} stroke={color(i)} fill="none" />
     {/each}
   </g>
