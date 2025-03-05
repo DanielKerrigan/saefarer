@@ -15,9 +15,9 @@ def main():
         attn_mask_column="attention_mask",
         model_batch_size_sequences=32,
         model_sequence_length=128,
-        feature_batch_size=64,
-        total_analysis_tokens=10_000_000,
-        feature_indices=list(range(64)),
+        feature_batch_size=32,
+        total_analysis_tokens=5_000_000,
+        feature_indices=list(range(32)),
         n_example_sequences=10,
         n_context_tokens=5,
     )

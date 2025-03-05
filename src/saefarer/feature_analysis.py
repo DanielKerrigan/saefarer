@@ -173,8 +173,8 @@ def _get_sequence_data(
 
             token_sequence = _get_feature_token_sequence(
                 tokenizer=tokenizer,
-                input_ids=tok_ids,
-                activations=acts,
+                input_ids=tok_ids.tolist(),
+                activations=acts.tolist(),
                 extras=extras,
             )
             key_seq.append(token_sequence)
@@ -189,8 +189,8 @@ def _get_sequence_data(
 @torch.inference_mode()
 def _get_feature_token_sequence(
     tokenizer: PreTrainedTokenizer,
-    input_ids: torch.Tensor,
-    activations: torch.Tensor,
+    input_ids: List[int],
+    activations: List[float],
     extras: Dict[str, List[str]],
 ) -> FeatureTokenSequence:
     display_tokens: List[DisplayToken] = []
@@ -203,7 +203,7 @@ def _get_feature_token_sequence(
 
     cleaned_tokens = []
 
-    for i in range(input_ids.shape[0]):
+    for i in range(len(input_ids)):
         token_id_group.append(input_ids[i])
         activations_group.append(activations[i])
         for k, v in extras.items():
