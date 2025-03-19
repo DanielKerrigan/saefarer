@@ -16,7 +16,7 @@
       </tr>
       <tr>
         <td class="sae-string">Activation:</td>
-        <td class="sae-number">{actFormat(data.max_activation)}</td>
+        <td class="sae-number">{actFormat(data.max_act)}</td>
       </tr>
       <!-- {#each data.extras as { key, value }}
         <tr>

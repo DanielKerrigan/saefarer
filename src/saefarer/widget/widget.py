@@ -1,29 +1,29 @@
 import os
 import sqlite3
 from pathlib import Path
-from typing import Union
 
 import anywidget
 import traitlets
 
-import saefarer.database as db
+import saefarer.analysis.database as db
 
 
 class Widget(anywidget.AnyWidget):
-    _esm = Path(__file__).parent / "static" / "widget.js"
-    _css = Path(__file__).parent / "static" / "style.css"
+    _esm = Path(__file__).parent.parent / "static" / "widget.js"
+    _css = Path(__file__).parent.parent / "static" / "style.css"
 
     height = traitlets.Int(0).tag(sync=True)
 
+    model_info = traitlets.Dict().tag(sync=True)
+
     sae_ids = traitlets.List([]).tag(sync=True)
-
     sae_id = traitlets.Unicode().tag(sync=True)
-    feature_id = traitlets.Int().tag(sync=True)
-
     sae_data = traitlets.Dict().tag(sync=True)
+
+    feature_id = traitlets.Int().tag(sync=True)
     feature_data = traitlets.Dict().tag(sync=True)
 
-    def __init__(self, path: Union[str, os.PathLike], height: int = 600, **kwargs):
+    def __init__(self, path: str | os.PathLike, height: int = 600, **kwargs):
         super().__init__(**kwargs)
 
         path = Path(path)
@@ -35,6 +35,8 @@ class Widget(anywidget.AnyWidget):
         self.cur = self.con.cursor()
 
         self.height = height
+
+        self.model_info = db.read_misc("model_info", self.cur)
 
         self.sae_ids = db.read_sae_ids(self.cur)
         self.sae_id = self.sae_ids[0]

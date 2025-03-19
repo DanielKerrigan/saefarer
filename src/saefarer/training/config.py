@@ -1,14 +1,16 @@
-"""Configuration for SAE and ActivationsStore."""
+"""Configuration for SAE training."""
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, List, Literal, Tuple, Union
+from typing import Literal
+
+import torch
 
 
 @dataclass
 class TrainingConfig:
     """Configuration class for training SAEs."""
 
-    device: Literal["cpu", "mps", "cuda"] = "cuda"
+    device: Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device = "cuda"
     dtype: Literal["float16", "bfloat16", "float32", "float64"] = "float32"
     # dataset
     dataset_column: str = "input_ids"
@@ -43,10 +45,10 @@ class TrainingConfig:
     show_progress: bool = True
     logger: Literal["jsonl", "wandb", "tensorboard"] = "jsonl"
     log_batch_freq: int = 1000
-    wandb_project: Union[str, None] = None
-    wandb_group: Union[str, None] = None
-    wandb_name: Union[str, None] = None
-    wandb_notes: Union[str, None] = None
+    wandb_project: str | None = None
+    wandb_group: str | None = None
+    wandb_name: str | None = None
+    wandb_notes: str | None = None
     # checkpointing
     checkpoint_batch_freq: int = 10_000
 
@@ -60,36 +62,3 @@ class TrainingConfig:
         )
 
         self.d_sae = self.d_in * self.expansion_factor
-
-
-@dataclass
-class AnalysisConfig:
-    """Configuration class for analyzing SAEs."""
-
-    device: Literal["cpu", "mps", "cuda"] = "cuda"
-    # dataset
-    dataset_column: str = "input_ids"
-    attn_mask_column: str = ""
-    # batch sizes
-    model_batch_size_sequences: int = 32
-    model_sequence_length: int = 128
-    feature_batch_size: int = 256
-    # analysis
-    total_analysis_tokens: int = 10_000_000
-    total_analysis_sequences: int = field(init=False)
-    feature_indices: List[int] = field(default_factory=list)
-    num_histogram_bins: int = 32
-    # ui
-    n_example_sequences: int = 10
-    n_context_tokens: int = 5
-    n_sequence_intervals: int = 10
-    extra_token_columns: List[Union[str, Tuple[str, Callable[[Any], str]]]] = field(
-        default_factory=list
-    )
-    # logging
-    show_progress: bool = True
-
-    def __post_init__(self):
-        self.total_analysis_sequences = (
-            self.total_analysis_tokens // self.model_sequence_length
-        )

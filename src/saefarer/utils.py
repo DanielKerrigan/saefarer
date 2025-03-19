@@ -1,14 +1,22 @@
 """Utility functions."""
 
-from typing import Tuple
-
 import numpy as np
+import numpy.typing as npt
 import torch
+
+
+def get_default_device() -> torch.device:
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
 
 
 def top_k_indices_values(
     x: torch.Tensor, k: int, largest: bool = True
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Given a 2D matrix x, return the row and column indices of
     the k largest or smallest values."""
     # This code is adapted from sae-vis.
@@ -19,29 +27,9 @@ def top_k_indices_values(
     return torch.stack((rows, cols), dim=1), top.values
 
 
-def torch_histogram(xs: torch.Tensor, bins: int) -> Tuple[torch.Tensor, torch.Tensor]:
-    # Like torch.histogram, but works with cuda
-    # https://github.com/pytorch/pytorch/issues/69519#issuecomment-1183866843
-    min, max = xs.min().item(), xs.max().item()
-    counts = torch.histc(xs, bins, min=min, max=max)
-    boundaries = torch.linspace(min, max, bins + 1)
-    return counts, boundaries
-
-
-def freedman_diaconis_torch(x: torch.Tensor) -> int:
-    """Freedman Diaconis Estimator for determining
-    the number of bins in a histogram."""
-    iqr = torch.quantile(x, 0.75) - torch.quantile(x, 0.25)
-    bin_width = 2 * iqr / np.cbrt(x.numel())
-
-    if bin_width == 0:
-        return 1
-
-    n_bins = (x.max() - x.min()) / bin_width
-    return int(np.ceil(n_bins.item()))
-
-
-def freedman_diaconis_np(x: np.ndarray) -> int:
+def freedman_diaconis_np(
+    x: npt.NDArray, x_range: tuple[float, float] | None = None
+) -> int:
     """Freedman Diaconis Estimator for determining
     the number of bins in a histogram."""
     iqr = np.quantile(x, 0.75) - np.quantile(x, 0.25)
@@ -50,5 +38,7 @@ def freedman_diaconis_np(x: np.ndarray) -> int:
     if bin_width == 0:
         return 1
 
-    n_bins = (x.max() - x.min()) / bin_width
+    diff = x.max() - x.min() if x_range is None else x_range[1] - x_range[0]
+
+    n_bins = diff / bin_width
     return int(np.ceil(n_bins))

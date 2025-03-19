@@ -3,7 +3,6 @@
 import time
 from os import PathLike
 from pathlib import Path
-from typing import Union
 
 import torch
 import tqdm
@@ -16,20 +15,19 @@ from transformers import (
     PreTrainedModel,
 )
 
-from saefarer import logger
-from saefarer.activations_store import ActivationsStore
-from saefarer.config import TrainingConfig
-from saefarer.model import SAE, ForwardOutput
-from saefarer.types import LogData
+from saefarer.sae import SAE, ForwardOutput
+from saefarer.training import logger
+from saefarer.training.activations_store import ActivationsStore
+from saefarer.training.config import TrainingConfig
 
 
 def train(
     cfg: TrainingConfig,
     model: PreTrainedModel,
-    dataset: Union[Dataset, IterableDataset, DataLoader],
-    save_path: Union[str, PathLike],
-    log_path: Union[str, PathLike],
-    checkpoint_path: Union[str, PathLike, None] = None,
+    dataset: Dataset | IterableDataset | DataLoader,
+    save_path: str | PathLike,
+    log_path: str | PathLike,
+    checkpoint_path: str | PathLike | None = None,
 ) -> SAE:
     """Train the SAE"""
 
@@ -72,7 +70,7 @@ def train(
         # logging
 
         if cfg.log_batch_freq and i % cfg.log_batch_freq == 0:
-            log_data = LogData(
+            log_data = logger.LogData(
                 elapsed_seconds=time.time() - start_time,
                 n_training_batches=i,
                 n_training_tokens=i * sae.cfg.sae_batch_size_tokens,

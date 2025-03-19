@@ -1,23 +1,26 @@
+import argparse
+
 from datasets import load_from_disk
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-from saefarer.analyzing import analyze
-from saefarer.config import AnalysisConfig
-from saefarer.model import SAE
+from saefarer.analysis.analyze import analyze
+from saefarer.analysis.config import AnalysisConfig
+from saefarer.sae import SAE
+from saefarer.utils import get_default_device
 
 
-def main():
+def main(sae_path, db_path):
     """Analyze the SAE"""
 
     cfg = AnalysisConfig(
-        device="cuda",
-        dataset_column="input_ids",
+        device=get_default_device(),
+        tokens_column="input_ids",
         attn_mask_column="attention_mask",
         model_batch_size_sequences=32,
         model_sequence_length=128,
-        feature_batch_size=32,
-        total_analysis_tokens=5_000_000,
-        feature_indices=list(range(32)),
+        feature_batch_size=8,
+        total_analysis_tokens=1_000_000,
+        feature_indices=list(range(8)),
         n_example_sequences=10,
         n_context_tokens=5,
     )
@@ -28,9 +31,7 @@ def main():
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
 
-    sae = SAE.load("sae.pt", cfg.device)
-
-    output_path = "analysis.db"
+    sae = SAE.load(sae_path, cfg.device)
 
     analyze(
         cfg=cfg,
@@ -38,9 +39,19 @@ def main():
         dataset=dataset,  # type: ignore
         sae=sae,
         tokenizer=tokenizer,  # type: ignore
-        output_path=output_path,
+        output_path=db_path,
     )
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--sae", type=str, help="SAE file path", default="sae.pt")
+    parser.add_argument(
+        "-d",
+        "--db",
+        type=str,
+        default="analysis.db",
+        help="Output database file path",
+    )
+    args = parser.parse_args()
+    main(args.sae, args.db)

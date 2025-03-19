@@ -11,7 +11,7 @@
 
   let color = $derived(
     scaleSequential()
-      .domain([0, feature_data.value.max_activation])
+      .domain([0, feature_data.value.max_act])
       .interpolator(interpolateBlues),
   );
 </script>

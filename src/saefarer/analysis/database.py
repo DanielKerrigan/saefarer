@@ -1,14 +1,21 @@
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Tuple
+from typing import Any, Mapping
 
-from saefarer.types import FeatureData, SAEData
+from saefarer.analysis.types import FeatureData, SAEData
 
 
-def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
+def create_database(output_path: Path) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
     con = sqlite3.connect(output_path.as_posix())
     cur = con.cursor()
+
+    cur.execute("""
+        CREATE TABLE misc(
+            key STRING PRIMARY KEY,
+            value TEXT
+        )
+    """)
 
     cur.execute("""
         CREATE TABLE sae(
@@ -17,9 +24,10 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
             num_alive_features INTEGER,
             num_dead_features INTEGER,
             num_non_activating_features INTEGER,
-            alive_feature_ids BLOB,
-            activation_rate_histogram BLOB,
-            feature_projection BLOB
+            alive_feature_ids TEXT,
+            token_act_rate_histogram TEXT,
+            sequence_act_rate_histogram TEXT,
+            feature_projection TEXT
         )
     """)
 
@@ -27,16 +35,31 @@ def create_database(output_path: Path) -> Tuple[sqlite3.Connection, sqlite3.Curs
         CREATE TABLE feature(
             sae_id TEXT,
             feature_id INTEGER,
-            activation_rate REAL,    
-            max_activation REAL,
-            activations_histogram BLOB,
-            marginal_effects BLOB,
-            sequence_intervals BLOB,
+            max_act REAL,
+            token_act_rate REAL,    
+            token_acts_histogram TEXT,
+            sequence_act_rate REAL,    
+            sequence_acts_histogram TEXT,
+            marginal_effects TEXT,
+            sequence_intervals TEXT,
             PRIMARY KEY (sae_id, feature_id)
         )
     """)
 
     return con, cur
+
+
+def insert_misc(key: str, value: Any, con: sqlite3.Connection, cur: sqlite3.Cursor):
+    cur.execute(
+        """
+        INSERT INTO feature VALUES(
+            :key,
+            :value
+        )
+        """,
+        {key: key, value: json.dumps(value)},
+    )
+    con.commit()
 
 
 def insert_sae(data: SAEData, con: sqlite3.Connection, cur: sqlite3.Cursor):
@@ -49,7 +72,8 @@ def insert_sae(data: SAEData, con: sqlite3.Connection, cur: sqlite3.Cursor):
             :num_dead_features,
             :num_non_activating_features,
             :alive_feature_ids,
-            :activation_rate_histogram,
+            :token_act_rate_histogram,
+            :sequence_act_rate_histogram,
             :feature_projection
         )
         """,
@@ -64,9 +88,11 @@ def insert_feature(data: FeatureData, con: sqlite3.Connection, cur: sqlite3.Curs
         INSERT INTO feature VALUES(
             :sae_id,
             :feature_id,
-            :activation_rate,
-            :max_activation,
-            :activations_histogram,
+            :max_act,
+            :token_act_rate,
+            :token_acts_histogram,
+            :sequence_act_rate,
+            :sequence_acts_histogram,
             :marginal_effects,
             :sequence_intervals
         )
@@ -76,14 +102,24 @@ def insert_feature(data: FeatureData, con: sqlite3.Connection, cur: sqlite3.Curs
     con.commit()
 
 
-def convert_dict_for_db(x: Mapping[str, Any]) -> Dict[str, Any]:
+def convert_dict_for_db(x: Mapping[str, Any]) -> dict[str, Any]:
     return {
         k: v if isinstance(v, (int, float, str)) else json.dumps(v)
         for k, v in x.items()
     }
 
 
-def read_sae_ids(cur: sqlite3.Cursor) -> List[str]:
+def read_misc(key: str, cur: sqlite3.Cursor) -> Any:
+    res = cur.execute(
+        """
+        SELECT * FROM misc WHERE key = ?
+        """,
+        (key,),
+    )
+    return res.fetchone()[1]
+
+
+def read_sae_ids(cur: sqlite3.Cursor) -> list[str]:
     res = cur.execute(
         """
         SELECT sae_id FROM sae
@@ -107,7 +143,8 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
         num_dead_features,
         num_non_activating_features,
         alive_feature_ids,
-        activation_rate_histogram,
+        token_act_rate_histogram,
+        sequence_act_rate_histogram,
         feature_projection,
     ) = res.fetchone()
 
@@ -118,7 +155,8 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
         num_dead_features=num_dead_features,
         num_non_activating_features=num_non_activating_features,
         alive_feature_ids=json.loads(alive_feature_ids),
-        activation_rate_histogram=json.loads(activation_rate_histogram),
+        token_act_rate_histogram=json.loads(token_act_rate_histogram),
+        sequence_act_rate_histogram=json.loads(sequence_act_rate_histogram),
         feature_projection=json.loads(feature_projection),
     )
 
@@ -137,19 +175,25 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
     (
         sae_id,
         feature_id,
-        activation_rate,
-        max_activation,
-        activations_histogram,
+        max_act,
+        token_act_rate,
+        token_acts_histogram,
+        sequence_act_rate,
+        sequence_acts_histogram,
         marginal_effects,
         sequence_intervals,
+        mean_pred_label_probs,
     ) = res.fetchone()
 
     return FeatureData(
         sae_id=sae_id,
         feature_id=feature_id,
-        activation_rate=activation_rate,
-        max_activation=max_activation,
-        activations_histogram=json.loads(activations_histogram),
+        max_act=max_act,
+        token_act_rate=token_act_rate,
+        token_acts_histogram=json.loads(token_acts_histogram),
+        sequence_act_rate=sequence_act_rate,
+        sequence_acts_histogram=json.loads(sequence_acts_histogram),
         marginal_effects=json.loads(marginal_effects),
         sequence_intervals=json.loads(sequence_intervals),
+        mean_pred_label_probs=json.loads(mean_pred_label_probs),
     )

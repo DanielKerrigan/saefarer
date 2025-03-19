@@ -6,37 +6,45 @@ export type Histogram = {
 };
 
 export type MarginalEffects = {
-  probabilities: number[][];
+  probs: number[][];
   thresholds: number[];
 };
 
 export type DisplayToken = {
   display: string;
   token_ids: number[];
-  activations: number[];
-  max_activation: number;
+  acts: number[];
+  max_act: number;
   extras: Record<string, string[]>;
+  is_special: boolean;
 };
 
 export type FeatureTokenSequence = {
+  sequence_index: number;
   display_tokens: DisplayToken[];
-  max_index: number;
+  max_token_index: number;
+  label: number;
+  predicted_label: number;
+  pred_probs: number[];
 };
 
 export type SequenceInterval = {
-  min_activation: number;
-  max_activation: number;
+  min_max_act: number;
+  max_max_act: number;
   sequences: FeatureTokenSequence[];
 };
 
 export type FeatureData = {
   sae_id: number;
   feature_id: number;
-  activation_rate: number;
-  max_activation: number;
-  activations_histogram: Histogram;
+  max_act: number;
+  token_act_rate: number;
+  token_acts_histogram: Histogram;
+  sequence_act_rate: number;
+  sequence_acts_histogram: Histogram;
   marginal_effects: MarginalEffects;
   sequence_intervals: Record<string, SequenceInterval>;
+  mean_pred_label_probs: number[];
 };
 
 export type FeatureProjection = {
@@ -52,20 +60,38 @@ export type SAEData = {
   num_dead_features: number;
   num_non_activating_features: number;
   alive_feature_ids: number[];
-  activation_rate_histogram: Histogram;
+  token_act_rate_histogram: Histogram;
+  sequence_act_rate_histogram: Histogram;
   feature_projection: FeatureProjection;
 };
 
-export type Model = {
+export type ConfusionMatrixCell = {
+  label: number;
+  pred_label: number;
+  count: number;
+};
+
+export type ModelInfo = {
+  n_sequences: number;
+  labels: string[];
+  label_indices: number[];
+  cm: ConfusionMatrixCell[];
+  mean_pred_label_probs: number[];
+  label_counts: number[];
+  pred_label_counts: number[];
+};
+
+export type DataModel = {
   height: number;
+  model_info: ModelInfo;
   sae_ids: string[];
   sae_id: string;
-  feature_id: number;
   sae_data: SAEData;
+  feature_id: number;
   feature_data: FeatureData;
 };
 
-// Front end only
+// JS only
 
 export type Tab = "overview" | "features";
 

@@ -30,7 +30,7 @@
   } = $props();
 
   const probabilities = $derived(
-    data.probabilities.map((probs) =>
+    data.probs.map((probs) =>
       probs.map((p) => (p.toString() === "nan" ? NaN : p)),
     ),
   );

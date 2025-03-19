@@ -3,19 +3,18 @@ from pathlib import Path
 from datasets import load_from_disk
 from transformers import AutoModelForSequenceClassification
 
-from saefarer.config import TrainingConfig
-from saefarer.training import train
+from saefarer.training.config import TrainingConfig
+from saefarer.training.train import train
+from saefarer.utils import get_default_device
 
 
 def main():
     """Train the SAE"""
 
-    root = Path.cwd()
-
-    dataset = load_from_disk(root / "stocktwits-crypto_tokenized/train")
+    dataset = load_from_disk("stocktwits-crypto_tokenized/train")
 
     cfg = TrainingConfig(
-        device="cuda",
+        device=get_default_device(),
         dtype="float32",
         # dataset
         dataset_column="input_ids",
@@ -49,22 +48,18 @@ def main():
         checkpoint_batch_freq=10_000,
     )
 
-    model_name = "ElKulako/cryptobert"
-
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained("ElKulako/cryptobert")
     model.to(cfg.device)
 
-    output_dir = root
-    checkpoint_dir = root / "checkpoints"
-
+    checkpoint_dir = Path("checkpoints")
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     train(
         cfg=cfg,
         model=model,
         dataset=dataset,  # type: ignore
-        save_path=output_dir / "sae.pt",
-        log_path=output_dir,
+        save_path="sae.pt",
+        log_path=".",
         checkpoint_path=checkpoint_dir,
     )
 

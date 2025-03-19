@@ -3,14 +3,25 @@ from dataclasses import asdict
 from importlib import import_module
 from os import PathLike
 from pathlib import Path
-from typing import Union
+from typing import TypedDict
 
-from saefarer.config import TrainingConfig
-from saefarer.types import LogData
+from saefarer.training.config import TrainingConfig
+
+
+class LogData(TypedDict):
+    elapsed_seconds: float
+    n_training_batches: int
+    n_training_tokens: int
+    loss: float
+    mse_loss: float
+    aux_loss: float
+    n_dead_features: int
+    mean_n_batches_since_fired: float
+    max_n_batches_since_fired: int
 
 
 class Logger:
-    def __init__(self, cfg: TrainingConfig, log_path: Union[str, PathLike]):
+    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
         self.cfg = cfg
         self.log_path = Path(log_path)
 
@@ -22,7 +33,7 @@ class Logger:
 
 
 class WAndBLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_path: Union[str, PathLike]):
+    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
         super().__init__(cfg, log_path)
 
         self.wandb = import_module("wandb")
@@ -44,7 +55,7 @@ class WAndBLogger(Logger):
 
 
 class TensorboardLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_path: Union[str, PathLike]):
+    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
         super().__init__(cfg, log_path)
 
         from torch.utils.tensorboard.writer import SummaryWriter
@@ -61,7 +72,7 @@ class TensorboardLogger(Logger):
 
 
 class JSONLLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_path: Union[str, PathLike]):
+    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
         super().__init__(cfg, log_path)
         self.log_file = self.log_path.open("a")
 
@@ -73,7 +84,7 @@ class JSONLLogger(Logger):
         self.log_file.close()
 
 
-def from_cfg(cfg: TrainingConfig, log_path: Union[str, PathLike]) -> Logger:
+def from_cfg(cfg: TrainingConfig, log_path: str | PathLike) -> Logger:
     if cfg.logger == "jsonl":
         return JSONLLogger(cfg, log_path)
     elif cfg.logger == "tensorboard":

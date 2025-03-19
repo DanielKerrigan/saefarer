@@ -6,11 +6,9 @@ https://github.com/jbloomAus/SAEDashboard
 
 import os
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import umap
 from datasets import (
     Dataset,
@@ -20,38 +18,45 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import PreTrainedModel, PreTrainedTokenizer
 
-import saefarer.database as db
-from saefarer.config import AnalysisConfig
-from saefarer.feature_analysis import get_feature_data
-from saefarer.model import SAE
-from saefarer.types import (
+import saefarer.analysis.database as db
+from saefarer.analysis.config import AnalysisConfig
+from saefarer.analysis.feature_analysis import get_feature_data
+from saefarer.analysis.model_and_dataset import (
+    get_dataset_with_predictions,
+    get_model_info,
+)
+from saefarer.analysis.types import (
     FeatureProjection,
     Histogram,
     SAEData,
 )
+from saefarer.sae import SAE
 
 
 @torch.inference_mode()
 def analyze(
     cfg: AnalysisConfig,
     model: PreTrainedModel,
-    dataset: Union[Dataset, IterableDataset, DataLoader],
+    dataset: Dataset | IterableDataset | DataLoader,
     sae: SAE,
     tokenizer: PreTrainedTokenizer,
-    output_path: Union[str, os.PathLike],
+    output_path: str | os.PathLike,
 ):
     output_path = Path(output_path)
 
     if output_path.exists():
         raise OSError(f"{output_path} already exists")
 
+    con, cur = db.create_database(output_path)
+
     model.to(cfg.device)  # type: ignore
 
     rng = np.random.default_rng()
 
-    ds = _get_dataset_with_predictions(model, dataset, cfg)
+    ds = get_dataset_with_predictions(model, dataset, cfg)
+    model_info = get_model_info(ds, cfg)
 
-    con, cur = db.create_database(output_path)
+    db.insert_misc("model_info", model_info, con, cur)
 
     # this is in preparation of supporting multiple SAEs
     sae_id = "default"
@@ -67,8 +72,6 @@ def analyze(
         for i in range(0, num_alive_features, cfg.feature_batch_size)
     ]
 
-    activation_rates = []
-
     progress_bar = tqdm(
         total=num_alive_features,
         desc="Calculating feature data",
@@ -76,6 +79,8 @@ def analyze(
     )
 
     non_activating_feature_ids = []
+    token_act_rates = []
+    sequence_act_rates = []
 
     for features in feature_batches:
         sae_activations = _get_sae_activations(features, sae, model, ds, cfg)
@@ -91,7 +96,6 @@ def analyze(
                 feature_data = get_feature_data(
                     feature,
                     sae_id,
-                    sae,
                     feature_activations,
                     positive_activation_mask,
                     tokenizer,
@@ -100,7 +104,8 @@ def analyze(
                     rng,
                 )
 
-                activation_rates.append(feature_data["activation_rate"])
+                token_act_rates.append(feature_data["token_act_rate"])
+                sequence_act_rates.append(feature_data["sequence_act_rate"])
 
                 db.insert_feature(feature_data, con, cur)
 
@@ -116,7 +121,8 @@ def analyze(
 
     num_non_activating_features = len(non_activating_feature_ids)
 
-    activation_rate_histogram = _get_activation_rate_histogram(activation_rates)
+    token_act_rate_histogram = _get_activation_rate_histogram(token_act_rates)
+    sequence_act_rate_histogram = _get_activation_rate_histogram(sequence_act_rates)
 
     feature_projection = _get_feature_projection(sae, alive_feature_ids)
 
@@ -127,7 +133,8 @@ def analyze(
         num_dead_features=num_dead_features,
         num_non_activating_features=num_non_activating_features,
         alive_feature_ids=alive_feature_ids,
-        activation_rate_histogram=activation_rate_histogram,
+        token_act_rate_histogram=token_act_rate_histogram,
+        sequence_act_rate_histogram=sequence_act_rate_histogram,
         feature_projection=feature_projection,
     )
 
@@ -136,13 +143,13 @@ def analyze(
 
 @torch.inference_mode()
 def _get_sae_activations(
-    feature_indices: List[int],
+    feature_indices: list[int],
     sae: SAE,
     model: PreTrainedModel,
-    ds: Dict[str, torch.Tensor],
+    ds: dict[str, torch.Tensor],
     cfg: AnalysisConfig,
 ) -> torch.Tensor:
-    tokens = ds[cfg.dataset_column]
+    tokens = ds[cfg.tokens_column]
     attn_masks = ds[cfg.attn_mask_column]
 
     sae_activations = torch.zeros(
@@ -176,7 +183,7 @@ def _get_sae_activations(
 
 @torch.inference_mode()
 def _get_activation_rate_histogram(
-    activation_rates: List[float],
+    activation_rates: list[float],
 ) -> Histogram:
     log_rates = np.log10(activation_rates)
     counts, thresholds = np.histogram(log_rates, bins="fd")
@@ -185,8 +192,8 @@ def _get_activation_rate_histogram(
 
 @torch.inference_mode()
 def _get_dead_alive_features(
-    sae: SAE, feature_indices: List[int]
-) -> Tuple[List[int], List[int]]:
+    sae: SAE, feature_indices: list[int]
+) -> tuple[list[int], list[int]]:
     dead_mask = sae.get_dead_neuron_mask()
 
     dead_features = torch.nonzero(dead_mask, as_tuple=True)[0].tolist()
@@ -201,7 +208,7 @@ def _get_dead_alive_features(
 
 
 @torch.inference_mode()
-def _get_feature_projection(sae: SAE, feature_ids: List[int]) -> FeatureProjection:
+def _get_feature_projection(sae: SAE, feature_ids: list[int]) -> FeatureProjection:
     n_features = len(feature_ids)
 
     # UMAP doesn't work with <= 2 datapoints, so in these cases we will
@@ -217,75 +224,7 @@ def _get_feature_projection(sae: SAE, feature_ids: List[int]) -> FeatureProjecti
     reducer = umap.UMAP(n_neighbors=n_neighbors, n_components=2)
     weights_embedded: np.ndarray = reducer.fit_transform(weights[feature_ids])  # type: ignore
 
-    x: List[float] = weights_embedded[:, 0].tolist()
-    y: List[float] = weights_embedded[:, 1].tolist()
+    x: list[float] = weights_embedded[:, 0].tolist()
+    y: list[float] = weights_embedded[:, 1].tolist()
 
     return FeatureProjection(feature_ids=feature_ids, xs=x, ys=y)
-
-
-@torch.inference_mode()
-def _get_dataset_with_predictions(
-    model: PreTrainedModel,
-    dataset: Union[Dataset, IterableDataset, DataLoader],
-    cfg: AnalysisConfig,
-) -> Dict[str, torch.Tensor]:
-    if isinstance(dataset, Dataset):
-        ds = dataset[0 : cfg.total_analysis_sequences]
-    else:
-        if isinstance(dataset, IterableDataset):
-            dataloader = DataLoader(
-                dataset,  # type: ignore
-                batch_size=cfg.total_analysis_sequences,
-            )
-        else:
-            dataloader = DataLoader(
-                dataset=dataset.dataset,
-                shuffle=False,
-                batch_size=cfg.total_analysis_sequences,
-                collate_fn=dataset.collate_fn,
-                num_workers=dataset.num_workers,
-            )
-
-        ds = next(iter(dataloader))
-
-    predicted_probabilities = _get_model_predictions(model, ds, cfg)
-    ds["predicted_probabilities"] = predicted_probabilities
-    ds["predicted_label"] = predicted_probabilities.argmax(dim=1)
-
-    return ds
-
-
-@torch.inference_mode()
-def _get_model_predictions(
-    model: PreTrainedModel,
-    ds: Dict[str, torch.Tensor],
-    cfg: AnalysisConfig,
-) -> torch.Tensor:
-    tokens = ds[cfg.dataset_column]
-    attn_masks = ds[cfg.attn_mask_column]
-
-    predicted_probabilities = torch.zeros(
-        (tokens.shape[0], len(model.config.id2label)),
-        device=torch.device("cpu"),
-        dtype=model.dtype,
-    )
-
-    offset = 0
-
-    token_batches = tokens.split(cfg.model_batch_size_sequences)
-    attn_mask_batches = attn_masks.split(cfg.model_batch_size_sequences)
-
-    for token_batch, attn_mask_batch in zip(token_batches, attn_mask_batches):
-        output = model(
-            token_batch.to(cfg.device),
-            attention_mask=attn_mask_batch.to(cfg.device),
-        )
-        probs = F.softmax(output.logits, dim=1)
-
-        start = offset
-        offset += probs.shape[0]
-        end = offset
-
-        predicted_probabilities[start:end, :] = probs.to("cpu")
-
-    return predicted_probabilities

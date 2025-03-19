@@ -1,8 +1,12 @@
-"""Sparse autoencoder model."""
+"""
+Sparse autoencoder model.
+This is based on code from OpenAI:
+https://github.com/openai/sparse_autoencoder
+"""
 
 from dataclasses import dataclass
 from os import PathLike
-from typing import Any, Callable, Literal, Union
+from typing import Any, Callable, Literal
 
 import einops
 import torch
@@ -10,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing_extensions import Self
 
-from saefarer.config import TrainingConfig
+from saefarer.training.config import TrainingConfig
 
 
 @dataclass
@@ -217,15 +221,15 @@ class SAE(nn.Module):
             "d_sae, d_sae d_in -> d_sae d_in",
         )
 
-    def save(self, path: Union[str, PathLike]):
+    def save(self, path: str | PathLike):
         """Save model to path."""
         torch.save([self.cfg, self.state_dict()], path)
 
     @classmethod
     def load(
         cls,
-        path: Union[str, PathLike],
-        device: Literal["cpu", "cuda", "mps"],
+        path: str | PathLike,
+        device: Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device,
     ) -> Self:
         """Load model from path."""
         config, state = torch.load(path, map_location=device, weights_only=False)

@@ -70,14 +70,14 @@
         style:flex-wrap={wrapSequences ? "wrap" : "nowrap"}
       >
         {#each seq.display_tokens as dt, i}
-          {@const col = color(dt.max_activation)}
+          {@const col = color(dt.max_act)}
           <!-- TODO: do this properly -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div
             class="sae-token"
             style:background={col}
             style:color={hcl(col).l > 50 ? "black" : "white"}
-            style:font-weight={i === seq.max_index ? "bold" : "normal"}
+            style:font-weight={i === seq.max_token_index ? "bold" : "normal"}
             style:--border-color={col}
             onmouseenter={(event) => onMouseEnterToken(event, dt)}
             onmouseleave={onMouseLeaveToken}

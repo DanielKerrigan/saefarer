@@ -2,7 +2,7 @@
 This is based on `activations_store.py` from SAELens.
 """
 
-from typing import Any, Iterator, Tuple, Union
+from typing import Any, Iterator
 
 import torch
 from datasets import Dataset, IterableDataset
@@ -10,8 +10,8 @@ from einops import rearrange
 from torch.utils.data import DataLoader, TensorDataset
 from transformers import PreTrainedModel
 
-from saefarer.config import TrainingConfig
 from saefarer.constants import DTYPES
+from saefarer.training.config import TrainingConfig
 
 
 class ActivationsStore:
@@ -23,7 +23,7 @@ class ActivationsStore:
     def __init__(
         self,
         model: PreTrainedModel,
-        dataset: Union[Dataset, IterableDataset, DataLoader],
+        dataset: Dataset | IterableDataset | DataLoader,
         cfg: TrainingConfig,
     ):
         self.dtype = DTYPES[cfg.dtype]
@@ -33,8 +33,8 @@ class ActivationsStore:
 
         self.cfg = cfg
 
-        self._activations_dataloader: Union[Iterator[Any], None] = None
-        self._activations_storage_buffer: Union[torch.Tensor, None] = None
+        self._activations_dataloader: Iterator[Any] | None = None
+        self._activations_storage_buffer: torch.Tensor | None = None
 
         if isinstance(dataset, Dataset) or isinstance(dataset, IterableDataset):
             self.dataset_dataloader = DataLoader(
@@ -158,7 +158,7 @@ class ActivationsStore:
 
     def get_batch_tokens(
         self, raise_at_epoch_end: bool = False
-    ) -> Tuple[torch.Tensor, Union[torch.Tensor, None]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Get batch of tokens from the dataset."""
 
         def get_tokens_and_attn_mask():
@@ -186,7 +186,7 @@ class ActivationsStore:
 
     @torch.no_grad()
     def get_activations(
-        self, batch_tokens: torch.Tensor, attn_mask: Union[torch.Tensor, None]
+        self, batch_tokens: torch.Tensor, attn_mask: torch.Tensor | None
     ) -> torch.Tensor:
         """Get activations for tokens."""
         batch_output = self.model(
