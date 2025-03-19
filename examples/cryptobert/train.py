@@ -59,8 +59,8 @@ def main():
         model=model,
         dataset=dataset,  # type: ignore
         save_path="sae.pt",
-        log_path=".",
-        checkpoint_path=checkpoint_dir,
+        log_dir="logs",
+        checkpoint_dir=checkpoint_dir,
     )
 
 

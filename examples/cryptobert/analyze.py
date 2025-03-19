@@ -12,10 +12,17 @@ from saefarer.utils import get_default_device
 def main(sae_path, db_path):
     """Analyze the SAE"""
 
+    dataset = load_from_disk("stocktwits-crypto_tokenized/train")
+
+    model_name = "ElKulako/cryptobert"
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+
     cfg = AnalysisConfig(
         device=get_default_device(),
         tokens_column="input_ids",
         attn_mask_column="attention_mask",
+        labels=[label for _, label in sorted(model.config.id2label.items())],
         model_batch_size_sequences=32,
         model_sequence_length=128,
         feature_batch_size=8,
@@ -24,12 +31,6 @@ def main(sae_path, db_path):
         n_example_sequences=10,
         n_context_tokens=5,
     )
-
-    dataset = load_from_disk("stocktwits-crypto_tokenized/train")
-
-    model_name = "ElKulako/cryptobert"
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
 
     sae = SAE.load(sae_path, cfg.device)
 

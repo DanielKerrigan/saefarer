@@ -21,9 +21,9 @@ class LogData(TypedDict):
 
 
 class Logger:
-    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
+    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
         self.cfg = cfg
-        self.log_path = Path(log_path)
+        self.log_dir = Path(log_dir)
 
     def write(self, data: LogData):
         pass
@@ -33,8 +33,8 @@ class Logger:
 
 
 class WAndBLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
-        super().__init__(cfg, log_path)
+    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
+        super().__init__(cfg, log_dir)
 
         self.wandb = import_module("wandb")
 
@@ -44,7 +44,7 @@ class WAndBLogger(Logger):
             group=cfg.wandb_group,
             name=cfg.wandb_name,
             notes=cfg.wandb_notes,
-            dir=self.log_path,
+            dir=self.log_dir,
         )
 
     def write(self, data: LogData):
@@ -55,12 +55,12 @@ class WAndBLogger(Logger):
 
 
 class TensorboardLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
-        super().__init__(cfg, log_path)
+    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
+        super().__init__(cfg, log_dir)
 
         from torch.utils.tensorboard.writer import SummaryWriter
 
-        self.writer = SummaryWriter(self.log_path)
+        self.writer = SummaryWriter(self.log_dir)
 
     def write(self, data: LogData):
         for [key, value] in data.items():
@@ -72,9 +72,9 @@ class TensorboardLogger(Logger):
 
 
 class JSONLLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_path: str | PathLike):
-        super().__init__(cfg, log_path)
-        self.log_file = self.log_path.open("a")
+    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
+        super().__init__(cfg, log_dir)
+        self.log_file = (self.log_dir / "logs.jsonl").open("a")
 
     def write(self, data: LogData):
         json_line = json.dumps(data)
@@ -84,10 +84,10 @@ class JSONLLogger(Logger):
         self.log_file.close()
 
 
-def from_cfg(cfg: TrainingConfig, log_path: str | PathLike) -> Logger:
+def from_cfg(cfg: TrainingConfig, log_dir: str | PathLike) -> Logger:
     if cfg.logger == "jsonl":
-        return JSONLLogger(cfg, log_path)
+        return JSONLLogger(cfg, log_dir)
     elif cfg.logger == "tensorboard":
-        return TensorboardLogger(cfg, log_path)
+        return TensorboardLogger(cfg, log_dir)
     else:
-        return WAndBLogger(cfg, log_path)
+        return WAndBLogger(cfg, log_dir)

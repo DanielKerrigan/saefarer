@@ -26,12 +26,12 @@ def train(
     model: PreTrainedModel,
     dataset: Dataset | IterableDataset | DataLoader,
     save_path: str | PathLike,
-    log_path: str | PathLike,
-    checkpoint_path: str | PathLike | None = None,
+    log_dir: str | PathLike,
+    checkpoint_dir: str | PathLike | None = None,
 ) -> SAE:
     """Train the SAE"""
 
-    log = logger.from_cfg(cfg, log_path)
+    log = logger.from_cfg(cfg, log_dir)
 
     sae = SAE(cfg)
 
@@ -88,11 +88,11 @@ def train(
 
         if (
             cfg.checkpoint_batch_freq
-            and checkpoint_path
+            and checkpoint_dir
             and i % cfg.checkpoint_batch_freq == 0
         ):
             print(f"Saving checkpoint after batch {i}")
-            sae.save(Path(checkpoint_path) / f"batch_{i}.pt")
+            sae.save(Path(checkpoint_dir) / f"batch_{i}.pt")
 
     print("Saving final model")
 
