@@ -16,12 +16,7 @@
   let width = $state(0);
   let height = $state(0);
 
-  function getTop(
-    width: number,
-    height: number,
-    rootRect: DOMRect,
-    targetRect: DOMRect,
-  ) {
+  function getTop(height: number, rootRect: DOMRect, targetRect: DOMRect) {
     if (targetRect.top - height < rootRect.top) {
       // tooltip needs to go below target
       return targetRect.bottom - rootRect.top + space;
@@ -31,12 +26,7 @@
     }
   }
 
-  function getLeft(
-    width: number,
-    height: number,
-    rootRect: DOMRect,
-    targetRect: DOMRect,
-  ) {
+  function getLeft(width: number, rootRect: DOMRect, targetRect: DOMRect) {
     const halfTooltipWidth = width / 2;
 
     if (targetRect.left - halfTooltipWidth < rootRect.left) {
@@ -56,8 +46,8 @@
     }
   }
 
-  let top = $derived(getTop(width, height, rootRect, targetRect));
-  let left = $derived(getLeft(width, height, rootRect, targetRect));
+  let top = $derived(getTop(height, rootRect, targetRect));
+  let left = $derived(getLeft(width, rootRect, targetRect));
 </script>
 
 <div
@@ -73,9 +63,9 @@
   .sae-tooltip {
     padding: 0.5em;
     position: absolute;
-    background-color: white;
-    border: 1px solid black;
-    color: black;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-black);
+    color: var(--color-black);
     font-weight: normal;
     pointer-events: none;
     box-sizing: border-box;

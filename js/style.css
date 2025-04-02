@@ -1,56 +1,94 @@
 /*
-Tailwind Preflight modified so that it will only apply inside the widget.
-https://tailwindcss.com/docs/preflight
+  My CSS variables
+*/
+
+.sae-widget-container {
+  /* these variables are from tailwind */
+
+  --color-black: #000;
+  --color-white: #fff;
+
+  --color-neutral-50: oklch(0.985 0 0);
+  --color-neutral-100: oklch(0.97 0 0);
+  --color-neutral-200: oklch(0.922 0 0);
+  --color-neutral-300: oklch(0.87 0 0);
+  --color-neutral-400: oklch(0.708 0 0);
+  --color-neutral-500: oklch(0.556 0 0);
+  --color-neutral-600: oklch(0.439 0 0);
+  --color-neutral-700: oklch(0.371 0 0);
+  --color-neutral-800: oklch(0.269 0 0);
+  --color-neutral-900: oklch(0.205 0 0);
+  --color-neutral-950: oklch(0.145 0 0);
+
+  --color-red-50: oklch(0.971 0.013 17.38);
+  --color-red-100: oklch(0.936 0.032 17.717);
+  --color-red-200: oklch(0.885 0.062 18.334);
+  --color-red-300: oklch(0.808 0.114 19.571);
+  --color-red-400: oklch(0.704 0.191 22.216);
+  --color-red-500: oklch(0.637 0.237 25.331);
+  --color-red-600: oklch(0.577 0.245 27.325);
+  --color-red-700: oklch(0.505 0.213 27.518);
+  --color-red-800: oklch(0.444 0.177 26.899);
+  --color-red-900: oklch(0.396 0.141 25.723);
+  --color-red-950: oklch(0.258 0.092 26.042);
+
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+/*
+  Tailwind Preflight modified so that it will only apply inside the widget.
+  https://tailwindcss.com/docs/preflight
 */
 
 /*
-1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
-2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+  1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+  2. Remove default margins and padding
+  3. Reset all borders.
 */
 
 .sae-widget-container,
 .sae-widget-container *,
+.sae-widget-container ::after,
 .sae-widget-container ::before,
-.sae-widget-container ::after {
+.sae-widget-container ::backdrop,
+.sae-widget-container ::file-selector-button {
   box-sizing: border-box; /* 1 */
-  border-width: 0; /* 2 */
-  border-style: solid; /* 2 */
-  border-color: currentColor; /* 2 */
-}
-
-.sae-widget-container ::before,
-.sae-widget-container ::after {
-  --tw-content: "";
+  margin: 0; /* 2 */
+  padding: 0; /* 2 */
+  border: 0 solid; /* 3 */
 }
 
 /*
-1. Use a consistent sensible line-height in all browsers.
-2. Prevent adjustments of font size after orientation changes in iOS.
-3. Use a more readable tab size.
-4. Use the user's configured `sans` font-family by default.
-5. Use the user's configured `sans` font-feature-settings by default.
-6. Use the user's configured `sans` font-variation-settings by default.
-7. Remove the margin in all browsers.
+  1. Use a consistent sensible line-height in all browsers.
+  2. Prevent adjustments of font size after orientation changes in iOS.
+  3. Use a more readable tab size.
+  4. Use the user's configured `sans` font-family by default.
+  5. Use the user's configured `sans` font-feature-settings by default.
+  6. Use the user's configured `sans` font-variation-settings by default.
+  7. Disable tap highlights on iOS.
 */
 
-.sae-widget-container {
+.sae-widget-container,
+.sae-widget-container :host {
   line-height: 1.5; /* 1 */
   -webkit-text-size-adjust: 100%; /* 2 */
-  -moz-tab-size: 4; /* 3 */
   tab-size: 4; /* 3 */
-  font-family: "ui-sans-serif", "system-ui", "-apple-system",
-    "BlinkMacSystemFont", '"Segoe UI"', "Roboto", '"Helvetica Neue"', "Arial",
-    '"Noto Sans"', "sans-serif", '"Apple Color Emoji"', '"Segoe UI Emoji"',
-    '"Segoe UI Symbol"', '"Noto Color Emoji"'; /* 4 */
+  font-family: var(--font-sans); /* 4 */
   font-feature-settings: normal; /* 5 */
   font-variation-settings: normal; /* 6 */
-  margin: 0; /* 7 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
 }
 
 /*
-1. Add the correct height in Firefox.
-2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
-3. Ensure horizontal rules are visible by default.
+  1. Add the correct height in Firefox.
+  2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+  3. Reset the default border style to a 1px solid border.
 */
 
 .sae-widget-container hr {
@@ -60,15 +98,16 @@ https://tailwindcss.com/docs/preflight
 }
 
 /*
-Add the correct text decoration in Chrome, Edge, and Safari.
+  Add the correct text decoration in Chrome, Edge, and Safari.
 */
 
 .sae-widget-container abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
   text-decoration: underline dotted;
 }
 
 /*
-Remove the default font size and weight for headings.
+  Remove the default font size and weight for headings.
 */
 
 .sae-widget-container h1,
@@ -82,16 +121,17 @@ Remove the default font size and weight for headings.
 }
 
 /*
-Reset links to optimize for opt-in styling instead of opt-out.
+  Reset links to optimize for opt-in styling instead of opt-out.
 */
 
 .sae-widget-container a {
   color: inherit;
+  -webkit-text-decoration: inherit;
   text-decoration: inherit;
 }
 
 /*
-Add the correct font weight in Edge and Safari.
+  Add the correct font weight in Edge and Safari.
 */
 
 .sae-widget-container b,
@@ -100,21 +140,24 @@ Add the correct font weight in Edge and Safari.
 }
 
 /*
-1. Use the user's configured `mono` font family by default.
-2. Correct the odd `em` font sizing in all browsers.
+  1. Use the user's configured `mono` font-family by default.
+  2. Use the user's configured `mono` font-feature-settings by default.
+  3. Use the user's configured `mono` font-variation-settings by default.
+  4. Correct the odd `em` font sizing in all browsers.
 */
 
 .sae-widget-container code,
 .sae-widget-container kbd,
 .sae-widget-container samp,
 .sae-widget-container pre {
-  font-family: "fontFamily.mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, "Liberation Mono", "Courier New", monospace; /* 1 */
-  font-size: 1em; /* 2 */
+  font-family: var(--font-mono); /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
 }
 
 /*
-Add the correct font size in all browsers.
+  Add the correct font size in all browsers.
 */
 
 .sae-widget-container small {
@@ -122,7 +165,7 @@ Add the correct font size in all browsers.
 }
 
 /*
-Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+  Prevent `sub` and `sup` elements from affecting the line height in all browsers.
 */
 
 .sae-widget-container sub,
@@ -142,9 +185,9 @@ Prevent `sub` and `sup` elements from affecting the line height in all browsers.
 }
 
 /*
-1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
-2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
-3. Remove gaps between table borders by default.
+  1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+  2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+  3. Remove gaps between table borders by default.
 */
 
 .sae-widget-container table {
@@ -154,50 +197,7 @@ Prevent `sub` and `sup` elements from affecting the line height in all browsers.
 }
 
 /*
-1. Change the font styles in all browsers.
-2. Remove the margin in Firefox and Safari.
-3. Remove default padding in all browsers.
-*/
-
-.sae-widget-container button,
-.sae-widget-container input,
-.sae-widget-container optgroup,
-.sae-widget-container select,
-.sae-widget-container textarea {
-  font-family: inherit; /* 1 */
-  font-size: 100%; /* 1 */
-  font-weight: inherit; /* 1 */
-  line-height: inherit; /* 1 */
-  color: inherit; /* 1 */
-  margin: 0; /* 2 */
-  padding: 0; /* 3 */
-}
-
-/*
-Remove the inheritance of text transform in Edge and Firefox.
-*/
-
-.sae-widget-container button,
-.sae-widget-container select {
-  text-transform: none;
-}
-
-/*
-1. Correct the inability to style clickable types in iOS and Safari.
-2. Remove default button styles.
-*/
-
-.sae-widget-container button,
-.sae-widget-container [type="button"],
-.sae-widget-container [type="reset"],
-.sae-widget-container [type="submit"] {
-  -webkit-appearance: button; /* 1 */
-  background-color: transparent; /* 2 */
-  background-image: none; /* 2 */
-}
-
-/*
-Use the modern Firefox focus style for all focusable elements.
+  Use the modern Firefox focus style for all focusable elements.
 */
 
 .sae-widget-container :-moz-focusring {
@@ -205,15 +205,7 @@ Use the modern Firefox focus style for all focusable elements.
 }
 
 /*
-Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
-*/
-
-.sae-widget-container :-moz-ui-invalid {
-  box-shadow: none;
-}
-
-/*
-Add the correct vertical alignment in Chrome and Firefox.
+  Add the correct vertical alignment in Chrome and Firefox.
 */
 
 .sae-widget-container progress {
@@ -221,44 +213,7 @@ Add the correct vertical alignment in Chrome and Firefox.
 }
 
 /*
-Correct the cursor style of increment and decrement buttons in Safari.
-*/
-
-.sae-widget-container ::-webkit-inner-spin-button,
-.sae-widget-container ::-webkit-outer-spin-button {
-  height: auto;
-}
-
-/*
-1. Correct the odd appearance in Chrome and Safari.
-2. Correct the outline style in Safari.
-*/
-
-.sae-widget-container [type="search"] {
-  -webkit-appearance: textfield; /* 1 */
-  outline-offset: -2px; /* 2 */
-}
-
-/*
-Remove the inner padding in Chrome and Safari on macOS.
-*/
-
-.sae-widget-container ::-webkit-search-decoration {
-  -webkit-appearance: none;
-}
-
-/*
-1. Correct the inability to style clickable types in iOS and Safari.
-2. Change font properties to `inherit` in Safari.
-*/
-
-.sae-widget-container ::-webkit-file-upload-button {
-  -webkit-appearance: button; /* 1 */
-  font: inherit; /* 2 */
-}
-
-/*
-Add the correct display in Chrome and Safari.
+  Add the correct display in Chrome and Safari.
 */
 
 .sae-widget-container summary {
@@ -266,81 +221,19 @@ Add the correct display in Chrome and Safari.
 }
 
 /*
-Removes the default spacing and border for appropriate elements.
+  Make lists unstyled by default.
 */
-
-.sae-widget-container blockquote,
-.sae-widget-container dl,
-.sae-widget-container dd,
-.sae-widget-container h1,
-.sae-widget-container h2,
-.sae-widget-container h3,
-.sae-widget-container h4,
-.sae-widget-container h5,
-.sae-widget-container h6,
-.sae-widget-container hr,
-.sae-widget-container figure,
-.sae-widget-container p,
-.sae-widget-container pre {
-  margin: 0;
-}
-
-.sae-widget-container fieldset {
-  margin: 0;
-  padding: 0;
-}
-
-.sae-widget-container legend {
-  padding: 0;
-}
 
 .sae-widget-container ol,
 .sae-widget-container ul,
 .sae-widget-container menu {
   list-style: none;
-  margin: 0;
-  padding: 0;
 }
 
 /*
-Prevent resizing textareas horizontally by default.
-*/
-
-.sae-widget-container textarea {
-  resize: vertical;
-}
-
-/*
-1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
-2. Set the default placeholder color to the user's configured gray 400 color.
-*/
-
-.sae-widget-container input::placeholder,
-.sae-widget-container textarea::placeholder {
-  opacity: 1; /* 1 */
-  color: #9ca3af; /* 2 */
-}
-
-/*
-Set the default cursor for buttons.
-*/
-
-.sae-widget-container button,
-.sae-widget-container [role="button"] {
-  cursor: pointer;
-}
-
-/*
-Make sure disabled buttons don't get the pointer cursor.
-*/
-.sae-widget-container :disabled {
-  cursor: default;
-}
-
-/*
-1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
-2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
-   This can trigger a poorly considered lint error in some tools but is included by design.
+  1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+  2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+      This can trigger a poorly considered lint error in some tools but is included by design.
 */
 
 .sae-widget-container img,
@@ -356,7 +249,7 @@ Make sure disabled buttons don't get the pointer cursor.
 }
 
 /*
-Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+  Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
 */
 
 .sae-widget-container img,
@@ -365,36 +258,169 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
   height: auto;
 }
 
-/* Make elements with the HTML hidden attribute stay hidden by default */
-.sae-widget-container [hidden] {
-  display: none;
+/*
+  1. Inherit font styles in all browsers.
+  2. Remove border radius in all browsers.
+  3. Remove background color in all browsers.
+  4. Ensure consistent opacity for disabled states in all browsers.
+*/
+
+.sae-widget-container button,
+.sae-widget-container input,
+.sae-widget-container select,
+.sae-widget-container optgroup,
+.sae-widget-container textarea,
+.sae-widget-container ::file-selector-button {
+  font: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  border-radius: 0; /* 2 */
+  background-color: transparent; /* 3 */
+  opacity: 1; /* 4 */
+}
+
+/*
+  Restore default font weight.
+*/
+
+.sae-widget-container :where(select:is([multiple], [size])) optgroup {
+  font-weight: bolder;
+}
+
+/*
+  Restore indentation.
+*/
+
+.sae-widget-container :where(select:is([multiple], [size])) optgroup option {
+  padding-inline-start: 20px;
+}
+
+/*
+  Restore space after button.
+*/
+
+.sae-widget-container ::file-selector-button {
+  margin-inline-end: 4px;
+}
+
+/*
+  Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+*/
+
+.sae-widget-container ::placeholder {
+  opacity: 1;
+}
+
+/*
+  Set the default placeholder color to a semi-transparent version of the current text color in browsers that do not
+  crash when using `color-mix(…)` with `currentColor`. (https://github.com/tailwindlabs/tailwindcss/issues/17194)
+*/
+
+@supports (not (-webkit-appearance: -apple-pay-button)) /* Not Safari */ or
+  (contain-intrinsic-size: 1px) /* Safari 17+ */ {
+  .sae-widget-container ::placeholder {
+    color: color-mix(in oklab, currentColor 50%, transparent);
+  }
+}
+
+/*
+  Prevent resizing textareas horizontally by default.
+*/
+
+.sae-widget-container textarea {
+  resize: vertical;
+}
+
+/*
+  Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+.sae-widget-container ::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+  1. Ensure date/time inputs have the same height when empty in iOS Safari.
+  2. Ensure text alignment can be changed on date/time inputs in iOS Safari.
+*/
+
+.sae-widget-container ::-webkit-date-and-time-value {
+  min-height: 1lh; /* 1 */
+  text-align: inherit; /* 2 */
+}
+
+/*
+  Prevent height from changing on date/time inputs in macOS Safari when the input is set to `display: block`.
+*/
+
+.sae-widget-container ::-webkit-datetime-edit {
+  display: inline-flex;
+}
+
+/*
+  Remove excess padding from pseudo-elements in date/time inputs to ensure consistent height across browsers.
+*/
+
+.sae-widget-container ::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+.sae-widget-container ::-webkit-datetime-edit,
+.sae-widget-container ::-webkit-datetime-edit-year-field,
+.sae-widget-container ::-webkit-datetime-edit-month-field,
+.sae-widget-container ::-webkit-datetime-edit-day-field,
+.sae-widget-container ::-webkit-datetime-edit-hour-field,
+.sae-widget-container ::-webkit-datetime-edit-minute-field,
+.sae-widget-container ::-webkit-datetime-edit-second-field,
+.sae-widget-container ::-webkit-datetime-edit-millisecond-field,
+.sae-widget-container ::-webkit-datetime-edit-meridiem-field {
+  padding-block: 0;
+}
+
+/*
+  Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+.sae-widget-container :-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+  Correct the inability to style the border radius in iOS Safari.
+*/
+
+.sae-widget-container button,
+.sae-widget-container
+  input:where([type="button"], [type="reset"], [type="submit"]),
+.sae-widget-container ::file-selector-button {
+  appearance: button;
+}
+
+/*
+  Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+.sae-widget-container ::-webkit-inner-spin-button,
+.sae-widget-container ::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+  Make elements with the HTML hidden attribute stay hidden by default.
+*/
+
+.sae-widget-container [hidden]:where(:not([hidden="until-found"])) {
+  display: none !important;
 }
 
 /* Additions */
 
-.sae-widget-container {
-  --gray-0: rgb(247, 247, 247);
-  --gray-1: rgb(226, 226, 226);
-  --gray-2: rgb(198, 198, 198);
-  --gray-3: rgb(171, 171, 171);
-  --gray-4: rgb(145, 145, 145);
-  --gray-5: rgb(119, 119, 119);
-  --gray-6: rgb(94, 94, 94);
-  --gray-7: rgb(71, 71, 71);
-  --gray-8: rgb(48, 48, 48);
-  --gray-9: rgb(27, 27, 27);
-
-  --blue: rgb(0, 95, 204);
-  --dark-blue: rgb(1, 51, 104);
-
-  --large: 1.125rem;
-  --small: 0.875rem;
-}
-
 .sae-widget-container button {
-  color: var(--blue);
-  background-color: white;
-  border: 1px solid var(--blue);
+  color: var(--color-black);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-black);
   border-radius: 0.25em;
   text-align: center;
   cursor: pointer;
@@ -404,21 +430,20 @@ Constrain images and videos to the parent width and preserve their intrinsic asp
 }
 
 .sae-widget-container button:hover:enabled {
-  color: white;
-  background-color: var(--blue);
+  color: var(--color-white);
+  background-color: var(--color-neutral-900);
 }
 
 .sae-widget-container button:active:enabled {
-  color: white;
-  background-color: var(--dark-blue);
-  border-color: var(--dark-blue);
+  color: var(--color-white);
+  background-color: var(--color-black);
 }
 
 .sae-widget-container button:disabled {
   cursor: not-allowed;
   background-color: transparent;
-  color: var(--gray-4);
-  border-color: var(--gray-4);
+  color: var(--color-neutral-400);
+  border-color: var(--color-neutral-400);
 }
 
 .sae-cutoff {

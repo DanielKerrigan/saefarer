@@ -8,7 +8,8 @@
 
   const tabs: { value: Tab; title: string }[] = [
     { value: "overview", title: "Overview" },
-    { value: "features", title: "Features" },
+    { value: "table", title: "Table" },
+    { value: "detail", title: "Detail" },
   ];
 </script>
 
@@ -30,29 +31,29 @@
 <style>
   div {
     display: flex;
-    padding: 0.25em;
-    background-color: var(--gray-1);
+    padding: 0.25em 0.5em;
+    background-color: var(--color-black);
   }
 
   button {
     border: none;
     border-radius: 0;
     background-color: transparent;
-    color: black;
+    color: var(--color-white);
   }
 
   button:hover:enabled {
-    color: black;
-    background-color: var(--gray-2);
+    color: var(--color-white);
+    background-color: var(--color-neutral-700);
   }
 
   button:active:enabled {
-    color: black;
-    background-color: var(--gray-3);
+    color: var(--color-white);
+    background-color: var(--color-neutral-500);
   }
 
   button.tab-selected {
-    border-bottom: 1px solid black;
+    border-bottom: 1px solid var(--color-white);
   }
 
   ul {

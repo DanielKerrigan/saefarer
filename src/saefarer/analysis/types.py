@@ -40,6 +40,26 @@ class SequenceInterval(TypedDict):
     sequences: list[FeatureTokenSequence]
 
 
+class ConfusionMatrixCell(TypedDict):
+    label: int
+    pred_label: int
+    count: int
+    pct: float
+
+
+class ConfusionMatrix(TypedDict):
+    n_sequences: int
+    cells: list[ConfusionMatrixCell]
+    label_counts: list[int]
+    label_pcts: list[float]
+    pred_label_counts: list[int]
+    pred_label_pcts: list[float]
+    false_pos_counts: list[int]
+    false_pos_pcts: list[float]
+    false_neg_counts: list[int]
+    false_neg_pcts: list[float]
+
+
 class FeatureData(TypedDict):
     sae_id: str
     feature_id: int
@@ -49,6 +69,7 @@ class FeatureData(TypedDict):
     sequence_act_rate: float
     sequence_acts_histogram: Histogram
     marginal_effects: MarginalEffects
+    cm: ConfusionMatrix
     sequence_intervals: dict[str, SequenceInterval]
     mean_pred_label_probs: list[float]
 
@@ -71,20 +92,11 @@ class SAEData(TypedDict):
     feature_projection: FeatureProjection
 
 
-class ConfusionMatrixCell(TypedDict):
-    label: int
-    pred_label: int
-    count: int
-
-
 class ModelInfo(TypedDict):
-    n_sequences: int
     labels: list[str]
     label_indices: list[int]
-    cm: list[ConfusionMatrixCell]
+    cm: ConfusionMatrix
     mean_pred_label_probs: list[float]
-    label_counts: list[int]
-    pred_label_counts: list[int]
 
 
 # Python only

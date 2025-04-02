@@ -10,5 +10,12 @@ export default defineConfig({
     },
     outDir: "src/saefarer/static/",
   },
-  plugins: [anywidget(), svelte({ hot: false })],
+  plugins: [
+    anywidget(),
+    svelte({
+      compilerOptions: {
+        hmr: false,
+      },
+    }),
+  ],
 });

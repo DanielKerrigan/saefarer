@@ -24,7 +24,7 @@
     targetRect: DOMRect;
   } | null = $state(null);
 
-  function onMouseEnterToken(event: MouseEvent, token: DisplayToken) {
+  function onMouseEnterToken(event: MouseEvent, data: DisplayToken) {
     if (!event.target || !rootDiv.value) {
       return;
     }
@@ -32,8 +32,6 @@
     const div = event.target as HTMLDivElement;
     const targetRect = div.getBoundingClientRect();
     const rootRect = rootDiv.value.getBoundingClientRect();
-
-    const data = token;
 
     tooltipInfo = {
       data,
@@ -76,7 +74,9 @@
           <div
             class="sae-token"
             style:background={col}
-            style:color={hcl(col).l > 50 ? "black" : "white"}
+            style:color={hcl(col).l > 50
+              ? "var(--color-black)"
+              : "var(--color-white)"}
             style:font-weight={i === seq.max_token_index ? "bold" : "normal"}
             style:--border-color={col}
             onmouseenter={(event) => onMouseEnterToken(event, dt)}
@@ -131,7 +131,7 @@
 
   .sae-sequence + .sae-sequence {
     padding-top: 0.25em;
-    border-top: 2px solid var(--gray-1);
+    border-top: 2px solid var(--color-neutral-100);
   }
 
   .sae-sequence {
@@ -147,6 +147,6 @@
   }
 
   .sae-token:hover {
-    border-color: red;
+    border-color: var(--color-red-600);
   }
 </style>

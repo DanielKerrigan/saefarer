@@ -25,6 +25,7 @@ dev = [
     "anywidget[dev]>=0.9.13",
     "build",
     "jupyterlab>=4.3.4",
+    "pytest",
     "ruff>=0.9.3",
     "sphinx",
 ]
@@ -78,6 +79,8 @@ format-py = "ruff format"
 format-js = "npm run format"
 format = { depends-on = ["format-py", "format-js"] }
 style = { depends-on = ["lint", "format"] }
+# testing
+test-py = "pytest"
 # generating documentation
 docs = "cd docs && make html"
 # building

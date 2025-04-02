@@ -2,10 +2,12 @@
   import { scaleLinear, scaleOrdinal } from "d3-scale";
   import { schemeObservable10 } from "d3-scale-chromatic";
   import type { MarginalEffects } from "../../types";
-  import Axis from "./Axis.svelte";
+  import Axis from "./axis/Axis.svelte";
   import { pairs, range } from "d3-array";
   import { line as d3line } from "d3-shape";
   import { defaultFormat } from "./vis-utils";
+  import LabelColorLegend from "./legends/CategoricalColorLegend.svelte";
+  import { model_info } from "../../synced-state.svelte";
 
   let {
     data,
@@ -15,8 +17,12 @@
     marginTop = 0,
     marginRight = 0,
     marginBottom = 0,
+    circleRadius = 2,
     xAxisLabel = "",
     yAxisLabel = "",
+    showColorLegend = true,
+    showXAxis = true,
+    showYAxis = true,
   }: {
     data: MarginalEffects;
     width: number;
@@ -25,18 +31,13 @@
     marginTop?: number;
     marginRight?: number;
     marginBottom?: number;
+    circleRadius?: number;
     xAxisLabel?: string;
     yAxisLabel?: string;
+    showColorLegend?: boolean;
+    showXAxis?: boolean;
+    showYAxis?: boolean;
   } = $props();
-
-  const probabilities = $derived(
-    data.probs.map((probs) =>
-      probs.map((p) => (p.toString() === "nan" ? NaN : p)),
-    ),
-  );
-
-  $effect(() => console.log("data", $state.snapshot(data)));
-  $effect(() => console.log("probs", $state.snapshot(probabilities)));
 
   const edges = $derived(pairs(data.thresholds));
 
@@ -48,87 +49,82 @@
 
   const y = $derived(
     scaleLinear()
-      .domain([
-        0,
-        Math.max(...probabilities.flat().filter((d) => !Number.isNaN(d))),
-      ])
+      .domain([0, Math.max(...data.probs.flat())])
       .range([height - marginBottom, marginTop])
       .nice(),
   );
-
-  $effect(() => console.log("domain", y.domain()));
 
   const line = $derived(
     d3line<number>()
       .x((d, i) => x((edges[i][0] + edges[i][1]) / 2))
       .y((d, i) => y(d))
-      .defined((d) => !Number.isNaN(d)),
+      .defined((d) => d !== -1),
   );
 
   const color = $derived(
     scaleOrdinal<number, string>()
-      .domain(range(probabilities.length))
+      .domain(range(data.probs.length))
       .range(schemeObservable10),
   );
 </script>
 
-<div class="color-legend">
-  {#each color.domain() as d}
-    <div class="color-legend-swatch">
-      <div class="color-legend-square" style:background={color(d)}></div>
-      <div class="color-legend-label">{d}</div>
-    </div>
-  {/each}
+<div>
+  {#if showColorLegend}
+    <LabelColorLegend {color} labels={model_info.value.labels} />
+  {/if}
+
+  <svg {width} {height}>
+    <g>
+      {#each data.probs as probs, labelIndex}
+        <path
+          d={line(probs)}
+          stroke={color(labelIndex)}
+          fill="none"
+          stroke-linecap="round"
+        />
+
+        {#each probs as prob, binIndex}
+          {#if prob !== -1}
+            <circle
+              cx={x((edges[binIndex][0] + edges[binIndex][1]) / 2)}
+              cy={y(prob)}
+              fill={color(labelIndex)}
+              r={2}
+            />
+          {/if}
+        {/each}
+      {/each}
+    </g>
+
+    {#if showXAxis}
+      <Axis
+        orientation={"bottom"}
+        scale={x}
+        translateY={height - marginBottom}
+        title={xAxisLabel}
+        titleAnchor="right"
+        {marginTop}
+        {marginRight}
+        {marginBottom}
+        {marginLeft}
+        numTicks={5}
+      />
+    {/if}
+
+    {#if showYAxis}
+      <Axis
+        orientation={"left"}
+        scale={y}
+        translateX={marginLeft}
+        title={yAxisLabel}
+        titleAnchor="top"
+        tickFormat={defaultFormat}
+        {marginTop}
+        {marginRight}
+        {marginBottom}
+        {marginLeft}
+        numTicks={5}
+      />
+    {/if}
+  </svg>
 </div>
-
-<svg {width} {height}>
-  <g>
-    {#each probabilities as probs, i}
-      <path d={line(probs)} stroke={color(i)} fill="none" />
-    {/each}
-  </g>
-
-  <Axis
-    orientation={"bottom"}
-    scale={x}
-    translateY={height - marginBottom}
-    title={xAxisLabel}
-    titleAnchor="right"
-    {marginTop}
-    {marginRight}
-    {marginBottom}
-    {marginLeft}
-    numTicks={5}
-  />
-  <Axis
-    orientation={"left"}
-    scale={y}
-    translateX={marginLeft}
-    title={yAxisLabel}
-    titleAnchor="top"
-    tickFormat={defaultFormat}
-    {marginTop}
-    {marginRight}
-    {marginBottom}
-    {marginLeft}
-    numTicks={5}
-  />
-</svg>
-
-<style>
-  .color-legend {
-    display: flex;
-    gap: 2em;
-  }
-
-  .color-legend-swatch {
-    display: flex;
-    gap: 1em;
-    align-items: center;
-  }
-
-  .color-legend-square {
-    width: 1em;
-    height: 1em;
-  }
-</style>

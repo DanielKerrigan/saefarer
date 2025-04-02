@@ -1,6 +1,6 @@
 <script lang="ts">
   import { scaleLinear } from "d3-scale";
-  import Axis from "./Axis.svelte";
+  import Axis from "./axis/Axis.svelte";
   import { range } from "d3-array";
   import { line as d3line, area as d3area } from "d3-shape";
   import { zip } from "d3-array";
@@ -36,14 +36,14 @@
   let x = $derived(
     scaleLinear()
       .domain([xs[0], xs[xs.length - 1]])
-      .range([marginLeft, width - marginRight])
+      .range([marginLeft, width - marginRight]),
   );
 
   let y = $derived(
     scaleLinear()
       .domain([0, Math.max(...ys)])
       .range([height - marginBottom, marginTop])
-      .nice()
+      .nice(),
   );
 
   let I = $derived(range(xs.length));
@@ -51,23 +51,23 @@
   let line = $derived(
     d3line<number>()
       .x((i) => x(xs[i]))
-      .y((i) => y(ys[i]))
+      .y((i) => y(ys[i])),
   );
 
   let area = $derived(
     d3area<number[]>()
       .x((d) => x(d[0]))
       .y0((d) => y(d[1]))
-      .y1((d) => y(d[2]))
+      .y1((d) => y(d[2])),
   );
 </script>
 
 <svg {width} {height}>
   {#if bandY0 && bandY1}
-    <path d={area(zip(xs, bandY0, bandY1))} fill="var(--gray-1)" />
+    <path d={area(zip(xs, bandY0, bandY1))} fill="var(--color-neutral-100)" />
   {/if}
 
-  <path d={line(I)} stroke="black" fill="none" />
+  <path d={line(I)} stroke="var(--color-black)" fill="none" />
 
   <Axis
     orientation={"bottom"}

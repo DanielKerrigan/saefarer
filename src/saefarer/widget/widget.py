@@ -7,10 +7,17 @@ import traitlets
 
 import saefarer.analysis.database as db
 
+_DEV = True
+
 
 class Widget(anywidget.AnyWidget):
-    _esm = Path(__file__).parent.parent / "static" / "widget.js"
-    _css = Path(__file__).parent.parent / "static" / "style.css"
+    if _DEV:
+        _esm = "http://localhost:5173/js/widget.ts?anywidget"
+        _css = ""
+    else:
+        bundled_assets_dir = Path(__file__).parent.parent / "static"
+        _esm = bundled_assets_dir / "widget.js"
+        _css = bundled_assets_dir / "style.css"
 
     height = traitlets.Int(0).tag(sync=True)
 
@@ -20,8 +27,13 @@ class Widget(anywidget.AnyWidget):
     sae_id = traitlets.Unicode().tag(sync=True)
     sae_data = traitlets.Dict().tag(sync=True)
 
-    feature_id = traitlets.Int().tag(sync=True)
+    features = traitlets.List([]).tag(sync=True)
+
+    feature_id = traitlets.Int(0).tag(sync=True)
     feature_data = traitlets.Dict().tag(sync=True)
+
+    num_feature_table_rows = traitlets.Int(0).tag(sync=True)
+    base_font_size = traitlets.Int(0).tag(sync=True)
 
     def __init__(self, path: str | os.PathLike, height: int = 600, **kwargs):
         super().__init__(**kwargs)
@@ -35,6 +47,8 @@ class Widget(anywidget.AnyWidget):
         self.cur = self.con.cursor()
 
         self.height = height
+        self.num_feature_table_rows = 10
+        self.base_font_size = 16
 
         self.model_info = db.read_misc("model_info", self.cur)
 
@@ -44,6 +58,7 @@ class Widget(anywidget.AnyWidget):
 
         self.feature_id = self.sae_data["alive_feature_ids"][0]
         self.feature_data = db.read_feature_data(self.feature_id, self.sae_id, self.cur)
+        self.features = db.query_features(self.sae_id, self.cur)
 
     @traitlets.observe("feature_id")
     def _on_feature_id_change(self, change):

@@ -96,6 +96,7 @@ def analyze(
                 feature_data = get_feature_data(
                     feature,
                     sae_id,
+                    model_info,
                     feature_activations,
                     positive_activation_mask,
                     tokenizer,

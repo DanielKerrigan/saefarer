@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 from datasets import (
@@ -9,7 +10,7 @@ from torch.utils.data import DataLoader
 from transformers import PreTrainedModel
 
 from saefarer.analysis.config import AnalysisConfig
-from saefarer.analysis.types import ConfusionMatrixCell, ModelInfo
+from saefarer.analysis.types import ConfusionMatrix, ConfusionMatrixCell, ModelInfo
 
 
 @torch.inference_mode()
@@ -82,46 +83,71 @@ def _get_model_predictions(
 
 @torch.inference_mode()
 def get_model_info(ds: dict[str, torch.Tensor], cfg: AnalysisConfig) -> ModelInfo:
-    n_sequences = ds["label"].shape[0]
     label_indices = list(range(len(cfg.labels)))
-    cm = _get_confusion_matrix(ds, label_indices)
+    cm = get_confusion_matrix(ds["label"], ds["pred_label"], label_indices)
 
     mean_probabilities = ds["pred_probs"].mean(dim=0).tolist()
 
-    label_counts = ds["label"].unique(sorted=True, return_counts=True)[1].tolist()
-    predicted_label_counts = (
-        ds["pred_label"].unique(sorted=True, return_counts=True)[1].tolist()
-    )
-
     return ModelInfo(
-        n_sequences=n_sequences,
         labels=cfg.labels,
         label_indices=label_indices,
         cm=cm,
         mean_pred_label_probs=mean_probabilities,
-        label_counts=label_counts,
-        pred_label_counts=predicted_label_counts,
     )
 
 
 @torch.inference_mode()
-def _get_confusion_matrix(
-    ds: dict[str, torch.Tensor], label_indices: list[int]
-) -> list[ConfusionMatrixCell]:
-    y_true = ds["label"].numpy(force=True)
-    y_pred = ds["pred_label"].numpy(force=True)
-    matrix = confusion_matrix(y_true=y_true, y_pred=y_pred, labels=label_indices)
+def get_confusion_matrix(
+    y_true: torch.Tensor,
+    y_pred: torch.Tensor,
+    label_indices: list[int],
+) -> ConfusionMatrix:
+    y_true_np = y_true.numpy(force=True)
+    y_pred_np = y_pred.numpy(force=True)
+
+    n_sequences = y_true_np.shape[0]
+
+    label_counts = np.unique_counts(y_true_np).counts
+    label_pcts = label_counts / n_sequences
+
+    pred_label_counts = np.unique_counts(y_pred_np).counts
+    pred_label_pcts = pred_label_counts / n_sequences
+
+    matrix = confusion_matrix(y_true=y_true_np, y_pred=y_pred_np, labels=label_indices)
 
     cells: list[ConfusionMatrixCell] = []
 
     for true_index in label_indices:
         for pred_index in label_indices:
-            cells.append(
-                ConfusionMatrixCell(
-                    label=true_index,
-                    pred_label=pred_index,
-                    count=matrix[true_index, pred_index],
-                )
+            count = matrix[true_index, pred_index].item()
+            pct = count / n_sequences
+            cell = ConfusionMatrixCell(
+                label=true_index,
+                pred_label=pred_index,
+                count=count,
+                pct=pct,
             )
+            cells.append(cell)
 
-    return cells
+    correct_counts = np.diagonal(matrix)
+
+    false_pos_counts = pred_label_counts - correct_counts
+    false_pos_pcts = false_pos_counts / n_sequences
+
+    false_neg_counts = label_counts - correct_counts
+    false_neg_pcts = false_neg_counts / n_sequences
+
+    cm = ConfusionMatrix(
+        n_sequences=n_sequences,
+        cells=cells,
+        label_counts=label_counts.tolist(),
+        label_pcts=label_pcts.tolist(),
+        pred_label_counts=pred_label_counts.tolist(),
+        pred_label_pcts=pred_label_pcts.tolist(),
+        false_pos_counts=false_pos_counts.tolist(),
+        false_pos_pcts=false_pos_pcts.tolist(),
+        false_neg_counts=false_neg_counts.tolist(),
+        false_neg_pcts=false_neg_pcts.tolist(),
+    )
+
+    return cm

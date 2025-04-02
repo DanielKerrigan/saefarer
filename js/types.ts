@@ -43,6 +43,7 @@ export type FeatureData = {
   sequence_act_rate: number;
   sequence_acts_histogram: Histogram;
   marginal_effects: MarginalEffects;
+  cm: ConfusionMatrixCell[];
   sequence_intervals: Record<string, SequenceInterval>;
   mean_pred_label_probs: number[];
 };
@@ -69,31 +70,45 @@ export type ConfusionMatrixCell = {
   label: number;
   pred_label: number;
   count: number;
+  pct: number;
+};
+
+export type ConfusionMatrix = {
+  n_sequences: number;
+  cells: ConfusionMatrixCell[];
+  label_counts: number[];
+  label_pcts: number[];
+  pred_label_counts: number[];
+  pred_label_pcts: number[];
+  false_pos_counts: number[];
+  false_pos_pcts: number[];
+  false_neg_counts: number[];
+  false_neg_pcts: number[];
 };
 
 export type ModelInfo = {
-  n_sequences: number;
   labels: string[];
   label_indices: number[];
-  cm: ConfusionMatrixCell[];
+  cm: ConfusionMatrix;
   mean_pred_label_probs: number[];
-  label_counts: number[];
-  pred_label_counts: number[];
 };
 
 export type DataModel = {
   height: number;
+  num_feature_table_rows: number;
+  base_font_size: number;
   model_info: ModelInfo;
   sae_ids: string[];
   sae_id: string;
   sae_data: SAEData;
   feature_id: number;
   feature_data: FeatureData;
+  features: FeatureData[];
 };
 
 // JS only
 
-export type Tab = "overview" | "features";
+export type Tab = "overview" | "table" | "detail";
 
 export type FeatureToken = {
   token: string;

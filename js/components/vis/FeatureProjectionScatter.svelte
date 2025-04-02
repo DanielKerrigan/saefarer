@@ -1,7 +1,6 @@
 <script lang="ts">
   import { scaleLinear } from "d3-scale";
   import type { FeatureProjection } from "../../types";
-  import Axis from "./Axis.svelte";
   import { range } from "d3-array";
 
   let {
@@ -39,10 +38,15 @@
 </script>
 
 <svg {width} {height}>
-  <rect {width} {height} fill="var(--gray-0)" />
+  <rect {width} {height} fill="var(--color-neutral-50)" />
   <g>
     {#each I as i}
-      <circle cx={x(data.xs[i])} cy={y(data.ys[i])} r={2} fill={"black"}>
+      <circle
+        cx={x(data.xs[i])}
+        cy={y(data.ys[i])}
+        r={2}
+        fill={"var(--color-black)"}
+      >
         <title>Feature {data.feature_ids[i]}</title>
       </circle>
     {/each}

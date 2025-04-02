@@ -41,7 +41,9 @@ def create_database(output_path: Path) -> tuple[sqlite3.Connection, sqlite3.Curs
             sequence_act_rate REAL,    
             sequence_acts_histogram TEXT,
             marginal_effects TEXT,
+            cm TEXT,
             sequence_intervals TEXT,
+            mean_pred_label_probs TEXT,
             PRIMARY KEY (sae_id, feature_id)
         )
     """)
@@ -52,12 +54,12 @@ def create_database(output_path: Path) -> tuple[sqlite3.Connection, sqlite3.Curs
 def insert_misc(key: str, value: Any, con: sqlite3.Connection, cur: sqlite3.Cursor):
     cur.execute(
         """
-        INSERT INTO feature VALUES(
+        INSERT INTO misc VALUES(
             :key,
             :value
         )
         """,
-        {key: key, value: json.dumps(value)},
+        {"key": key, "value": json.dumps(value)},
     )
     con.commit()
 
@@ -94,7 +96,9 @@ def insert_feature(data: FeatureData, con: sqlite3.Connection, cur: sqlite3.Curs
             :sequence_act_rate,
             :sequence_acts_histogram,
             :marginal_effects,
-            :sequence_intervals
+            :cm,
+            :sequence_intervals,
+            :mean_pred_label_probs
         )
         """,
         convert_dict_for_db(data),
@@ -116,7 +120,7 @@ def read_misc(key: str, cur: sqlite3.Cursor) -> Any:
         """,
         (key,),
     )
-    return res.fetchone()[1]
+    return json.loads(res.fetchone()[1])
 
 
 def read_sae_ids(cur: sqlite3.Cursor) -> list[str]:
@@ -161,6 +165,36 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
     )
 
 
+def row_to_feature_data(row: Any) -> FeatureData:
+    (
+        sae_id,
+        feature_id,
+        max_act,
+        token_act_rate,
+        token_acts_histogram,
+        sequence_act_rate,
+        sequence_acts_histogram,
+        marginal_effects,
+        cm,
+        sequence_intervals,
+        mean_pred_label_probs,
+    ) = row
+
+    return FeatureData(
+        sae_id=sae_id,
+        feature_id=feature_id,
+        max_act=max_act,
+        token_act_rate=token_act_rate,
+        token_acts_histogram=json.loads(token_acts_histogram),
+        sequence_act_rate=sequence_act_rate,
+        sequence_acts_histogram=json.loads(sequence_acts_histogram),
+        marginal_effects=json.loads(marginal_effects),
+        cm=json.loads(cm),
+        sequence_intervals=json.loads(sequence_intervals),
+        mean_pred_label_probs=json.loads(mean_pred_label_probs),
+    )
+
+
 def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> FeatureData:
     res = cur.execute(
         """
@@ -172,28 +206,23 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
         ),
     )
 
-    (
-        sae_id,
-        feature_id,
-        max_act,
-        token_act_rate,
-        token_acts_histogram,
-        sequence_act_rate,
-        sequence_acts_histogram,
-        marginal_effects,
-        sequence_intervals,
-        mean_pred_label_probs,
-    ) = res.fetchone()
+    row = res.fetchone()
 
-    return FeatureData(
-        sae_id=sae_id,
-        feature_id=feature_id,
-        max_act=max_act,
-        token_act_rate=token_act_rate,
-        token_acts_histogram=json.loads(token_acts_histogram),
-        sequence_act_rate=sequence_act_rate,
-        sequence_acts_histogram=json.loads(sequence_acts_histogram),
-        marginal_effects=json.loads(marginal_effects),
-        sequence_intervals=json.loads(sequence_intervals),
-        mean_pred_label_probs=json.loads(mean_pred_label_probs),
+    return row_to_feature_data(row)
+
+
+def query_features(sae_id: str, cur: sqlite3.Cursor) -> list[FeatureData]:
+    res = cur.execute(
+        """
+        SELECT *
+        FROM feature
+        WHERE sae_id = ?
+        ORDER BY feature_id DESC
+        LIMIT 10
+        """,
+        (sae_id,),
     )
+
+    rows = res.fetchall()
+
+    return [row_to_feature_data(row) for row in rows]

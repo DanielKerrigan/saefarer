@@ -13,12 +13,14 @@ from scipy import stats
 from transformers import PreTrainedTokenizer
 
 from saefarer.analysis.config import AnalysisConfig
+from saefarer.analysis.model_and_dataset import get_confusion_matrix
 from saefarer.analysis.types import (
     DisplayToken,
     FeatureData,
     FeatureTokenSequence,
     Histogram,
     MarginalEffects,
+    ModelInfo,
     SequenceInterval,
     SequenceIntervalIndices,
 )
@@ -29,6 +31,7 @@ from saefarer.utils import freedman_diaconis_np, top_k_indices_values
 def get_feature_data(
     feature_id: int,
     sae_id: str,
+    model_info: ModelInfo,
     token_acts: torch.Tensor,
     positive_token_acts_mask: torch.Tensor,
     tokenizer: PreTrainedTokenizer,
@@ -39,6 +42,7 @@ def get_feature_data(
     # Sequence activations
     sequence_acts = token_acts.max(dim=1)[0]
     positive_sequence_acts_mask = sequence_acts > 0
+    positive_sequence_acts_mask_cpu = positive_sequence_acts_mask.cpu()
     positive_sequence_acts = sequence_acts[positive_sequence_acts_mask]
     sequence_act_rate = positive_sequence_acts.numel() / sequence_acts.numel()
     positive_sequence_acts_np = positive_sequence_acts.numpy(force=True)
@@ -56,14 +60,21 @@ def get_feature_data(
     # Marginal effects
     marginal_effects = _get_sequence_level_marginal_effects(
         positive_sequence_acts,
-        positive_sequence_acts_mask,
+        positive_sequence_acts_mask_cpu,
         sequence_acts_histogram["thresholds"],
         ds,
     )
 
+    # Confusion matrix
+    cm = get_confusion_matrix(
+        ds["label"][positive_sequence_acts_mask_cpu],
+        ds["pred_label"][positive_sequence_acts_mask_cpu],
+        model_info["label_indices"],
+    )
+
     # Additional feature statistics
     mean_pred_label_probs = (
-        ds["pred_probs"][positive_sequence_acts_mask].mean(dim=0).tolist()
+        ds["pred_probs"][positive_sequence_acts_mask_cpu].mean(dim=0).tolist()
     )
 
     return FeatureData(
@@ -75,6 +86,7 @@ def get_feature_data(
         sequence_act_rate=sequence_act_rate,
         sequence_acts_histogram=sequence_acts_histogram,
         marginal_effects=marginal_effects,
+        cm=cm,
         sequence_intervals=sequence_intervals,
         mean_pred_label_probs=mean_pred_label_probs,
     )
@@ -269,11 +281,11 @@ def _get_act_histogram(
 @torch.inference_mode()
 def _get_sequence_level_marginal_effects(
     positive_acts: torch.Tensor,
-    positive_acts_mask: torch.Tensor,
+    positive_acts_mask_cpu: torch.Tensor,
     bin_edges: list[float],
     ds: dict[str, torch.Tensor],
 ) -> MarginalEffects:
-    predictions = ds["pred_probs"][positive_acts_mask.to("cpu")]
+    predictions = ds["pred_probs"][positive_acts_mask_cpu]
 
     positive_acts_np = positive_acts.numpy(force=True)
 
@@ -287,6 +299,7 @@ def _get_sequence_level_marginal_effects(
             bins=bin_edges,  # type: ignore
         )
 
-        probabilities.append(statistic.fillna(-1).tolist())
+        filled = np.nan_to_num(statistic, nan=-1).tolist()
+        probabilities.append(filled)
 
     return MarginalEffects(probs=probabilities, thresholds=bin_edges)

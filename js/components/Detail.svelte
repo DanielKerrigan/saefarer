@@ -1,6 +1,6 @@
 <script lang="ts">
   import { scaleSequential } from "d3-scale";
-  import { interpolateBlues } from "d3-scale-chromatic";
+  import { interpolateBuPu } from "d3-scale-chromatic";
   import { format } from "d3-format";
   import { feature_data, feature_id, sae_data } from "../synced-state.svelte";
   import Histogram from "./vis/Histogram.svelte";
@@ -12,7 +12,7 @@
   let color = $derived(
     scaleSequential()
       .domain([0, feature_data.value.max_act])
-      .interpolator(interpolateBlues),
+      .interpolator(interpolateBuPu),
   );
 </script>
 
@@ -34,11 +34,11 @@
       <div class="sae-header">Activations</div>
 
       <div>
-        Activation rate: {percentFormat(feature_data.value.activation_rate)} of tokens
+        Activation rate: {percentFormat(feature_data.value.token_act_rate)} of tokens
       </div>
 
       <Histogram
-        data={feature_data.value.activations_histogram}
+        data={feature_data.value.token_acts_histogram}
         marginTop={20}
         marginRight={20}
         marginLeft={50}
