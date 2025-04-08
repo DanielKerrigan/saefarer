@@ -3,8 +3,7 @@ from pathlib import Path
 from datasets import load_from_disk
 from transformers import AutoModelForSequenceClassification
 
-from saefarer.training.config import TrainingConfig
-from saefarer.training.train import train
+from saefarer.training import TrainingConfig, train
 from saefarer.utils import get_default_device
 
 

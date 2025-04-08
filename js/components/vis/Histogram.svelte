@@ -1,6 +1,6 @@
 <script lang="ts">
   import { scaleLinear } from "d3-scale";
-  import type { Histogram } from "../../types";
+  import type { HistogramData } from "../../types";
   import Axis from "./axis/Axis.svelte";
   import { pairs, range } from "d3-array";
   import { defaultFormat } from "./vis-utils";
@@ -18,7 +18,7 @@
     showXAxis = true,
     showYAxis = true,
   }: {
-    data: Histogram;
+    data: HistogramData;
     width: number;
     height: number;
     marginLeft?: number;

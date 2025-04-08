@@ -1,13 +1,13 @@
 <script lang="ts">
   import { scaleBand, scaleSequential } from "d3-scale";
   import { max } from "d3-array";
-  import type { ConfusionMatrix, ConfusionMatrixCell } from "../../types";
+  import type { ConfusionMatrixData, ConfusionMatrixCell } from "../../types";
   import Axis from "./axis/Axis.svelte";
   import { model_info } from "../../synced-state.svelte";
   import { interpolateYlGnBu } from "d3-scale-chromatic";
   import { rootDiv } from "../../state.svelte";
   import Tooltip from "../Tooltip.svelte";
-  import ConfusionMatrixTooltip from "./ConfusionMatrixTooltip.svelte";
+  import ConfusionMatrixTooltipContent from "./ConfusionMatrixTooltipContent.svelte";
   import QuantitativeColorLegend from "./legends/QuantitativeColorLegend.svelte";
 
   let {
@@ -20,7 +20,7 @@
     marginBottom = 72,
     showLegend = true,
   }: {
-    cm: ConfusionMatrix;
+    cm: ConfusionMatrixData;
     width: number;
     height: number;
     marginLeft?: number;
@@ -74,13 +74,17 @@
     targetRect: DOMRect;
   } | null = $state(null);
 
-  function onMouseEnterToken(event: MouseEvent, data: ConfusionMatrixCell) {
-    if (!event.target || !rootDiv.value) {
+  function onMouseEnterSquare(
+    event: MouseEvent & {
+      currentTarget: EventTarget & SVGRectElement;
+    },
+    data: ConfusionMatrixCell,
+  ) {
+    if (!rootDiv.value) {
       return;
     }
 
-    const div = event.target as HTMLDivElement;
-    const targetRect = div.getBoundingClientRect();
+    const targetRect = event.currentTarget.getBoundingClientRect();
     const rootRect = rootDiv.value.getBoundingClientRect();
 
     tooltipInfo = {
@@ -111,7 +115,7 @@
           stroke={color(d.count)}
           stroke-width={2}
           clip-path="inset(1px)"
-          onmouseenter={(event) => onMouseEnterToken(event, d)}
+          onmouseenter={(event) => onMouseEnterSquare(event, d)}
           onmouseleave={onMouseLeaveToken}
         />
       {/each}
@@ -170,7 +174,7 @@
     <Tooltip {...tooltipInfo}>
       {#snippet content()}
         {#if tooltipInfo}
-          <ConfusionMatrixTooltip data={tooltipInfo.data} />
+          <ConfusionMatrixTooltipContent data={tooltipInfo.data} />
         {/if}
       {/snippet}
     </Tooltip>

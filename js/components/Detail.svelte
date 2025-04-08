@@ -2,92 +2,108 @@
   import { scaleSequential } from "d3-scale";
   import { interpolateBuPu } from "d3-scale-chromatic";
   import { format } from "d3-format";
-  import { feature_data, feature_id, sae_data } from "../synced-state.svelte";
-  import Histogram from "./vis/Histogram.svelte";
+  import { detail_feature, detail_feature_id } from "../synced-state.svelte";
   import FeatureTokenSequences from "./FeatureTokenSequences.svelte";
   import MarginalEffectsPlot from "./vis/MarginalEffectsPlot.svelte";
+  import ConfusionMatrix from "./vis/ConfusionMatrix.svelte";
 
   const percentFormat = format(".3%");
 
   let color = $derived(
     scaleSequential()
-      .domain([0, feature_data.value.max_act])
+      .domain([0, detail_feature.value.max_act])
       .interpolator(interpolateBuPu),
   );
+
+  let featureIdInputValue = $derived(detail_feature_id.value);
+
+  function onClickGo() {
+    detail_feature_id.value = featureIdInputValue;
+  }
 </script>
 
-<div class="sae-features-container">
-  <div class="sae-left">
-    <div class="sae-header">Feature Selection</div>
-
-    <select bind:value={feature_id.value}>
-      {#each sae_data.value.alive_feature_ids as i}
-        <option value={i}>
-          {i}
-        </option>
-      {/each}
-    </select>
+<div class="sae-container">
+  <div class="sae-controls">
+    <div class="sae-feature-input">
+      <label>
+        <span>Feature</span>
+        <input type="number" bind:value={featureIdInputValue} />
+      </label>
+      <button onclick={onClickGo}>Go</button>
+    </div>
   </div>
+  <div class="sae-main">
+    <div class="sae-left">
+      <div class="sae-section">
+        <div class="sae-header">Prediction vs. Activation</div>
 
-  <div class="sae-middle">
-    <div class="sae-section">
-      <div class="sae-header">Activations</div>
+        <div>
+          Activation rate: {percentFormat(
+            detail_feature.value.sequence_act_rate,
+          )}
+          of instances
+        </div>
 
-      <div>
-        Activation rate: {percentFormat(feature_data.value.token_act_rate)} of tokens
+        <MarginalEffectsPlot
+          marginalEffects={detail_feature.value.marginal_effects}
+          distribution={detail_feature.value.sequence_acts_histogram}
+          marginTop={20}
+          marginRight={20}
+          marginLeft={50}
+          marginBottom={40}
+          width={300}
+          height={200}
+          xAxisLabel={"Activation value →"}
+          yAxisLabel={"Mean predicted probability →"}
+        />
       </div>
-
-      <Histogram
-        data={feature_data.value.token_acts_histogram}
-        marginTop={20}
-        marginRight={20}
-        marginLeft={50}
-        marginBottom={40}
-        width={300}
-        height={200}
-        xAxisLabel={"Activation value"}
-        yAxisLabel={"Token count"}
-      />
     </div>
 
-    <div class="sae-section">
-      <div class="sae-header">Marginal Effects</div>
+    <div class="sae-middle">
+      <div class="sae-section">
+        <div class="sae-header">Confusion Matrix</div>
 
-      <MarginalEffectsPlot
-        data={feature_data.value.marginal_effects}
-        marginTop={20}
-        marginRight={20}
-        marginLeft={50}
-        marginBottom={40}
-        width={300}
-        height={200}
-        xAxisLabel={"Activation value"}
-        yAxisLabel={"Average probability"}
-      />
+        <ConfusionMatrix
+          cm={detail_feature.value.cm}
+          width={300}
+          height={300}
+        />
+      </div>
     </div>
-  </div>
 
-  <div class="sae-right">
-    <div class="sae-header">Example Activations</div>
+    <div class="sae-right">
+      <div class="sae-header">Example Activations</div>
 
-    <FeatureTokenSequences {color} />
+      <FeatureTokenSequences {color} />
+    </div>
   </div>
 </div>
 
 <style>
-  .sae-features-container {
+  .sae-container {
     height: 100%;
     display: flex;
+    flex-direction: column;
+    gap: 1em;
+  }
+
+  .sae-controls {
+    display: flex;
+  }
+
+  .sae-main {
+    flex: 1;
+    display: flex;
     flex-direction: row;
-    padding: 1em;
     gap: 1em;
   }
 
   .sae-left {
-    flex: 0 0 200px;
+    min-width: 300px;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
+    overflow-y: auto;
   }
 
   .sae-middle {
@@ -100,7 +116,7 @@
 
   .sae-right {
     min-width: 0;
-    flex: 2;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.25em;
@@ -116,7 +132,30 @@
     font-weight: bold;
   }
 
-  select {
+  .sae-feature-input {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+  }
+
+  .sae-feature-input label {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+  }
+
+  .sae-feature-input label span {
+    font-weight: bold;
+  }
+
+  .sae-feature-input label input {
     align-self: flex-start;
+    border: 1px solid var(--color-neutral-400);
+    padding: 0.25em 0.5em;
+    width: 6em;
+  }
+
+  .sae-feature-input button {
+    padding: 0.25em 0.5em;
   }
 </style>

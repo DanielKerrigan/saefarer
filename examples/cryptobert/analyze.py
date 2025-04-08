@@ -3,8 +3,7 @@ import argparse
 from datasets import load_from_disk
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-from saefarer.analysis.analyze import analyze
-from saefarer.analysis.config import AnalysisConfig
+from saefarer.analysis import AnalysisConfig, analyze
 from saefarer.sae import SAE
 from saefarer.utils import get_default_device
 

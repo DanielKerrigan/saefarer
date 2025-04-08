@@ -1,22 +1,24 @@
 <script lang="ts">
   import { scaleLinear, scaleOrdinal } from "d3-scale";
   import { schemeObservable10 } from "d3-scale-chromatic";
-  import type { MarginalEffects } from "../../types";
+  import type { HistogramData, MarginalEffectsData } from "../../types";
   import Axis from "./axis/Axis.svelte";
-  import { pairs, range } from "d3-array";
+  import { pairs, zip } from "d3-array";
   import { line as d3line } from "d3-shape";
   import { defaultFormat } from "./vis-utils";
   import LabelColorLegend from "./legends/CategoricalColorLegend.svelte";
   import { model_info } from "../../synced-state.svelte";
+  import Histogram from "./Histogram.svelte";
 
   let {
-    data,
+    marginalEffects,
     width,
     height,
-    marginLeft = 0,
+    distribution = null,
     marginTop = 0,
     marginRight = 0,
     marginBottom = 0,
+    marginLeft = 0,
     circleRadius = 2,
     xAxisLabel = "",
     yAxisLabel = "",
@@ -24,13 +26,14 @@
     showXAxis = true,
     showYAxis = true,
   }: {
-    data: MarginalEffects;
+    marginalEffects: MarginalEffectsData;
     width: number;
     height: number;
-    marginLeft?: number;
+    distribution?: HistogramData | null;
     marginTop?: number;
     marginRight?: number;
     marginBottom?: number;
+    marginLeft?: number;
     circleRadius?: number;
     xAxisLabel?: string;
     yAxisLabel?: string;
@@ -39,31 +42,55 @@
     showYAxis?: boolean;
   } = $props();
 
-  const edges = $derived(pairs(data.thresholds));
+  type Point = { act: number; prob: number };
+  type Series = {
+    labelIndex: number;
+    points: Point[];
+  };
+
+  const binCenters = $derived(
+    pairs(marginalEffects.thresholds).map(
+      ([binStart, binEnd]) => (binEnd + binStart) / 2,
+    ),
+  );
+
+  const series: Series[] = $derived(
+    marginalEffects.probs.map((probsForLabel, labelIndex) => ({
+      labelIndex,
+      points: [
+        { act: 0, prob: marginalEffects.non_act_probs[labelIndex] },
+        ...zip(binCenters, probsForLabel)
+          .filter(([, prob]) => prob !== -1)
+          .map(([act, prob]) => ({ act, prob })),
+      ],
+    })),
+  );
 
   const x = $derived(
     scaleLinear()
-      .domain([data.thresholds[0], data.thresholds[data.thresholds.length - 1]])
+      .domain([
+        marginalEffects.thresholds[0],
+        marginalEffects.thresholds[marginalEffects.thresholds.length - 1],
+      ])
       .range([marginLeft, width - marginRight]),
   );
 
   const y = $derived(
     scaleLinear()
-      .domain([0, Math.max(...data.probs.flat())])
+      .domain([0, Math.max(...marginalEffects.probs.flat())])
       .range([height - marginBottom, marginTop])
       .nice(),
   );
 
   const line = $derived(
-    d3line<number>()
-      .x((d, i) => x((edges[i][0] + edges[i][1]) / 2))
-      .y((d, i) => y(d))
-      .defined((d) => d !== -1),
+    d3line<Point>()
+      .x((d) => x(d.act))
+      .y((d) => y(d.prob)),
   );
 
   const color = $derived(
     scaleOrdinal<number, string>()
-      .domain(range(data.probs.length))
+      .domain(model_info.value.label_indices)
       .range(schemeObservable10),
   );
 </script>
@@ -73,26 +100,42 @@
     <LabelColorLegend {color} labels={model_info.value.labels} />
   {/if}
 
+  {#if distribution}
+    <Histogram
+      data={distribution}
+      marginTop={0}
+      {marginRight}
+      {marginLeft}
+      marginBottom={0}
+      {width}
+      height={64}
+      showXAxis={false}
+      showYAxis={false}
+    />
+  {/if}
+
   <svg {width} {height}>
     <g>
-      {#each data.probs as probs, labelIndex}
+      {#each series as { points, labelIndex }}
         <path
-          d={line(probs)}
+          d={line(points)}
           stroke={color(labelIndex)}
           fill="none"
           stroke-linecap="round"
         />
 
-        {#each probs as prob, binIndex}
-          {#if prob !== -1}
-            <circle
-              cx={x((edges[binIndex][0] + edges[binIndex][1]) / 2)}
-              cy={y(prob)}
-              fill={color(labelIndex)}
-              r={2}
-            />
-          {/if}
-        {/each}
+        {#if circleRadius > 0}
+          {#each points as p}
+            {#if p.prob !== -1}
+              <circle
+                cx={x(p.act)}
+                cy={y(p.prob)}
+                fill={color(labelIndex)}
+                r={circleRadius}
+              />
+            {/if}
+          {/each}
+        {/if}
       {/each}
     </g>
 
@@ -117,7 +160,7 @@
         scale={y}
         translateX={marginLeft}
         title={yAxisLabel}
-        titleAnchor="top"
+        titleAnchor="center"
         tickFormat={defaultFormat}
         {marginTop}
         {marginRight}

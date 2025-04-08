@@ -1,13 +1,14 @@
 // Aligned with types.py
 
-export type Histogram = {
+export type HistogramData = {
   counts: number[];
   thresholds: number[];
 };
 
-export type MarginalEffects = {
+export type MarginalEffectsData = {
   probs: number[][];
   thresholds: number[];
+  non_act_probs: number[];
 };
 
 export type DisplayToken = {
@@ -34,16 +35,36 @@ export type SequenceInterval = {
   sequences: FeatureTokenSequence[];
 };
 
+export type ConfusionMatrixCell = {
+  label: number;
+  pred_label: number;
+  count: number;
+  pct: number;
+};
+
+export type ConfusionMatrixData = {
+  n_sequences: number;
+  cells: ConfusionMatrixCell[];
+  label_counts: number[];
+  label_pcts: number[];
+  pred_label_counts: number[];
+  pred_label_pcts: number[];
+  false_pos_counts: number[];
+  false_pos_pcts: number[];
+  false_neg_counts: number[];
+  false_neg_pcts: number[];
+};
+
 export type FeatureData = {
   sae_id: number;
   feature_id: number;
   max_act: number;
   token_act_rate: number;
-  token_acts_histogram: Histogram;
+  token_acts_histogram: HistogramData;
   sequence_act_rate: number;
-  sequence_acts_histogram: Histogram;
-  marginal_effects: MarginalEffects;
-  cm: ConfusionMatrixCell[];
+  sequence_acts_histogram: HistogramData;
+  marginal_effects: MarginalEffectsData;
+  cm: ConfusionMatrixData;
   sequence_intervals: Record<string, SequenceInterval>;
   mean_pred_label_probs: number[];
 };
@@ -61,57 +82,56 @@ export type SAEData = {
   num_dead_features: number;
   num_non_activating_features: number;
   alive_feature_ids: number[];
-  token_act_rate_histogram: Histogram;
-  sequence_act_rate_histogram: Histogram;
+  token_act_rate_histogram: HistogramData;
+  sequence_act_rate_histogram: HistogramData;
   feature_projection: FeatureProjection;
 };
 
-export type ConfusionMatrixCell = {
-  label: number;
-  pred_label: number;
-  count: number;
-  pct: number;
+export type IndexRankingOption = {
+  kind: "index";
+  reverse: boolean;
 };
 
-export type ConfusionMatrix = {
-  n_sequences: number;
-  cells: ConfusionMatrixCell[];
-  label_counts: number[];
-  label_pcts: number[];
-  pred_label_counts: number[];
-  pred_label_pcts: number[];
-  false_pos_counts: number[];
-  false_pos_pcts: number[];
-  false_neg_counts: number[];
-  false_neg_pcts: number[];
+export type SequenceActRateRankingOption = {
+  kind: "sequence_act_rate";
+  reverse: boolean;
 };
+
+export type LabelRankingOption = {
+  kind: "label";
+  true_label: string;
+  pred_label: string;
+  reverse: boolean;
+};
+
+export type RankingOption =
+  | IndexRankingOption
+  | SequenceActRateRankingOption
+  | LabelRankingOption;
 
 export type ModelInfo = {
   labels: string[];
   label_indices: number[];
-  cm: ConfusionMatrix;
+  cm: ConfusionMatrixData;
   mean_pred_label_probs: number[];
 };
 
 export type DataModel = {
   height: number;
-  num_feature_table_rows: number;
   base_font_size: number;
+  n_table_rows: number;
   model_info: ModelInfo;
   sae_ids: string[];
   sae_id: string;
   sae_data: SAEData;
-  feature_id: number;
-  feature_data: FeatureData;
-  features: FeatureData[];
+  table_ranking_option: RankingOption;
+  table_page_index: number;
+  max_table_page_index: number;
+  table_features: FeatureData[];
+  detail_feature: FeatureData;
+  detail_feature_id: number;
 };
 
 // JS only
 
 export type Tab = "overview" | "table" | "detail";
-
-export type FeatureToken = {
-  token: string;
-  activation: number;
-  extras: { key: string; value: string }[];
-};

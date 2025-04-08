@@ -5,16 +5,19 @@ https://github.com/openai/sparse_autoencoder
 """
 
 from dataclasses import dataclass
-from os import PathLike
-from typing import Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import einops
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing_extensions import Self
 
-from saefarer.training.config import TrainingConfig
+if TYPE_CHECKING:
+    from os import PathLike
+
+    from typing_extensions import Self
+
+    from saefarer.training.config import TrainingConfig
 
 
 @dataclass
@@ -55,7 +58,7 @@ class SAE(nn.Module):
         recons = decoder(latents) + b_dec
     """
 
-    def __init__(self, cfg: TrainingConfig) -> None:
+    def __init__(self, cfg: "TrainingConfig") -> None:
         super().__init__()
 
         self.dtype = getattr(torch, cfg.dtype)
@@ -221,16 +224,16 @@ class SAE(nn.Module):
             "d_sae, d_sae d_in -> d_sae d_in",
         )
 
-    def save(self, path: str | PathLike):
+    def save(self, path: "str | PathLike"):
         """Save model to path."""
         torch.save([self.cfg, self.state_dict()], path)
 
     @classmethod
     def load(
         cls,
-        path: str | PathLike,
+        path: "str | PathLike",
         device: Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device,
-    ) -> Self:
+    ) -> "Self":
         """Load model from path."""
         config, state = torch.load(path, map_location=device, weights_only=False)
 

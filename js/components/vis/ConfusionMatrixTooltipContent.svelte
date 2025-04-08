@@ -20,7 +20,7 @@
         <td class="sae-string">{model_info.value.labels[data.pred_label]}</td>
       </tr>
       <tr>
-        <td class="sae-string">Count:</td>
+        <td class="sae-string">Instance count:</td>
         <td class="sae-number">{data.count} ({pctFormat(data.pct)})</td>
       </tr>
     </tbody>

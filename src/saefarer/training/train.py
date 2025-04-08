@@ -1,33 +1,37 @@
 """Code for training a sparse autoencoder."""
 
 import time
-from os import PathLike
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import torch
 import tqdm
-from datasets import (
-    Dataset,
-    IterableDataset,
-)
 from torch.utils.data import DataLoader
-from transformers import (
-    PreTrainedModel,
-)
 
-from saefarer.sae import SAE, ForwardOutput
+from saefarer.sae import SAE
 from saefarer.training import logger
 from saefarer.training.activations_store import ActivationsStore
-from saefarer.training.config import TrainingConfig
+
+if TYPE_CHECKING:
+    from os import PathLike
+
+    from datasets import (
+        Dataset,
+        IterableDataset,
+    )
+    from transformers import PreTrainedModel
+
+    from saefarer.sae import ForwardOutput
+    from saefarer.training.config import TrainingConfig
 
 
 def train(
-    cfg: TrainingConfig,
-    model: PreTrainedModel,
-    dataset: Dataset | IterableDataset | DataLoader,
-    save_path: str | PathLike,
-    log_dir: str | PathLike,
-    checkpoint_dir: str | PathLike | None = None,
+    cfg: "TrainingConfig",
+    model: "PreTrainedModel",
+    dataset: "Dataset | IterableDataset | DataLoader",
+    save_path: "str | PathLike",
+    log_dir: "str | PathLike",
+    checkpoint_dir: "str | PathLike | None" = None,
 ) -> SAE:
     """Train the SAE"""
 
@@ -55,7 +59,7 @@ def train(
         x = store.next_batch()
 
         # forward pass through SAE
-        output: ForwardOutput = sae(x)
+        output: "ForwardOutput" = sae(x)
 
         # backward pass
 

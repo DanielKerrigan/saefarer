@@ -5,38 +5,42 @@ https://github.com/jbloomAus/SAEDashboard
 """
 
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 import numpy as np
-import numpy.typing as npt
 import torch
 from scipy import stats
-from transformers import PreTrainedTokenizer
 
-from saefarer.analysis.config import AnalysisConfig
 from saefarer.analysis.model_and_dataset import get_confusion_matrix
 from saefarer.analysis.types import (
     DisplayToken,
     FeatureData,
     FeatureTokenSequence,
-    Histogram,
-    MarginalEffects,
-    ModelInfo,
+    HistogramData,
+    MarginalEffectsData,
     SequenceInterval,
     SequenceIntervalIndices,
 )
-from saefarer.utils import freedman_diaconis_np, top_k_indices_values
+from saefarer.utils import top_k_indices_values
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from transformers import PreTrainedTokenizer
+
+    from saefarer.analysis.config import AnalysisConfig
+    from saefarer.analysis.types import ModelInfo
 
 
 @torch.inference_mode()
 def get_feature_data(
     feature_id: int,
     sae_id: str,
-    model_info: ModelInfo,
+    model_info: "ModelInfo",
     token_acts: torch.Tensor,
     positive_token_acts_mask: torch.Tensor,
-    tokenizer: PreTrainedTokenizer,
+    tokenizer: "PreTrainedTokenizer",
     ds: dict[str, torch.Tensor],
-    cfg: AnalysisConfig,
+    cfg: "AnalysisConfig",
     rng: np.random.Generator,
 ) -> FeatureData:
     # Sequence activations
@@ -46,13 +50,17 @@ def get_feature_data(
     positive_sequence_acts = sequence_acts[positive_sequence_acts_mask]
     sequence_act_rate = positive_sequence_acts.numel() / sequence_acts.numel()
     positive_sequence_acts_np = positive_sequence_acts.numpy(force=True)
-    sequence_acts_histogram = _get_act_histogram(positive_sequence_acts_np)
+    sequence_acts_histogram = _get_act_histogram(
+        positive_sequence_acts_np, cfg.n_activation_bins
+    )
 
     # Token activations
     positive_token_acts = token_acts[positive_token_acts_mask]
     token_act_rate = positive_token_acts.numel() / token_acts.numel()
     positive_token_acts_np = positive_token_acts.numpy(force=True)
-    token_acts_histogram = _get_act_histogram(positive_token_acts_np)
+    token_acts_histogram = _get_act_histogram(
+        positive_token_acts_np, cfg.n_activation_bins
+    )
 
     # Example sequences
     sequence_intervals = _get_example_sequences(tokenizer, ds, token_acts, cfg, rng)
@@ -94,10 +102,10 @@ def get_feature_data(
 
 @torch.inference_mode()
 def _get_example_sequences(
-    tokenizer: PreTrainedTokenizer,
+    tokenizer: "PreTrainedTokenizer",
     ds: dict[str, torch.Tensor],
     feature_activations: torch.Tensor,
-    cfg: AnalysisConfig,
+    cfg: "AnalysisConfig",
     rng: np.random.Generator,
 ) -> dict[str, SequenceInterval]:
     interval_indices = _get_interval_indices(feature_activations, cfg, rng)
@@ -109,16 +117,9 @@ def _get_example_sequences(
 
         for point in interval.indices:
             seq_i = int(point[0].item())
-            # tok_i = int(point[1].item())
 
-            # min_tok_i = max(0, tok_i - cfg.n_context_tokens)
-            # max_tok_i = min(cfg.model_sequence_length, tok_i + cfg.n_context_tokens)
-
-            min_tok_i = 0
-            max_tok_i = cfg.model_sequence_length - 1
-
-            tok_ids = ds[cfg.tokens_column][seq_i, min_tok_i : max_tok_i + 1]
-            acts = feature_activations[seq_i, min_tok_i : max_tok_i + 1]
+            tok_ids = ds[cfg.tokens_column][seq_i]
+            acts = feature_activations[seq_i]
 
             extras: dict[str, list[str]] = {}
 
@@ -135,7 +136,7 @@ def _get_example_sequences(
                 if values.dim() == 0:
                     values = [values.item()] * tok_ids.shape[0]
                 else:
-                    values = values[min_tok_i : max_tok_i + 1].tolist()
+                    values = values.tolist()
 
                 extras[col] = [formatter(value) for value in values]
 
@@ -146,6 +147,7 @@ def _get_example_sequences(
                 extras=extras,
                 sequence_index=seq_i,
                 ds=ds,
+                cfg=cfg,
             )
             key_seq.append(token_sequence)
 
@@ -161,7 +163,7 @@ def _get_example_sequences(
 @torch.inference_mode()
 def _get_interval_indices(
     feature_activations: torch.Tensor,
-    cfg: AnalysisConfig,
+    cfg: "AnalysisConfig",
     rng: np.random.Generator,
 ) -> dict[str, SequenceIntervalIndices]:
     sequence_indices: dict[str, SequenceIntervalIndices] = {}
@@ -177,7 +179,9 @@ def _get_interval_indices(
     )
 
     activation_ranges = torch.linspace(
-        0, feature_activations.max(), cfg.n_sequence_intervals + 1
+        feature_activations.min(),
+        feature_activations.max(),
+        cfg.n_sequence_intervals + 1,
     )
 
     interval_min_max = reversed(list(zip(activation_ranges, activation_ranges[1:])))
@@ -214,12 +218,13 @@ def _get_interval_indices(
 
 @torch.inference_mode()
 def _get_feature_token_sequence(
-    tokenizer: PreTrainedTokenizer,
+    tokenizer: "PreTrainedTokenizer",
     input_ids: list[int],
     activations: list[float],
     extras: dict[str, list[str]],
     sequence_index: int,
     ds: dict[str, torch.Tensor],
+    cfg: "AnalysisConfig",
 ) -> FeatureTokenSequence:
     display_tokens: list[DisplayToken] = []
 
@@ -256,10 +261,24 @@ def _get_feature_token_sequence(
             activations_group = []
             extras_group = defaultdict(list)
 
+    max_super_token_index = np.argmax([x["max_act"] for x in display_tokens]).item()
+
+    if cfg.n_context_tokens >= 0:
+        min_index = max(0, max_super_token_index - cfg.n_context_tokens)
+        max_index = min(
+            len(display_tokens) - 1, max_super_token_index + cfg.n_context_tokens
+        )
+
+        display_tokens_subset = display_tokens[min_index:max_index]
+        max_token_index = max_super_token_index - min_index
+    else:
+        display_tokens_subset = display_tokens
+        max_token_index = max_super_token_index
+
     token_sequence = FeatureTokenSequence(
         sequence_index=sequence_index,
-        display_tokens=display_tokens,
-        max_token_index=np.argmax([x["max_act"] for x in display_tokens]).item(),
+        display_tokens=display_tokens_subset,
+        max_token_index=max_token_index,
         label=int(ds["label"][sequence_index]),
         pred_label=int(ds["pred_label"][sequence_index]),
         pred_probs=ds["pred_probs"][sequence_index].tolist(),
@@ -269,13 +288,10 @@ def _get_feature_token_sequence(
 
 
 @torch.inference_mode()
-def _get_act_histogram(
-    acts: npt.NDArray[np.float64],
-) -> Histogram:
+def _get_act_histogram(acts: "npt.NDArray[np.float64]", num_bins: int) -> HistogramData:
     acts_range = (0, acts.max())
-    num_bins = min(freedman_diaconis_np(acts, acts_range), 64)
     hist, bin_edges = np.histogram(acts, bins=num_bins, range=acts_range)
-    return Histogram(counts=hist.tolist(), thresholds=bin_edges.tolist())
+    return HistogramData(counts=hist.tolist(), thresholds=bin_edges.tolist())
 
 
 @torch.inference_mode()
@@ -284,17 +300,17 @@ def _get_sequence_level_marginal_effects(
     positive_acts_mask_cpu: torch.Tensor,
     bin_edges: list[float],
     ds: dict[str, torch.Tensor],
-) -> MarginalEffects:
-    predictions = ds["pred_probs"][positive_acts_mask_cpu]
+) -> MarginalEffectsData:
+    pred_probs = ds["pred_probs"][positive_acts_mask_cpu]
 
     positive_acts_np = positive_acts.numpy(force=True)
 
     probabilities = []
 
-    for i in range(predictions.shape[1]):
+    for i in range(pred_probs.shape[1]):
         statistic, _, _ = stats.binned_statistic(
             positive_acts_np,
-            predictions[:, i],
+            pred_probs[:, i],
             statistic="mean",
             bins=bin_edges,  # type: ignore
         )
@@ -302,4 +318,10 @@ def _get_sequence_level_marginal_effects(
         filled = np.nan_to_num(statistic, nan=-1).tolist()
         probabilities.append(filled)
 
-    return MarginalEffects(probs=probabilities, thresholds=bin_edges)
+    non_act_pred_probs = (
+        ds["pred_probs"][~positive_acts_mask_cpu].mean(dim=0).nan_to_num(-1).tolist()
+    )
+
+    return MarginalEffectsData(
+        probs=probabilities, thresholds=bin_edges, non_act_probs=non_act_pred_probs
+    )

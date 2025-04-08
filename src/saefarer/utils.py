@@ -1,8 +1,12 @@
 """Utility functions."""
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import numpy.typing as npt
 import torch
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 
 def get_default_device() -> torch.device:
@@ -28,7 +32,7 @@ def top_k_indices_values(
 
 
 def freedman_diaconis_np(
-    x: npt.NDArray, x_range: tuple[float, float] | None = None
+    x: "npt.NDArray", x_range: tuple[float, float] | None = None
 ) -> int:
     """Freedman Diaconis Estimator for determining
     the number of bins in a histogram."""

@@ -27,53 +27,48 @@
 </script>
 
 <div class="sae-overview-container">
-  <div class="sae-left">
-    <div class="sae-section">
-      <div class="sae-header">Feature Activations</div>
+  <div class="sae-col">
+    <div class="sae-header">Feature Activations</div>
 
-      <div>
-        {percentFormat(percentDead)} of features died during training.
-      </div>
+    <div>
+      {percentFormat(percentDead)} of features died during training.
+    </div>
 
-      <div>
-        {percentFormat(percentNonActivating)} of features did not activate during
-        analysis.
-      </div>
+    <div>
+      {percentFormat(percentNonActivating)} of features did not activate during analysis.
+    </div>
 
-      <div
-        class="sae-act-rate-hist"
-        bind:offsetWidth={maxHistWidth}
-        bind:offsetHeight={maxHistHeight}
-      >
-        <Histogram
-          data={sae_data.value.sequence_act_rate_histogram}
-          marginTop={20}
-          marginRight={20}
-          marginLeft={50}
-          marginBottom={40}
-          width={histWidth}
-          height={histHeight}
-          xAxisLabel={"log_10 activation rate →"}
-          yAxisLabel={"↑ Instance count"}
-        />
-      </div>
+    <div
+      class="sae-vis"
+      bind:offsetWidth={maxHistWidth}
+      bind:offsetHeight={maxHistHeight}
+    >
+      <Histogram
+        data={sae_data.value.sequence_act_rate_histogram}
+        marginTop={20}
+        marginRight={20}
+        marginLeft={50}
+        marginBottom={40}
+        width={histWidth}
+        height={histHeight}
+        xAxisLabel={"lg activation rate →"}
+        yAxisLabel={"↑ Feature count"}
+      />
     </div>
   </div>
 
-  <div class="sae-right">
-    <div class="sae-section">
-      <div class="sae-header">Confusion Matrix</div>
-      <div
-        class="sae-confusion-matrix"
-        bind:offsetWidth={maxCMHeight}
-        bind:offsetHeight={maxCMWidth}
-      >
-        <ConfusionMatrix
-          cm={model_info.value.cm}
-          width={cmWidth}
-          height={cmHeight}
-        />
-      </div>
+  <div class="sae-col">
+    <div class="sae-header">Confusion Matrix</div>
+    <div
+      class="sae-vis"
+      bind:offsetWidth={maxCMHeight}
+      bind:offsetHeight={maxCMWidth}
+    >
+      <ConfusionMatrix
+        cm={model_info.value.cm}
+        width={cmWidth}
+        height={cmHeight}
+      />
     </div>
   </div>
 </div>
@@ -85,45 +80,21 @@
     gap: 1em;
   }
 
-  .sae-left {
+  .sae-col {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 0.5em;
     height: 100%;
   }
 
-  .sae-right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5em;
-    height: 100%;
-  }
-
-  .sae-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    gap: 0.25em;
-  }
-
-  .sae-act-rate-hist,
-  .sae-confusion-matrix {
+  .sae-vis {
     flex: 1;
     min-height: 0;
   }
 
   .sae-header {
     font-weight: bold;
-  }
-
-  .sae-act-rate-hist {
-    flex: 1;
-  }
-
-  .sae-confusion-matrix {
-    flex: 1;
   }
 </style>

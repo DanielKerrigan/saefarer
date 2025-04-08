@@ -1,16 +1,17 @@
 """Configuration for SAE training."""
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-import torch
+if TYPE_CHECKING:
+    import torch
 
 
 @dataclass
 class TrainingConfig:
     """Configuration class for training SAEs."""
 
-    device: Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device = "cuda"
+    device: 'Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device' = "cuda"
     dtype: Literal["float16", "bfloat16", "float32", "float64"] = "float32"
     # dataset
     dataset_column: str = "input_ids"

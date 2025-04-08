@@ -1,7 +1,11 @@
 <script lang="ts">
   import Tabs from "./Tabs.svelte";
   import type { Tab } from "../types";
-  import { base_font_size, height } from "../synced-state.svelte";
+  import {
+    base_font_size,
+    detail_feature_id,
+    height,
+  } from "../synced-state.svelte";
   import Overview from "./Overview.svelte";
   import Table from "./Table.svelte";
   import Detail from "./Detail.svelte";
@@ -11,6 +15,11 @@
 
   function changeTab(tab: Tab) {
     selectedTab = tab;
+  }
+
+  function onClickFeature(feature_id: number) {
+    detail_feature_id.value = feature_id;
+    selectedTab = "detail";
   }
 </script>
 
@@ -24,16 +33,14 @@
     <Tabs {selectedTab} {changeTab} />
   </div>
 
-  <div class="sae-tab-content" class:sae-hide={selectedTab !== "overview"}>
-    <Overview />
-  </div>
-
-  <div class="sae-tab-content" class:sae-hide={selectedTab !== "table"}>
-    <Table />
-  </div>
-
-  <div class="sae-tab-content" class:sae-hide={selectedTab !== "detail"}>
-    <Detail />
+  <div class="sae-tab-content">
+    {#if selectedTab === "overview"}
+      <Overview />
+    {:else if selectedTab === "table"}
+      <Table {onClickFeature} />
+    {:else}
+      <Detail />
+    {/if}
   </div>
 </div>
 

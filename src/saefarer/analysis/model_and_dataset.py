@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -7,17 +9,20 @@ from datasets import (
 )
 from sklearn.metrics import confusion_matrix
 from torch.utils.data import DataLoader
-from transformers import PreTrainedModel
 
-from saefarer.analysis.config import AnalysisConfig
 from saefarer.analysis.types import ConfusionMatrix, ConfusionMatrixCell, ModelInfo
+
+if TYPE_CHECKING:
+    from transformers import PreTrainedModel
+
+    from saefarer.analysis.config import AnalysisConfig
 
 
 @torch.inference_mode()
 def get_dataset_with_predictions(
-    model: PreTrainedModel,
+    model: "PreTrainedModel",
     dataset: Dataset | IterableDataset | DataLoader,
-    cfg: AnalysisConfig,
+    cfg: "AnalysisConfig",
 ) -> dict[str, torch.Tensor]:
     if isinstance(dataset, Dataset):
         ds = dataset[0 : cfg.total_analysis_sequences]
@@ -47,9 +52,9 @@ def get_dataset_with_predictions(
 
 @torch.inference_mode()
 def _get_model_predictions(
-    model: PreTrainedModel,
+    model: "PreTrainedModel",
     ds: dict[str, torch.Tensor],
-    cfg: AnalysisConfig,
+    cfg: "AnalysisConfig",
 ) -> torch.Tensor:
     tokens = ds[cfg.tokens_column]
     attn_masks = ds[cfg.attn_mask_column]
@@ -82,7 +87,7 @@ def _get_model_predictions(
 
 
 @torch.inference_mode()
-def get_model_info(ds: dict[str, torch.Tensor], cfg: AnalysisConfig) -> ModelInfo:
+def get_model_info(ds: dict[str, torch.Tensor], cfg: "AnalysisConfig") -> ModelInfo:
     label_indices = list(range(len(cfg.labels)))
     cm = get_confusion_matrix(ds["label"], ds["pred_label"], label_indices)
 

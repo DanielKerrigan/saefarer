@@ -1,19 +1,20 @@
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 import torch
 
 # Aligned with types.ts
 
 
-class Histogram(TypedDict):
+class HistogramData(TypedDict):
     counts: list[int]
     thresholds: list[float]
 
 
-class MarginalEffects(TypedDict):
+class MarginalEffectsData(TypedDict):
     probs: list[list[float]]
     thresholds: list[float]
+    non_act_probs: list[float]
 
 
 class DisplayToken(TypedDict):
@@ -65,10 +66,10 @@ class FeatureData(TypedDict):
     feature_id: int
     max_act: float
     token_act_rate: float
-    token_acts_histogram: Histogram
+    token_acts_histogram: HistogramData
     sequence_act_rate: float
-    sequence_acts_histogram: Histogram
-    marginal_effects: MarginalEffects
+    sequence_acts_histogram: HistogramData
+    marginal_effects: MarginalEffectsData
     cm: ConfusionMatrix
     sequence_intervals: dict[str, SequenceInterval]
     mean_pred_label_probs: list[float]
@@ -82,14 +83,34 @@ class FeatureProjection(TypedDict):
 
 class SAEData(TypedDict):
     sae_id: str
-    num_total_features: int
-    num_alive_features: int
-    num_dead_features: int
-    num_non_activating_features: int
+    n_total_features: int
+    n_alive_features: int
+    n_dead_features: int
+    n_non_activating_features: int
     alive_feature_ids: list[int]
-    token_act_rate_histogram: Histogram
-    sequence_act_rate_histogram: Histogram
+    token_act_rate_histogram: HistogramData
+    sequence_act_rate_histogram: HistogramData
     feature_projection: FeatureProjection
+
+
+class IndexRankingOption(TypedDict):
+    kind: Literal["index"]
+    reverse: bool
+
+
+class SequenceActRateRankingOption(TypedDict):
+    kind: Literal["sequence_act_rate"]
+    reverse: bool
+
+
+class LabelRankingOption(TypedDict):
+    kind: Literal["label"]
+    true_label: str
+    pred_label: str
+    reverse: bool
+
+
+RankingOption = IndexRankingOption | SequenceActRateRankingOption | LabelRankingOption
 
 
 class ModelInfo(TypedDict):

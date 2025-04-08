@@ -2,16 +2,19 @@
 This is based on `activations_store.py` from SAELens.
 """
 
-from typing import Any, Iterator
+from typing import TYPE_CHECKING, Any, Iterator
 
 import torch
 from datasets import Dataset, IterableDataset
 from einops import rearrange
 from torch.utils.data import DataLoader, TensorDataset
-from transformers import PreTrainedModel
 
 from saefarer.constants import DTYPES
-from saefarer.training.config import TrainingConfig
+
+if TYPE_CHECKING:
+    from transformers import PreTrainedModel
+
+    from saefarer.training.config import TrainingConfig
 
 
 class ActivationsStore:
@@ -22,9 +25,9 @@ class ActivationsStore:
 
     def __init__(
         self,
-        model: PreTrainedModel,
+        model: "PreTrainedModel",
         dataset: Dataset | IterableDataset | DataLoader,
-        cfg: TrainingConfig,
+        cfg: "TrainingConfig",
     ):
         self.dtype = DTYPES[cfg.dtype]
         self.device = torch.device(cfg.device)

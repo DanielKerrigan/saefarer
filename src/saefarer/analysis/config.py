@@ -1,9 +1,10 @@
 """Configuration for SAE analysis."""
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
-import torch
+if TYPE_CHECKING:
+    import torch
 
 
 @dataclass
@@ -18,7 +19,7 @@ class AnalysisConfig:
     # default
 
     # device
-    device: Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device = "cuda"
+    device: 'Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device' = "cuda"
     # dataset
     tokens_column: str = "input_ids"
     attn_mask_column: str = "attention_mask"
@@ -31,7 +32,7 @@ class AnalysisConfig:
     total_analysis_tokens: int = 10_000_000
     total_analysis_sequences: int = field(init=False)
     feature_indices: list[int] = field(default_factory=list)
-    num_histogram_bins: int = 32
+    n_activation_bins: int = 32
     # ui
     n_example_sequences: int = 10
     n_context_tokens: int = 5

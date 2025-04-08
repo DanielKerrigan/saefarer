@@ -4,8 +4,8 @@ https://github.com/callummcdougall/sae_vis
 https://github.com/jbloomAus/SAEDashboard
 """
 
-import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -16,10 +16,9 @@ from datasets import (
 )
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import PreTrainedModel, PreTrainedTokenizer
 
 import saefarer.analysis.database as db
-from saefarer.analysis.config import AnalysisConfig
+from saefarer import sae
 from saefarer.analysis.feature_analysis import get_feature_data
 from saefarer.analysis.model_and_dataset import (
     get_dataset_with_predictions,
@@ -27,20 +26,26 @@ from saefarer.analysis.model_and_dataset import (
 )
 from saefarer.analysis.types import (
     FeatureProjection,
-    Histogram,
+    HistogramData,
     SAEData,
 )
-from saefarer.sae import SAE
+
+if TYPE_CHECKING:
+    from os import PathLike
+
+    from transformers import PreTrainedModel, PreTrainedTokenizer
+
+    from saefarer.analysis.config import AnalysisConfig
 
 
 @torch.inference_mode()
 def analyze(
-    cfg: AnalysisConfig,
-    model: PreTrainedModel,
+    cfg: "AnalysisConfig",
+    model: "PreTrainedModel",
     dataset: Dataset | IterableDataset | DataLoader,
-    sae: SAE,
-    tokenizer: PreTrainedTokenizer,
-    output_path: str | os.PathLike,
+    sae: "sae.SAE",
+    tokenizer: "PreTrainedTokenizer",
+    output_path: "str | PathLike",
 ):
     output_path = Path(output_path)
 
@@ -64,16 +69,16 @@ def analyze(
     feature_indices = cfg.feature_indices or list(range(sae.cfg.d_sae))
 
     dead_feature_ids, alive_feature_ids = _get_dead_alive_features(sae, feature_indices)
-    num_alive_features = len(alive_feature_ids)
-    num_dead_features = len(dead_feature_ids)
+    n_alive_features = len(alive_feature_ids)
+    n_dead_features = len(dead_feature_ids)
 
     feature_batches = [
         alive_feature_ids[i : i + cfg.feature_batch_size]
-        for i in range(0, num_alive_features, cfg.feature_batch_size)
+        for i in range(0, n_alive_features, cfg.feature_batch_size)
     ]
 
     progress_bar = tqdm(
-        total=num_alive_features,
+        total=n_alive_features,
         desc="Calculating feature data",
         disable=not cfg.show_progress,
     )
@@ -118,9 +123,9 @@ def analyze(
         alive_feature_ids = list(
             set(alive_feature_ids) - set(non_activating_feature_ids)
         )
-        num_alive_features = len(alive_feature_ids)
+        n_alive_features = len(alive_feature_ids)
 
-    num_non_activating_features = len(non_activating_feature_ids)
+    n_non_activating_features = len(non_activating_feature_ids)
 
     token_act_rate_histogram = _get_activation_rate_histogram(token_act_rates)
     sequence_act_rate_histogram = _get_activation_rate_histogram(sequence_act_rates)
@@ -129,10 +134,10 @@ def analyze(
 
     sae_data = SAEData(
         sae_id=sae_id,
-        num_total_features=len(feature_indices),
-        num_alive_features=num_alive_features,
-        num_dead_features=num_dead_features,
-        num_non_activating_features=num_non_activating_features,
+        n_total_features=len(feature_indices),
+        n_alive_features=n_alive_features,
+        n_dead_features=n_dead_features,
+        n_non_activating_features=n_non_activating_features,
         alive_feature_ids=alive_feature_ids,
         token_act_rate_histogram=token_act_rate_histogram,
         sequence_act_rate_histogram=sequence_act_rate_histogram,
@@ -145,10 +150,10 @@ def analyze(
 @torch.inference_mode()
 def _get_sae_activations(
     feature_indices: list[int],
-    sae: SAE,
-    model: PreTrainedModel,
+    sae: "sae.SAE",
+    model: "PreTrainedModel",
     ds: dict[str, torch.Tensor],
-    cfg: AnalysisConfig,
+    cfg: "AnalysisConfig",
 ) -> torch.Tensor:
     tokens = ds[cfg.tokens_column]
     attn_masks = ds[cfg.attn_mask_column]
@@ -183,17 +188,15 @@ def _get_sae_activations(
 
 
 @torch.inference_mode()
-def _get_activation_rate_histogram(
-    activation_rates: list[float],
-) -> Histogram:
+def _get_activation_rate_histogram(activation_rates: list[float]) -> HistogramData:
     log_rates = np.log10(activation_rates)
-    counts, thresholds = np.histogram(log_rates, bins="fd")
-    return Histogram(counts=counts.tolist(), thresholds=thresholds.tolist())
+    counts, thresholds = np.histogram(log_rates, "fd")
+    return HistogramData(counts=counts.tolist(), thresholds=thresholds.tolist())
 
 
 @torch.inference_mode()
 def _get_dead_alive_features(
-    sae: SAE, feature_indices: list[int]
+    sae: "sae.SAE", feature_indices: list[int]
 ) -> tuple[list[int], list[int]]:
     dead_mask = sae.get_dead_neuron_mask()
 
@@ -209,7 +212,9 @@ def _get_dead_alive_features(
 
 
 @torch.inference_mode()
-def _get_feature_projection(sae: SAE, feature_ids: list[int]) -> FeatureProjection:
+def _get_feature_projection(
+    sae: "sae.SAE", feature_ids: list[int]
+) -> FeatureProjection:
     n_features = len(feature_ids)
 
     # UMAP doesn't work with <= 2 datapoints, so in these cases we will

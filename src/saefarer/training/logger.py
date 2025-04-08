@@ -1,11 +1,13 @@
 import json
 from dataclasses import asdict
 from importlib import import_module
-from os import PathLike
 from pathlib import Path
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
-from saefarer.training.config import TrainingConfig
+if TYPE_CHECKING:
+    from os import PathLike
+
+    from saefarer.training.config import TrainingConfig
 
 
 class LogData(TypedDict):
@@ -21,7 +23,7 @@ class LogData(TypedDict):
 
 
 class Logger:
-    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
+    def __init__(self, cfg: "TrainingConfig", log_dir: "str | PathLike"):
         self.cfg = cfg
         self.log_dir = Path(log_dir)
 
@@ -33,7 +35,7 @@ class Logger:
 
 
 class WAndBLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
+    def __init__(self, cfg: "TrainingConfig", log_dir: "str | PathLike"):
         super().__init__(cfg, log_dir)
 
         self.wandb = import_module("wandb")
@@ -55,7 +57,7 @@ class WAndBLogger(Logger):
 
 
 class TensorboardLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
+    def __init__(self, cfg: "TrainingConfig", log_dir: "str | PathLike"):
         super().__init__(cfg, log_dir)
 
         from torch.utils.tensorboard.writer import SummaryWriter
@@ -72,7 +74,7 @@ class TensorboardLogger(Logger):
 
 
 class JSONLLogger(Logger):
-    def __init__(self, cfg: TrainingConfig, log_dir: str | PathLike):
+    def __init__(self, cfg: "TrainingConfig", log_dir: "str | PathLike"):
         super().__init__(cfg, log_dir)
         self.log_file = (self.log_dir / "logs.jsonl").open("a")
 
@@ -84,7 +86,7 @@ class JSONLLogger(Logger):
         self.log_file.close()
 
 
-def from_cfg(cfg: TrainingConfig, log_dir: str | PathLike) -> Logger:
+def from_cfg(cfg: "TrainingConfig", log_dir: "str | PathLike") -> Logger:
     if cfg.logger == "jsonl":
         return JSONLLogger(cfg, log_dir)
     elif cfg.logger == "tensorboard":

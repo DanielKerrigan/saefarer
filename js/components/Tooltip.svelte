@@ -28,11 +28,12 @@
 
   function getLeft(width: number, rootRect: DOMRect, targetRect: DOMRect) {
     const halfTooltipWidth = width / 2;
+    const targetRectMiddle = (targetRect.left + targetRect.right) / 2;
 
-    if (targetRect.left - halfTooltipWidth < rootRect.left) {
+    if (targetRectMiddle - halfTooltipWidth < rootRect.left) {
       // tooltip needs to the right
       return targetRect.right - rootRect.left + space;
-    } else if (targetRect.right + halfTooltipWidth > rootRect.right) {
+    } else if (targetRectMiddle + halfTooltipWidth > rootRect.right) {
       // tooltip needs to the left
       return targetRect.left - rootRect.left - width - space;
     } else {

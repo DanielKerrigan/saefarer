@@ -1,12 +1,14 @@
 import json
 import sqlite3
-from pathlib import Path
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
-from saefarer.analysis.types import FeatureData, SAEData
+from saefarer.analysis.types import FeatureData, RankingOption, SAEData
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
-def create_database(output_path: Path) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
+def create_database(output_path: "Path") -> tuple[sqlite3.Connection, sqlite3.Cursor]:
     con = sqlite3.connect(output_path.as_posix())
     cur = con.cursor()
 
@@ -20,10 +22,10 @@ def create_database(output_path: Path) -> tuple[sqlite3.Connection, sqlite3.Curs
     cur.execute("""
         CREATE TABLE sae(
             sae_id STRING PRIMARY KEY,
-            num_total_features INTEGER,
-            num_alive_features INTEGER,
-            num_dead_features INTEGER,
-            num_non_activating_features INTEGER,
+            n_total_features INTEGER,
+            n_alive_features INTEGER,
+            n_dead_features INTEGER,
+            n_non_activating_features INTEGER,
             alive_feature_ids TEXT,
             token_act_rate_histogram TEXT,
             sequence_act_rate_histogram TEXT,
@@ -69,10 +71,10 @@ def insert_sae(data: SAEData, con: sqlite3.Connection, cur: sqlite3.Cursor):
         """
         INSERT INTO sae VALUES(
             :sae_id,
-            :num_total_features,
-            :num_alive_features,
-            :num_dead_features,
-            :num_non_activating_features,
+            :n_total_features,
+            :n_alive_features,
+            :n_dead_features,
+            :n_non_activating_features,
             :alive_feature_ids,
             :token_act_rate_histogram,
             :sequence_act_rate_histogram,
@@ -142,10 +144,10 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
     )
     (
         sae_id,
-        num_total_features,
-        num_alive_features,
-        num_dead_features,
-        num_non_activating_features,
+        n_total_features,
+        n_alive_features,
+        n_dead_features,
+        n_non_activating_features,
         alive_feature_ids,
         token_act_rate_histogram,
         sequence_act_rate_histogram,
@@ -154,10 +156,10 @@ def read_sae_data(sae_id: str, cur: sqlite3.Cursor) -> SAEData:
 
     return SAEData(
         sae_id=sae_id,
-        num_total_features=num_total_features,
-        num_alive_features=num_alive_features,
-        num_dead_features=num_dead_features,
-        num_non_activating_features=num_non_activating_features,
+        n_total_features=n_total_features,
+        n_alive_features=n_alive_features,
+        n_dead_features=n_dead_features,
+        n_non_activating_features=n_non_activating_features,
         alive_feature_ids=json.loads(alive_feature_ids),
         token_act_rate_histogram=json.loads(token_act_rate_histogram),
         sequence_act_rate_histogram=json.loads(sequence_act_rate_histogram),
@@ -195,7 +197,9 @@ def row_to_feature_data(row: Any) -> FeatureData:
     )
 
 
-def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> FeatureData:
+def read_feature_data(
+    feature_id: int, sae_id: str, cur: sqlite3.Cursor
+) -> FeatureData | None:
     res = cur.execute(
         """
         SELECT * FROM feature WHERE sae_id = ? AND feature_id = ? 
@@ -208,10 +212,19 @@ def read_feature_data(feature_id: int, sae_id: str, cur: sqlite3.Cursor) -> Feat
 
     row = res.fetchone()
 
+    if row is None:
+        return None
+
     return row_to_feature_data(row)
 
 
-def query_features(sae_id: str, cur: sqlite3.Cursor) -> list[FeatureData]:
+def query_features(
+    sae_id: str,
+    cur: sqlite3.Cursor,
+    ranking_option: RankingOption,
+    page_index: int,
+    n_table_rows: int,
+) -> list[FeatureData]:
     res = cur.execute(
         """
         SELECT *
