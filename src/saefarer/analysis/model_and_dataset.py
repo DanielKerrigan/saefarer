@@ -115,10 +115,10 @@ def get_confusion_matrix(
     error_count = (y_true_np == y_pred_np).sum().item()
     error_pct = error_count / n_sequences
 
-    label_counts = np.unique_counts(y_true_np).counts
+    label_counts = np.bincount(y_true_np, minlength=len(label_indices))
     label_pcts = label_counts / n_sequences
 
-    pred_label_counts = np.unique_counts(y_pred_np).counts
+    pred_label_counts = np.bincount(y_pred_np, minlength=len(label_indices))
     pred_label_pcts = pred_label_counts / n_sequences
 
     matrix = confusion_matrix(y_true=y_true_np, y_pred=y_pred_np, labels=label_indices)

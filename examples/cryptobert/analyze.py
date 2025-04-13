@@ -24,7 +24,7 @@ def main(sae_path, db_path):
         labels=[label for _, label in sorted(model.config.id2label.items())],
         model_batch_size_sequences=32,
         model_sequence_length=128,
-        feature_batch_size=64,
+        feature_batch_size=128,
         total_analysis_tokens=10_000_000,
         feature_indices=[],
         n_example_sequences=10,

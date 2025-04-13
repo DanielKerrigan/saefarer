@@ -10,12 +10,14 @@ def test_get_confusion_matrix():
     This example is from Wikipedia
     https://en.wikipedia.org/wiki/Confusion_matrix
     """
-    y_true = torch.Tensor([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0])
-    y_pred = torch.Tensor([0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
+    y_true = torch.tensor([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0])
+    y_pred = torch.tensor([0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
     label_indices = [0, 1]
 
     expected_cm = ConfusionMatrix(
         n_sequences=12,
+        error_count=3,
+        error_pct=3 / 12,
         cells=[
             ConfusionMatrixCell(label=0, pred_label=0, count=3, pct=3 / 12),
             ConfusionMatrixCell(label=0, pred_label=1, count=1, pct=1 / 12),
