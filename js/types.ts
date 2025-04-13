@@ -25,7 +25,7 @@ export type FeatureTokenSequence = {
   display_tokens: DisplayToken[];
   max_token_index: number;
   label: number;
-  predicted_label: number;
+  pred_label: number;
   pred_probs: number[];
 };
 
@@ -44,6 +44,8 @@ export type ConfusionMatrixCell = {
 
 export type ConfusionMatrixData = {
   n_sequences: number;
+  error_count: number;
+  error_pct: number;
   cells: ConfusionMatrixCell[];
   label_counts: number[];
   label_pcts: number[];
@@ -77,35 +79,35 @@ export type FeatureProjection = {
 
 export type SAEData = {
   sae_id: string;
-  num_total_features: number;
-  num_alive_features: number;
-  num_dead_features: number;
-  num_non_activating_features: number;
+  n_total_features: number;
+  n_alive_features: number;
+  n_dead_features: number;
+  n_non_activating_features: number;
   alive_feature_ids: number[];
   token_act_rate_histogram: HistogramData;
   sequence_act_rate_histogram: HistogramData;
   feature_projection: FeatureProjection;
 };
 
-export type IndexRankingOption = {
-  kind: "index";
-  reverse: boolean;
+export type FeatureIdRankingOption = {
+  kind: "feature_id";
+  descending: boolean;
 };
 
 export type SequenceActRateRankingOption = {
   kind: "sequence_act_rate";
-  reverse: boolean;
+  descending: boolean;
 };
 
 export type LabelRankingOption = {
   kind: "label";
   true_label: string;
   pred_label: string;
-  reverse: boolean;
+  descending: boolean;
 };
 
 export type RankingOption =
-  | IndexRankingOption
+  | FeatureIdRankingOption
   | SequenceActRateRankingOption
   | LabelRankingOption;
 

@@ -64,17 +64,21 @@ class Widget(anywidget.AnyWidget):
         self.sae_id = self.sae_ids[0]
         self.sae_data = db.read_sae_data(self.sae_ids[0], self.cur)
 
-        self.table_ranking_option: "RankingOption" = {"kind": "index", "reverse": False}
+        self.table_ranking_option: "RankingOption" = {
+            "kind": "feature_id",
+            "descending": True,
+        }
         self.table_page_index = 0
         self.max_table_page_index = (
             math.ceil(self.sae_data["n_alive_features"] / self.n_table_rows) - 1
         )
-        self.table_features = db.query_features(
+        self.table_features = db.rank_features(
             self.sae_id,
             self.cur,
             self.table_ranking_option,
             self.table_page_index,
             self.n_table_rows,
+            len(self.model_info["labels"]),
         )
 
         self.detail_feature = self.table_features[0]
@@ -104,17 +108,30 @@ class Widget(anywidget.AnyWidget):
 
     @traitlets.observe("table_page_index")
     def _on_table_page_index_change(self, _):
-        self.table_features = db.query_features(
+        self.table_features = db.rank_features(
             self.sae_id,
             self.cur,
             self.table_ranking_option,
             self.table_page_index,
             self.n_table_rows,
+            len(self.model_info["labels"]),
         )
 
     @traitlets.observe("table_ranking_option")
     def table_ranking_option_change(self, _):
         """When the ranking option is changed, go back to the first page.
         Updating table_features will happen in the change handler for
-        table_page_index."""
-        self.table_page_index = 0
+        table_page_index. If we are already on the first change,
+        then update table_features here."""
+
+        if self.table_page_index == 0:
+            self.table_features = db.rank_features(
+                self.sae_id,
+                self.cur,
+                self.table_ranking_option,
+                self.table_page_index,
+                self.n_table_rows,
+                len(self.model_info["labels"]),
+            )
+        else:
+            self.table_page_index = 0

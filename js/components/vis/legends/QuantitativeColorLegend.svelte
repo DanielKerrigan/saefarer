@@ -13,6 +13,7 @@
     width,
     height,
     color,
+    orientation = "horizontal",
     marginTop = 10,
     marginRight = 10,
     marginBottom = 10,
@@ -22,6 +23,7 @@
     width: number;
     height: number;
     color: ScaleSequential<string> | ScaleDiverging<string>;
+    orientation: "horizontal" | "vertical";
     marginTop?: number;
     marginRight?: number;
     marginBottom?: number;
@@ -40,7 +42,7 @@
 
   // drawing
 
-  function draw(
+  function drawHorizontal(
     ctx: CanvasRenderingContext2D,
     color: ScaleSequential<string> | ScaleDiverging<string>,
     width: number,
@@ -85,6 +87,45 @@
     });
   }
 
+  function drawVertical(
+    ctx: CanvasRenderingContext2D,
+    color: ScaleSequential<string> | ScaleDiverging<string>,
+    width: number,
+    height: number,
+    marginTop: number,
+    marginRight: number,
+    marginBottom: number,
+    marginLeft: number,
+  ) {
+    const y = scaleLinear()
+      .domain([color.domain()[0], color.domain()[color.domain().length - 1]])
+      .range([height - marginBottom, marginTop]);
+
+    const colorWidth = width - marginLeft - marginRight;
+    const colorHeight = y.range()[0] - y.range()[1];
+
+    const tickValues = y.ticks();
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, width, height);
+
+    for (let i = 0; i < colorHeight; i++) {
+      ctx.fillStyle = color.interpolator()(1 - i / colorHeight);
+      ctx.fillRect(marginLeft, i + marginTop, colorWidth, 1);
+    }
+
+    axis(ctx, "right", y, {
+      translateX: width - marginRight,
+      tickValues,
+      tickFormat: defaultFormat,
+      title: title,
+      marginTop,
+      marginRight,
+      marginBottom,
+      marginLeft,
+    });
+  }
+
   $effect(() => {
     if (canvas && ctx) {
       scaleCanvas(canvas, ctx, width, height);
@@ -93,16 +134,29 @@
 
   $effect(() => {
     if (ctx) {
-      draw(
-        ctx,
-        color,
-        width,
-        height,
-        marginTop,
-        marginRight,
-        marginBottom,
-        marginLeft,
-      );
+      if (orientation === "horizontal") {
+        drawHorizontal(
+          ctx,
+          color,
+          width,
+          height,
+          marginTop,
+          marginRight,
+          marginBottom,
+          marginLeft,
+        );
+      } else {
+        drawVertical(
+          ctx,
+          color,
+          width,
+          height,
+          marginTop,
+          marginRight,
+          marginBottom,
+          marginLeft,
+        );
+      }
     }
   });
 </script>

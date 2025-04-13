@@ -50,6 +50,8 @@ class ConfusionMatrixCell(TypedDict):
 
 class ConfusionMatrix(TypedDict):
     n_sequences: int
+    error_count: int
+    error_pct: float
     cells: list[ConfusionMatrixCell]
     label_counts: list[int]
     label_pcts: list[float]
@@ -93,24 +95,26 @@ class SAEData(TypedDict):
     feature_projection: FeatureProjection
 
 
-class IndexRankingOption(TypedDict):
-    kind: Literal["index"]
-    reverse: bool
+class FeatureIdRankingOption(TypedDict):
+    kind: Literal["feature_id"]
+    descending: bool
 
 
 class SequenceActRateRankingOption(TypedDict):
     kind: Literal["sequence_act_rate"]
-    reverse: bool
+    descending: bool
 
 
 class LabelRankingOption(TypedDict):
     kind: Literal["label"]
     true_label: str
     pred_label: str
-    reverse: bool
+    descending: bool
 
 
-RankingOption = IndexRankingOption | SequenceActRateRankingOption | LabelRankingOption
+RankingOption = (
+    FeatureIdRankingOption | SequenceActRateRankingOption | LabelRankingOption
+)
 
 
 class ModelInfo(TypedDict):

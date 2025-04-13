@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { scaleLinear, scaleOrdinal } from "d3-scale";
-  import { schemeObservable10 } from "d3-scale-chromatic";
+  import { scaleLinear } from "d3-scale";
+  import type { ScaleOrdinal } from "d3-scale";
   import type { HistogramData, MarginalEffectsData } from "../../types";
   import Axis from "./axis/Axis.svelte";
   import { pairs, zip } from "d3-array";
   import { line as d3line } from "d3-shape";
   import { defaultFormat } from "./vis-utils";
-  import LabelColorLegend from "./legends/CategoricalColorLegend.svelte";
+  import CategoricalColorLegend from "./legends/CategoricalColorLegend.svelte";
   import { model_info } from "../../synced-state.svelte";
   import Histogram from "./Histogram.svelte";
 
@@ -14,6 +14,7 @@
     marginalEffects,
     width,
     height,
+    color,
     distribution = null,
     marginTop = 0,
     marginRight = 0,
@@ -25,10 +26,14 @@
     showColorLegend = true,
     showXAxis = true,
     showYAxis = true,
+    showBaseValues = true,
+    baseValueWidth = 8,
+    baseValuePadding = 4,
   }: {
     marginalEffects: MarginalEffectsData;
     width: number;
     height: number;
+    color: ScaleOrdinal<number, string>;
     distribution?: HistogramData | null;
     marginTop?: number;
     marginRight?: number;
@@ -40,6 +45,9 @@
     showColorLegend?: boolean;
     showXAxis?: boolean;
     showYAxis?: boolean;
+    showBaseValues?: boolean;
+    baseValueWidth?: number;
+    baseValuePadding?: number;
   } = $props();
 
   type Point = { act: number; prob: number };
@@ -57,12 +65,9 @@
   const series: Series[] = $derived(
     marginalEffects.probs.map((probsForLabel, labelIndex) => ({
       labelIndex,
-      points: [
-        { act: 0, prob: marginalEffects.non_act_probs[labelIndex] },
-        ...zip(binCenters, probsForLabel)
-          .filter(([, prob]) => prob !== -1)
-          .map(([act, prob]) => ({ act, prob })),
-      ],
+      points: zip(binCenters, probsForLabel)
+        .filter(([, prob]) => prob !== -1)
+        .map(([act, prob]) => ({ act, prob })),
     })),
   );
 
@@ -88,33 +93,64 @@
       .y((d) => y(d.prob)),
   );
 
-  const color = $derived(
-    scaleOrdinal<number, string>()
-      .domain(model_info.value.label_indices)
-      .range(schemeObservable10),
+  const xAxisPadding = $derived(0);
+  const yAxisPadding = $derived(
+    showBaseValues ? baseValueWidth + baseValuePadding : 0,
   );
 </script>
 
 <div>
   {#if showColorLegend}
-    <LabelColorLegend {color} labels={model_info.value.labels} />
-  {/if}
-
-  {#if distribution}
-    <Histogram
-      data={distribution}
-      marginTop={0}
-      {marginRight}
-      {marginLeft}
-      marginBottom={0}
-      {width}
-      height={64}
-      showXAxis={false}
-      showYAxis={false}
-    />
+    <CategoricalColorLegend {color} labels={model_info.value.labels} />
   {/if}
 
   <svg {width} {height}>
+    {#if distribution}
+      <Histogram
+        data={distribution}
+        marginTop={0}
+        {marginRight}
+        {marginLeft}
+        marginBottom={0}
+        {width}
+        height={marginTop}
+        showXAxis={false}
+        showYAxis={false}
+      />
+    {/if}
+
+    {#if showXAxis}
+      <Axis
+        orientation={"bottom"}
+        scale={x}
+        translateY={height - marginBottom + xAxisPadding}
+        title={xAxisLabel}
+        titleAnchor="right"
+        {marginTop}
+        {marginRight}
+        marginBottom={marginBottom - xAxisPadding}
+        {marginLeft}
+        numTicks={5}
+        showDomain={true}
+      />
+    {/if}
+
+    {#if showYAxis}
+      <Axis
+        orientation={"left"}
+        scale={y}
+        translateX={marginLeft - yAxisPadding}
+        title={yAxisLabel}
+        titleAnchor="center"
+        tickFormat={defaultFormat}
+        {marginTop}
+        {marginRight}
+        {marginBottom}
+        marginLeft={marginLeft - yAxisPadding}
+        numTicks={5}
+      />
+    {/if}
+
     <g>
       {#each series as { points, labelIndex }}
         <path
@@ -139,35 +175,45 @@
       {/each}
     </g>
 
-    {#if showXAxis}
-      <Axis
-        orientation={"bottom"}
-        scale={x}
-        translateY={height - marginBottom}
-        title={xAxisLabel}
-        titleAnchor="right"
-        {marginTop}
-        {marginRight}
-        {marginBottom}
-        {marginLeft}
-        numTicks={5}
-      />
-    {/if}
+    {#if showBaseValues}
+      <g
+        transform="translate({marginLeft - baseValueWidth - baseValuePadding})"
+      >
+        <rect
+          width={baseValueWidth}
+          y={marginTop}
+          height={height - marginTop - marginBottom}
+          fill={"var(--color-neutral-100)"}
+        />
 
-    {#if showYAxis}
-      <Axis
-        orientation={"left"}
-        scale={y}
-        translateX={marginLeft}
-        title={yAxisLabel}
-        titleAnchor="center"
-        tickFormat={defaultFormat}
-        {marginTop}
-        {marginRight}
-        {marginBottom}
-        {marginLeft}
-        numTicks={5}
-      />
+        {#each model_info.value.label_indices as labelIndex}
+          <circle
+            cx={baseValueWidth / 2}
+            cy={y(model_info.value.cm.pred_label_pcts[labelIndex])}
+            fill={color(labelIndex)}
+            fill-opacity={0.5}
+            stroke={color(labelIndex)}
+            r={baseValueWidth / 2 - 1}
+          />
+        {/each}
+
+        <g
+          transform="translate({baseValueWidth / 2},{height -
+            marginBottom +
+            xAxisPadding})"
+        >
+          <line y2="6" stroke="black" />
+          <text
+            dominant-baseline="hanging"
+            text-anchor="end"
+            font-size="10"
+            font-family="ui-sans-serif, system-ui, sans-serif"
+            y="9"
+          >
+            Baseline
+          </text>
+        </g>
+      </g>
     {/if}
   </svg>
 </div>

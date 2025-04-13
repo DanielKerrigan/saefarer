@@ -293,7 +293,7 @@ export function axis<D extends Domain>(
       if (showTickLabels) {
         ctx.save();
         ctx.translate(tickSpacing * k, y);
-        ctx.rotate((tickLabelAngle * Math.PI) / 2);
+        ctx.rotate((tickLabelAngle * Math.PI) / 180);
         ctx.textBaseline = "middle";
         ctx.textAlign = orientation === "left" ? "end" : "start";
         const tickLabel = maxTickLabelSpace
@@ -327,7 +327,7 @@ export function axis<D extends Domain>(
       if (showTickLabels) {
         ctx.save();
         ctx.translate(x, tickSpacing * k);
-        ctx.rotate((tickLabelAngle * Math.PI) / 2);
+        ctx.rotate((tickLabelAngle * Math.PI) / 180);
         ctx.textBaseline = orientation === "top" ? "bottom" : "top";
         ctx.textAlign = "center";
         const tickLabel = maxTickLabelSpace
@@ -355,7 +355,7 @@ export function axis<D extends Domain>(
     ctx.textBaseline = "alphabetic";
     ctx.font = `${titleFontWeight} ${titleFontSize}px ${titleFontFamily}`;
     ctx.translate(titleLocation.x, titleLocation.y);
-    ctx.rotate((titleLocation.rotate * Math.PI) / 2);
+    ctx.rotate((titleLocation.rotate * Math.PI) / 180);
     ctx.fillText(title, titleOffsetX, titleOffsetY);
   }
 

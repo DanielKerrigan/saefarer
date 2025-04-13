@@ -4,34 +4,53 @@
   let {
     color,
     labels,
+    fontSize = 16,
+    title = "",
+    titleFontWeight = 500,
   }: {
     color: ScaleOrdinal<number, string>;
     labels: string[];
+    fontSize?: number;
+    title?: string;
+    titleFontWeight?: number;
   } = $props();
 </script>
 
-<div class="color-legend">
-  {#each color.domain() as d}
-    <div class="color-legend-swatch">
-      <div class="color-legend-square" style:background={color(d)}></div>
-      <div class="color-legend-label">{labels[d]}</div>
+<div class="sae-color-legend" style:font-size="{fontSize}px">
+  {#if title}
+    <div class="sae-color-legend-title" style:font-weight={titleFontWeight}>
+      {title}
     </div>
-  {/each}
+  {/if}
+  <div class="sae-color-legend-swatches">
+    {#each color.domain() as d}
+      <div class="sae-color-legend-swatch">
+        <div class="sae-color-legend-square" style:background={color(d)}></div>
+        <div class="sae-color-legend-label">{labels[d]}</div>
+      </div>
+    {/each}
+  </div>
 </div>
 
 <style>
-  .color-legend {
-    display: flex;
-    gap: 1em;
-  }
-
-  .color-legend-swatch {
+  .sae-color-legend {
     display: flex;
     gap: 0.5em;
     align-items: center;
   }
 
-  .color-legend-square {
+  .sae-color-legend-swatches {
+    display: flex;
+    gap: 0.5em;
+  }
+
+  .sae-color-legend-swatch {
+    display: flex;
+    gap: 0.25em;
+    align-items: center;
+  }
+
+  .sae-color-legend-square {
     width: 1em;
     height: 1em;
   }

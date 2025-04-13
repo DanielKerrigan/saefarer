@@ -1,26 +1,26 @@
 import type { AnyModel } from "@anywidget/types";
 import type { DataModel } from "./types.js";
 
-type SyncedState<T> = { value: T };
+// type SyncedState<T> = { value: T };
 
-export function createSyncedState<K extends keyof DataModel>(
-  key: K,
-  model: AnyModel<DataModel>,
-): SyncedState<DataModel[K]> {
-  let value = $state(model.get(key));
+// export function createSyncedState<K extends keyof DataModel>(
+//   key: K,
+//   model: AnyModel<DataModel>,
+// ): SyncedState<DataModel[K]> {
+//   let value = $state(model.get(key));
 
-  model.on(`change:${key}`, () => (value = model.get(key)));
+//   model.on(`change:${key}`, () => (value = model.get(key)));
 
-  return {
-    get value() {
-      return value;
-    },
-    set value(v: DataModel[K]) {
-      model.set(key, v);
-      model.save_changes();
-    },
-  };
-}
+//   return {
+//     get value() {
+//       return value;
+//     },
+//     set value(v: DataModel[K]) {
+//       model.set(key, v);
+//       model.save_changes();
+//     },
+//   };
+// }
 
 class TwoWaySyncedState<K extends keyof DataModel> {
   #key: K;

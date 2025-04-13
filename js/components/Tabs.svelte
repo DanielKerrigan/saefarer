@@ -8,8 +8,8 @@
 
   const tabs: { value: Tab; title: string }[] = [
     { value: "overview", title: "Overview" },
-    { value: "table", title: "Table" },
-    { value: "detail", title: "Detail" },
+    { value: "table", title: "Feature Table" },
+    { value: "detail", title: "Feature Detail" },
   ];
 </script>
 
@@ -65,6 +65,6 @@
   }
 
   li + li {
-    margin-left: 0.5em;
+    margin-left: 1em;
   }
 </style>

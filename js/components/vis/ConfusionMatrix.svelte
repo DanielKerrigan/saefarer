@@ -14,36 +14,110 @@
     cm,
     width,
     height,
-    marginLeft = 72,
     marginTop = 72,
     marginRight = 72,
     marginBottom = 72,
-    showLegend = true,
+    marginLeft = 72,
+    legend = "horizontal",
   }: {
     cm: ConfusionMatrixData;
     width: number;
     height: number;
-    marginLeft?: number;
     marginTop?: number;
     marginRight?: number;
     marginBottom?: number;
-    showLegend?: boolean;
+    marginLeft?: number;
+    legend?: "horizontal" | "vertical" | "none";
   } = $props();
 
-  const legendGap = $derived(showLegend ? 4 : 0);
-  const legendHeight = $derived(showLegend ? marginBottom - legendGap : 0);
+  function getDimensions(
+    width: number,
+    height: number,
+    marginTop: number,
+    marginRight: number,
+    marginBottom: number,
+    marginLeft: number,
+    legend: "horizontal" | "vertical" | "none",
+  ): {
+    svgWidth: number;
+    svgHeight: number;
+    legendWidth: number;
+    legendHeight: number;
+    legendMarginTop: number;
+    legendMarginRight: number;
+    legendMarginBottom: number;
+    legendMarginLeft: number;
+    xRange: [number, number];
+    yRange: [number, number];
+  } {
+    const legendGap = 4;
+    if (legend === "none") {
+      return {
+        svgWidth: width,
+        svgHeight: height,
+        legendWidth: 0,
+        legendHeight: 0,
+        legendMarginTop: 0,
+        legendMarginRight: 0,
+        legendMarginBottom: 0,
+        legendMarginLeft: 0,
+        xRange: [marginLeft, width - marginRight],
+        yRange: [marginTop, height - marginBottom],
+      };
+    } else if (legend === "horizontal") {
+      const legendHeight = marginBottom - legendGap;
+      return {
+        svgWidth: width,
+        svgHeight: height - legendHeight,
+        legendWidth: width,
+        legendHeight: legendHeight,
+        legendMarginTop: 16,
+        legendMarginRight: marginRight,
+        legendMarginBottom: 32,
+        legendMarginLeft: marginLeft,
+        xRange: [marginLeft, width - marginRight],
+        yRange: [marginTop, height - marginBottom - legendGap],
+      };
+    } else {
+      const legendWidth = marginRight - legendGap;
+      return {
+        svgWidth: width - legendWidth,
+        svgHeight: height,
+        legendWidth: legendWidth,
+        legendHeight: height,
+        legendMarginTop: marginTop,
+        legendMarginRight: 48,
+        legendMarginBottom: marginBottom,
+        legendMarginLeft: 0,
+        xRange: [marginLeft, width - marginRight - legendGap],
+        yRange: [marginTop, height - marginBottom],
+      };
+    }
+  }
+
+  const dim = $derived(
+    getDimensions(
+      width,
+      height,
+      marginTop,
+      marginRight,
+      marginBottom,
+      marginLeft,
+      legend,
+    ),
+  );
 
   const x = $derived(
     scaleBand<number>()
       .domain(model_info.value.label_indices)
-      .range([marginLeft, width - marginRight])
+      .range(dim.xRange)
       .padding(0),
   );
 
   const y = $derived(
     scaleBand<number>()
       .domain(model_info.value.label_indices)
-      .range([marginTop, height - marginBottom - legendGap])
+      .range(dim.yRange)
       .padding(0),
   );
 
@@ -99,8 +173,11 @@
   }
 </script>
 
-<div class="sae-cm-container">
-  <svg {width} height={height - legendHeight}>
+<div
+  class="sae-cm-container"
+  style:flex-direction={legend === "vertical" ? "row" : "column"}
+>
+  <svg width={dim.svgWidth} height={dim.svgHeight}>
     <g>
       {#each cm.cells as d}
         <!-- TODO: do this properly -->
@@ -125,7 +202,7 @@
       orientation={"top"}
       scale={x}
       translateY={marginTop}
-      title="Predicted label"
+      title="Predicted label (ŷ)"
       titleAnchor="center"
       tickFormat={indexToLabel}
       tickLabelAngle={maxTickLabelSpaceLeft <= x.bandwidth() ? 0 : -45}
@@ -143,7 +220,7 @@
       orientation={"left"}
       scale={y}
       translateX={marginLeft}
-      title="True label"
+      title="True label (y)"
       titleAnchor="center"
       tickFormat={indexToLabel}
       {marginTop}
@@ -157,15 +234,16 @@
     />
   </svg>
 
-  {#if showLegend}
+  {#if legend !== "none"}
     <QuantitativeColorLegend
-      {width}
-      height={legendHeight}
+      width={dim.legendWidth}
+      height={dim.legendHeight}
       {color}
-      marginTop={16}
-      {marginRight}
-      marginBottom={32}
-      {marginLeft}
+      orientation={legend}
+      marginTop={dim.legendMarginTop}
+      marginRight={dim.legendMarginRight}
+      marginBottom={dim.legendMarginBottom}
+      marginLeft={dim.legendMarginLeft}
       title={"Instance count"}
     />
   {/if}
@@ -185,7 +263,6 @@
   .sae-cm-container {
     min-height: 0;
     display: flex;
-    flex-direction: column;
   }
 
   .sae-cm-cell:hover {

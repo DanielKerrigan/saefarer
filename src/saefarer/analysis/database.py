@@ -1,8 +1,13 @@
 import json
 import sqlite3
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Literal, Mapping
 
-from saefarer.analysis.types import FeatureData, RankingOption, SAEData
+from saefarer.analysis.types import (
+    FeatureData,
+    LabelRankingOption,
+    RankingOption,
+    SAEData,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -218,24 +223,236 @@ def read_feature_data(
     return row_to_feature_data(row)
 
 
-def query_features(
+def rank_features(
     sae_id: str,
     cur: sqlite3.Cursor,
     ranking_option: RankingOption,
     page_index: int,
     n_table_rows: int,
+    n_labels: int,
 ) -> list[FeatureData]:
-    res = cur.execute(
-        """
-        SELECT *
-        FROM feature
-        WHERE sae_id = ?
-        ORDER BY feature_id DESC
-        LIMIT 10
-        """,
-        (sae_id,),
-    )
+    if ranking_option["kind"] == "label":
+        res = _rank_features_by_label(
+            sae_id=sae_id,
+            cur=cur,
+            ranking_option=ranking_option,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+            n_labels=n_labels,
+        )
+    elif (
+        ranking_option["kind"] == "feature_id"
+        or ranking_option["kind"] == "sequence_act_rate"
+    ):
+        res = _rank_features_by_col(
+            sae_id=sae_id,
+            cur=cur,
+            col=ranking_option["kind"],
+            is_descending=ranking_option["descending"],
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+        )
+    else:
+        raise ValueError("Unknown kind")
 
     rows = res.fetchall()
 
     return [row_to_feature_data(row) for row in rows]
+
+
+def _rank_features_by_col(
+    sae_id: str,
+    cur: sqlite3.Cursor,
+    col: Literal["feature_id"] | Literal["sequence_act_rate"],
+    is_descending: bool,
+    page_index: int,
+    n_table_rows: int,
+) -> sqlite3.Cursor:
+    return cur.execute(
+        f"""
+        SELECT *
+        FROM feature
+        WHERE sae_id = :sae_id
+        ORDER BY {col} {"DESC" if is_descending else "ASC"}
+        LIMIT :limit
+        OFFSET :offset
+        """,
+        {
+            "sae_id": sae_id,
+            "limit": n_table_rows,
+            "offset": n_table_rows * page_index,
+        },
+    )
+
+
+def _rank_features_by_label(
+    sae_id: str,
+    cur: sqlite3.Cursor,
+    ranking_option: LabelRankingOption,
+    page_index: int,
+    n_table_rows: int,
+    n_labels: int,
+) -> sqlite3.Cursor:
+    y_pred = ranking_option["true_label"]
+    y_true = ranking_option["pred_label"]
+    is_descending = ranking_option["descending"]
+
+    if (y_true == "any" and y_pred == "any") or (
+        y_true == "other" and y_pred == "other"
+    ):
+        return _rank_features_by_col(
+            sae_id=sae_id,
+            cur=cur,
+            col="feature_id",
+            is_descending=is_descending,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+        )
+    elif (y_true == "any" and y_pred == "other") or (
+        y_true == "other" and y_pred == "any"
+    ):
+        return _rank_features_by_overall_error_pct(
+            sae_id=sae_id,
+            cur=cur,
+            is_descending=is_descending,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+        )
+    elif y_pred == "any":
+        return _rank_features_by_cm_value(
+            sae_id=sae_id,
+            cur=cur,
+            key="label_pcts",
+            label_index=int(y_true),
+            is_descending=is_descending,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+        )
+    elif y_pred == "other":
+        return _rank_features_by_cm_value(
+            sae_id=sae_id,
+            cur=cur,
+            key="false_neg_pcts",
+            label_index=int(y_true),
+            is_descending=is_descending,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+        )
+    elif y_true == "any":
+        return _rank_features_by_cm_value(
+            sae_id=sae_id,
+            cur=cur,
+            key="pred_label_pcts",
+            label_index=int(y_pred),
+            is_descending=is_descending,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+        )
+    elif y_true == "other":
+        return _rank_features_by_cm_value(
+            sae_id=sae_id,
+            cur=cur,
+            key="false_pos_pcts",
+            label_index=int(y_pred),
+            is_descending=is_descending,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+        )
+    else:
+        return _rank_features_by_cm_cell(
+            sae_id=sae_id,
+            cur=cur,
+            true_label_index=int(y_true),
+            pred_label_index=int(y_pred),
+            is_descending=is_descending,
+            page_index=page_index,
+            n_table_rows=n_table_rows,
+            n_labels=n_labels,
+        )
+
+
+def _rank_features_by_overall_error_pct(
+    sae_id: str,
+    cur: sqlite3.Cursor,
+    is_descending: bool,
+    page_index: int,
+    n_table_rows: int,
+) -> sqlite3.Cursor:
+    order = "DESC" if is_descending else "ASC"
+
+    return cur.execute(
+        f"""
+        SELECT *
+        FROM feature
+        WHERE sae_id = :sae_id
+        ORDER BY JSON_EXTRACT(cm, '$.error_pct') {order}
+        LIMIT :limit
+        OFFSET :offset
+        """,
+        {
+            "sae_id": sae_id,
+            "limit": n_table_rows,
+            "offset": n_table_rows * page_index,
+        },
+    )
+
+
+def _rank_features_by_cm_value(
+    sae_id: str,
+    cur: sqlite3.Cursor,
+    key: str,
+    label_index: int,
+    is_descending: bool,
+    page_index: int,
+    n_table_rows: int,
+) -> sqlite3.Cursor:
+    order = "DESC" if is_descending else "ASC"
+
+    return cur.execute(
+        f"""
+        SELECT *
+        FROM feature
+        WHERE sae_id = :sae_id
+        ORDER BY JSON_EXTRACT(cm, '$.' || :key || '[' || :label_index || ']') {order}
+        LIMIT :limit
+        OFFSET :offset
+        """,
+        {
+            "sae_id": sae_id,
+            "key": key,
+            "label_index": label_index,
+            "limit": n_table_rows,
+            "offset": n_table_rows * page_index,
+        },
+    )
+
+
+def _rank_features_by_cm_cell(
+    sae_id: str,
+    cur: sqlite3.Cursor,
+    true_label_index: int,
+    pred_label_index: int,
+    is_descending: bool,
+    page_index: int,
+    n_table_rows: int,
+    n_labels: int,
+) -> sqlite3.Cursor:
+    index = true_label_index * n_labels + pred_label_index
+    order = "DESC" if is_descending else "ASC"
+
+    return cur.execute(
+        f"""
+        SELECT *
+        FROM feature
+        WHERE sae_id = :sae_id
+        ORDER BY JSON_EXTRACT(cm, '$.cells[' || :index || '].pct') {order}
+        LIMIT :limit
+        OFFSET :offset
+        """,
+        {
+            "sae_id": sae_id,
+            "index": index,
+            "limit": n_table_rows,
+            "offset": n_table_rows * page_index,
+        },
+    )

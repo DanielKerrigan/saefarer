@@ -112,6 +112,9 @@ def get_confusion_matrix(
 
     n_sequences = y_true_np.shape[0]
 
+    error_count = (y_true_np == y_pred_np).sum().item()
+    error_pct = error_count / n_sequences
+
     label_counts = np.unique_counts(y_true_np).counts
     label_pcts = label_counts / n_sequences
 
@@ -144,6 +147,8 @@ def get_confusion_matrix(
 
     cm = ConfusionMatrix(
         n_sequences=n_sequences,
+        error_count=error_count,
+        error_pct=error_pct,
         cells=cells,
         label_counts=label_counts.tolist(),
         label_pcts=label_pcts.tolist(),

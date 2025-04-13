@@ -43,6 +43,18 @@ def get_feature_data(
     cfg: "AnalysisConfig",
     rng: np.random.Generator,
 ) -> FeatureData:
+    # Token activations
+    positive_token_acts = token_acts[positive_token_acts_mask]
+    token_act_rate = positive_token_acts.numel() / token_acts.numel()
+    positive_token_acts_np = positive_token_acts.numpy(force=True)
+    token_act_range = (
+        positive_token_acts_np.min().item(),
+        positive_token_acts_np.max().item(),
+    )
+    token_acts_histogram = _get_act_histogram(
+        positive_token_acts_np, cfg.n_activation_bins, token_act_range
+    )
+
     # Sequence activations
     sequence_acts = token_acts.max(dim=1)[0]
     positive_sequence_acts_mask = sequence_acts > 0
@@ -51,19 +63,13 @@ def get_feature_data(
     sequence_act_rate = positive_sequence_acts.numel() / sequence_acts.numel()
     positive_sequence_acts_np = positive_sequence_acts.numpy(force=True)
     sequence_acts_histogram = _get_act_histogram(
-        positive_sequence_acts_np, cfg.n_activation_bins
-    )
-
-    # Token activations
-    positive_token_acts = token_acts[positive_token_acts_mask]
-    token_act_rate = positive_token_acts.numel() / token_acts.numel()
-    positive_token_acts_np = positive_token_acts.numpy(force=True)
-    token_acts_histogram = _get_act_histogram(
-        positive_token_acts_np, cfg.n_activation_bins
+        positive_sequence_acts_np, cfg.n_activation_bins, token_act_range
     )
 
     # Example sequences
-    sequence_intervals = _get_example_sequences(tokenizer, ds, token_acts, cfg, rng)
+    sequence_intervals = _get_example_sequences(
+        tokenizer, ds, token_acts, token_act_range, cfg, rng
+    )
 
     # Marginal effects
     marginal_effects = _get_sequence_level_marginal_effects(
@@ -105,10 +111,11 @@ def _get_example_sequences(
     tokenizer: "PreTrainedTokenizer",
     ds: dict[str, torch.Tensor],
     feature_activations: torch.Tensor,
+    acts_range: tuple[float, float],
     cfg: "AnalysisConfig",
     rng: np.random.Generator,
 ) -> dict[str, SequenceInterval]:
-    interval_indices = _get_interval_indices(feature_activations, cfg, rng)
+    interval_indices = _get_interval_indices(feature_activations, acts_range, cfg, rng)
 
     sequence_intervals: dict[str, SequenceInterval] = {}
 
@@ -117,6 +124,7 @@ def _get_example_sequences(
 
         for point in interval.indices:
             seq_i = int(point[0].item())
+            tok_i = int(point[1].item())
 
             tok_ids = ds[cfg.tokens_column][seq_i]
             acts = feature_activations[seq_i]
@@ -131,8 +139,8 @@ def _get_example_sequences(
 
                 values = ds[col][seq_i]
 
-                # this would be the case if the value is the same for
-                # every token in the sequence
+                # this would be the case if the value is
+                # the same for every token in the sequence
                 if values.dim() == 0:
                     values = [values.item()] * tok_ids.shape[0]
                 else:
@@ -146,6 +154,7 @@ def _get_example_sequences(
                 activations=acts.tolist(),
                 extras=extras,
                 sequence_index=seq_i,
+                token_index=tok_i,
                 ds=ds,
                 cfg=cfg,
             )
@@ -163,6 +172,7 @@ def _get_example_sequences(
 @torch.inference_mode()
 def _get_interval_indices(
     feature_activations: torch.Tensor,
+    acts_range: tuple[float, float],
     cfg: "AnalysisConfig",
     rng: np.random.Generator,
 ) -> dict[str, SequenceIntervalIndices]:
@@ -179,8 +189,8 @@ def _get_interval_indices(
     )
 
     activation_ranges = torch.linspace(
-        feature_activations.min(),
-        feature_activations.max(),
+        acts_range[0],
+        acts_range[1],
         cfg.n_sequence_intervals + 1,
     )
 
@@ -223,6 +233,7 @@ def _get_feature_token_sequence(
     activations: list[float],
     extras: dict[str, list[str]],
     sequence_index: int,
+    token_index: int,
     ds: dict[str, torch.Tensor],
     cfg: "AnalysisConfig",
 ) -> FeatureTokenSequence:
@@ -234,7 +245,9 @@ def _get_feature_token_sequence(
     activations_group = []
     extras_group = defaultdict(list)
 
-    cleaned_tokens = []
+    super_tokens = []
+
+    max_super_token_index = -1
 
     for i in range(len(input_ids)):
         token_id_group.append(input_ids[i])
@@ -242,26 +255,29 @@ def _get_feature_token_sequence(
         for k, v in extras.items():
             extras_group[k].append(v[i])
 
-        clean_token = tokenizer.decode(token_id_group)
+        super_token = tokenizer.decode(token_id_group)
 
-        if seq.startswith("".join(cleaned_tokens) + clean_token):
+        if i == token_index:
+            max_super_token_index = len(display_tokens)
+
+        if seq.startswith("".join(super_tokens) + super_token):
             display_token = DisplayToken(
-                display=clean_token,
+                display=super_token,
                 token_ids=token_id_group,
                 acts=activations_group,
                 max_act=max(activations_group),
                 extras=extras_group,
-                is_special=clean_token in tokenizer.all_special_tokens,
+                is_special=super_token in tokenizer.all_special_tokens,
             )
 
             display_tokens.append(display_token)
-            cleaned_tokens.append(clean_token)
+            super_tokens.append(super_token)
 
             token_id_group = []
             activations_group = []
             extras_group = defaultdict(list)
 
-    max_super_token_index = np.argmax([x["max_act"] for x in display_tokens]).item()
+    assert max_super_token_index != -1
 
     if cfg.n_context_tokens >= 0:
         min_index = max(0, max_super_token_index - cfg.n_context_tokens)
@@ -288,9 +304,13 @@ def _get_feature_token_sequence(
 
 
 @torch.inference_mode()
-def _get_act_histogram(acts: "npt.NDArray[np.float64]", num_bins: int) -> HistogramData:
-    acts_range = (0, acts.max())
-    hist, bin_edges = np.histogram(acts, bins=num_bins, range=acts_range)
+def _get_act_histogram(
+    acts: "npt.NDArray[np.float64]",
+    num_bins: int,
+    acts_range: tuple[float, float] | None = None,
+) -> HistogramData:
+    hist_range = acts_range if acts_range is not None else (acts.min(), acts.max())
+    hist, bin_edges = np.histogram(acts, bins=num_bins, range=hist_range)
     return HistogramData(counts=hist.tolist(), thresholds=bin_edges.tolist())
 
 

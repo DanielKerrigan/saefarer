@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { model_info } from "../synced-state.svelte";
+  import { model_info } from "../../synced-state.svelte";
   import ChainedSelect, {
     type Select,
     type Option,
-  } from "./ui/ChainedSelect.svelte";
+  } from "./ChainedSelect.svelte";
 
   function getLabelOptions(): Option[] {
     const labels: Option[] = model_info.value.labels.map((d, i) => ({
@@ -14,7 +14,7 @@
 
     const options = [
       { label: "Any", value: "any", children: [] },
-      { label: "Any Other", value: "any_other", children: [] },
+      { label: "Other", value: "other", children: [] },
       ...labels,
     ];
 

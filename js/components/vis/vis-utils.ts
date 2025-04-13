@@ -32,3 +32,34 @@ export function defaultFormat(x: number): string {
     return format("~s")(x);
   }
 }
+
+export function getSizeWithAspectRatio(
+  maxWidth: number,
+  maxHeight: number,
+  aspectRatio: number,
+): { width: number; height: number } {
+  const unit = Math.min(maxWidth / aspectRatio, maxHeight);
+
+  return {
+    width: aspectRatio * unit,
+    height: unit,
+  };
+}
+
+export function getSizeWithAspectRatioMargins(
+  maxWidth: number,
+  maxHeight: number,
+  aspectRatio: number,
+  marginTop: number,
+  marginRight: number,
+  marginBottom: number,
+  marginLeft: number,
+): { width: number; height: number } {
+  const maxW = maxWidth - marginRight - marginLeft;
+  const maxH = maxHeight - marginTop - marginBottom;
+  const size = getSizeWithAspectRatio(maxW, maxH, aspectRatio);
+  return {
+    width: size.width + marginRight + marginLeft,
+    height: size.height + marginTop + marginBottom,
+  };
+}

@@ -2,14 +2,17 @@
   import Tabs from "./Tabs.svelte";
   import type { Tab } from "../types";
   import {
+    model_info,
     base_font_size,
     detail_feature_id,
     height,
   } from "../synced-state.svelte";
   import Overview from "./Overview.svelte";
-  import Table from "./Table.svelte";
-  import Detail from "./Detail.svelte";
+  import FeatureTable from "./FeatureTable.svelte";
+  import FeatureDetail from "./FeatureDetail.svelte";
   import { rootDiv } from "../state.svelte";
+  import { scaleOrdinal } from "d3-scale";
+  import { schemeObservable10 } from "d3-scale-chromatic";
 
   let selectedTab: Tab = $state("overview");
 
@@ -21,6 +24,12 @@
     detail_feature_id.value = feature_id;
     selectedTab = "detail";
   }
+
+  const labelColor = $derived(
+    scaleOrdinal<number, string>()
+      .domain(model_info.value.label_indices)
+      .range(schemeObservable10),
+  );
 </script>
 
 <div
@@ -29,7 +38,7 @@
   style:font-size="{base_font_size.value}px"
   bind:this={rootDiv.value}
 >
-  <div class="tabs-container">
+  <div class="sae-tabs-container">
     <Tabs {selectedTab} {changeTab} />
   </div>
 
@@ -37,9 +46,9 @@
     {#if selectedTab === "overview"}
       <Overview />
     {:else if selectedTab === "table"}
-      <Table {onClickFeature} />
+      <FeatureTable {labelColor} {onClickFeature} />
     {:else}
-      <Detail />
+      <FeatureDetail {labelColor} />
     {/if}
   </div>
 </div>
@@ -56,7 +65,7 @@
     color: var(--color-black);
   }
 
-  .tabs-container {
+  .sae-tabs-container {
     flex: none;
   }
 

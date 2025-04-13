@@ -3,27 +3,45 @@
   import ConfusionMatrix from "./vis/ConfusionMatrix.svelte";
   import Histogram from "./vis/Histogram.svelte";
   import { format } from "d3-format";
+  import {
+    getSizeWithAspectRatio,
+    getSizeWithAspectRatioMargins,
+  } from "./vis/vis-utils";
 
   const percentFormat = format(".1%");
 
   const percentDead = $derived(
-    sae_data.value.num_dead_features / sae_data.value.num_total_features,
+    sae_data.value.n_dead_features / sae_data.value.n_total_features,
   );
 
   const percentNonActivating = $derived(
-    sae_data.value.num_non_activating_features /
-      sae_data.value.num_total_features,
+    sae_data.value.n_non_activating_features / sae_data.value.n_total_features,
   );
 
-  let maxHistHeight = $state(0);
   let maxHistWidth = $state(0);
-  const histWidth = $derived(Math.min(maxHistWidth, maxHistHeight));
-  const histHeight = $derived(Math.min(maxHistWidth, maxHistHeight));
+  let maxHistHeight = $state(0);
+  const histSize = $derived(
+    getSizeWithAspectRatio(maxHistWidth, maxHistHeight, 1.6),
+  );
 
-  let maxCMHeight = $state(0);
+  const cmMarginTop = 72;
+  const cmMarginRight = 72;
+  const cmMarginBottom = 10;
+  const cmMarginLeft = 72;
+
   let maxCMWidth = $state(0);
-  const cmWidth = $derived(Math.min(maxCMWidth, maxCMHeight));
-  const cmHeight = $derived(Math.min(maxCMWidth, maxCMHeight));
+  let maxCMHeight = $state(0);
+  const cmSize = $derived(
+    getSizeWithAspectRatioMargins(
+      maxCMWidth,
+      maxCMHeight,
+      1,
+      cmMarginTop,
+      cmMarginRight,
+      cmMarginBottom,
+      cmMarginLeft,
+    ),
+  );
 </script>
 
 <div class="sae-overview-container">
@@ -49,8 +67,8 @@
         marginRight={20}
         marginLeft={50}
         marginBottom={40}
-        width={histWidth}
-        height={histHeight}
+        width={histSize.width}
+        height={histSize.height}
         xAxisLabel={"lg activation rate →"}
         yAxisLabel={"↑ Feature count"}
       />
@@ -61,13 +79,18 @@
     <div class="sae-header">Confusion Matrix</div>
     <div
       class="sae-vis"
-      bind:offsetWidth={maxCMHeight}
-      bind:offsetHeight={maxCMWidth}
+      bind:offsetWidth={maxCMWidth}
+      bind:offsetHeight={maxCMHeight}
     >
       <ConfusionMatrix
         cm={model_info.value.cm}
-        width={cmWidth}
-        height={cmHeight}
+        legend={"vertical"}
+        width={cmSize.width}
+        height={cmSize.height}
+        marginTop={cmMarginTop}
+        marginRight={cmMarginRight}
+        marginBottom={cmMarginBottom}
+        marginLeft={cmMarginLeft}
       />
     </div>
   </div>
@@ -95,6 +118,6 @@
   }
 
   .sae-header {
-    font-weight: bold;
+    font-weight: 500;
   }
 </style>
