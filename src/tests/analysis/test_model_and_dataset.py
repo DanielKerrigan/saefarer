@@ -39,6 +39,8 @@ def test_get_confusion_matrix():
     )
 
     assert expected_cm["n_sequences"] == actual_cm["n_sequences"]
+    assert expected_cm["error_count"] == actual_cm["error_count"]
+    assert expected_cm["error_pct"] == actual_cm["error_pct"]
 
     assert len(expected_cm["cells"]) == len(actual_cm["cells"])
 

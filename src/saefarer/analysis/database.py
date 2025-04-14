@@ -293,8 +293,8 @@ def _rank_features_by_label(
     n_table_rows: int,
     n_labels: int,
 ) -> sqlite3.Cursor:
-    y_pred = ranking_option["true_label"]
-    y_true = ranking_option["pred_label"]
+    y_true = ranking_option["true_label"]
+    y_pred = ranking_option["pred_label"]
     is_descending = ranking_option["descending"]
 
     if (y_true == "any" and y_pred == "any") or (

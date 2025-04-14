@@ -2,6 +2,7 @@
   import { base_font_size, detail_feature } from "../synced-state.svelte";
   import type { ScaleSequential, ScaleOrdinal } from "d3-scale";
   import TokenSequence from "./TokenSequence.svelte";
+  import QuantitativeColorLegend from "./vis/legends/QuantitativeColorLegend.svelte";
 
   let {
     labelColor,
@@ -25,22 +26,35 @@
 </script>
 
 <div class="sae-sequence-container">
-  <div class="sae-sequences-controls">
-    <label>
-      <span>Example Activations:</span>
-      <select bind:value={chosenIntervalKey}>
-        {#each Object.keys(detail_feature.value.sequence_intervals) as intervalName}
-          <option value={intervalName}>
-            {intervalName}
-          </option>
-        {/each}
-      </select>
-    </label>
+  <div class="sae-sequences-header">
+    <div class="sae-sequences-controls">
+      <label>
+        <span>Example Activations:</span>
+        <select bind:value={chosenIntervalKey}>
+          {#each Object.keys(detail_feature.value.sequence_intervals) as intervalName}
+            <option value={intervalName}>
+              {intervalName}
+            </option>
+          {/each}
+        </select>
+      </label>
+      <label>
+        <input type="checkbox" bind:checked={wrapSequences} />
+        <span>Wrap</span>
+      </label>
+    </div>
 
-    <label>
-      <input type="checkbox" bind:checked={wrapSequences} />
-      <span>Wrap</span>
-    </label>
+    <div class="sae-sequences-color-legend">
+      <QuantitativeColorLegend
+        width={256}
+        height={56}
+        color={tokenColor}
+        orientation="horizontal"
+        title="Activation value"
+        marginTop={16}
+        marginBottom={24}
+      />
+    </div>
   </div>
 
   <div
@@ -126,6 +140,12 @@
     display: flex;
     flex-direction: column;
     gap: 0.5em;
+  }
+
+  .sae-sequences-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
   }
 
   .sae-sequences-controls {

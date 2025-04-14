@@ -57,8 +57,6 @@
   let maxCMWidth = $state(0);
   let maxCMHeight = $state(0);
 
-  $inspect(maxCMWidth, maxCMHeight);
-
   const cmSize = $derived(
     getSizeWithAspectRatioMargins(
       maxCMWidth,

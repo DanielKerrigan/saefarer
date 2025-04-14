@@ -46,8 +46,6 @@
 
 <div class="sae-overview-container">
   <div class="sae-col">
-    <div class="sae-header">Feature Activations</div>
-
     <div>
       {percentFormat(percentDead)} of features died during training.
     </div>
@@ -76,7 +74,6 @@
   </div>
 
   <div class="sae-col">
-    <div class="sae-header">Confusion Matrix</div>
     <div
       class="sae-vis"
       bind:offsetWidth={maxCMWidth}
@@ -115,9 +112,5 @@
   .sae-vis {
     flex: 1;
     min-height: 0;
-  }
-
-  .sae-header {
-    font-weight: 500;
   }
 </style>

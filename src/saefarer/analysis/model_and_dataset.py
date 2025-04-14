@@ -112,7 +112,7 @@ def get_confusion_matrix(
 
     n_sequences = y_true_np.shape[0]
 
-    error_count = (y_true_np == y_pred_np).sum().item()
+    error_count = (y_true_np != y_pred_np).sum().item()
     error_pct = error_count / n_sequences
 
     label_counts = np.bincount(y_true_np, minlength=len(label_indices))
