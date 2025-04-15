@@ -127,6 +127,7 @@ export type DataModel = {
   sae_id: string;
   sae_data: SAEData;
   table_ranking_option: RankingOption;
+  table_min_act_rate: number;
   table_page_index: number;
   max_table_page_index: number;
   table_features: FeatureData[];

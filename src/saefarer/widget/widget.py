@@ -36,6 +36,7 @@ class Widget(anywidget.AnyWidget):
     sae_data = traitlets.Dict().tag(sync=True)
 
     table_ranking_option = traitlets.Dict().tag(sync=True)  # type: ignore
+    table_min_act_rate = traitlets.Float().tag(sync=True)
     table_page_index = traitlets.Int().tag(sync=True)
     max_table_page_index = traitlets.Int().tag(sync=True)
     table_features = traitlets.List().tag(sync=True)
@@ -68,6 +69,7 @@ class Widget(anywidget.AnyWidget):
             "kind": "feature_id",
             "descending": True,
         }
+        self.table_min_act_rate = 0
         self.table_page_index = 0
         self.max_table_page_index = (
             math.ceil(self.sae_data["n_alive_features"] / self.n_table_rows) - 1
@@ -76,6 +78,7 @@ class Widget(anywidget.AnyWidget):
             self.sae_id,
             self.cur,
             self.table_ranking_option,
+            self.table_min_act_rate,
             self.table_page_index,
             self.n_table_rows,
             len(self.model_info["labels"]),
@@ -112,6 +115,7 @@ class Widget(anywidget.AnyWidget):
             self.sae_id,
             self.cur,
             self.table_ranking_option,
+            self.table_min_act_rate,
             self.table_page_index,
             self.n_table_rows,
             len(self.model_info["labels"]),
@@ -129,9 +133,22 @@ class Widget(anywidget.AnyWidget):
                 self.sae_id,
                 self.cur,
                 self.table_ranking_option,
+                self.table_min_act_rate,
                 self.table_page_index,
                 self.n_table_rows,
                 len(self.model_info["labels"]),
             )
         else:
             self.table_page_index = 0
+
+    @traitlets.observe("table_min_act_rate")
+    def _on_table_min_act_rate(self, _):
+        self.table_features = db.rank_features(
+            self.sae_id,
+            self.cur,
+            self.table_ranking_option,
+            self.table_min_act_rate,
+            self.table_page_index,
+            self.n_table_rows,
+            len(self.model_info["labels"]),
+        )

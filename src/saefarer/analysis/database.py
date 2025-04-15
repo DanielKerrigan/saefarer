@@ -227,6 +227,7 @@ def rank_features(
     sae_id: str,
     cur: sqlite3.Cursor,
     ranking_option: RankingOption,
+    min_act_rate: float,
     page_index: int,
     n_table_rows: int,
     n_labels: int,
@@ -236,6 +237,7 @@ def rank_features(
             sae_id=sae_id,
             cur=cur,
             ranking_option=ranking_option,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
             n_labels=n_labels,
@@ -249,6 +251,7 @@ def rank_features(
             cur=cur,
             col=ranking_option["kind"],
             is_descending=ranking_option["descending"],
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
@@ -265,6 +268,7 @@ def _rank_features_by_col(
     cur: sqlite3.Cursor,
     col: Literal["feature_id"] | Literal["sequence_act_rate"],
     is_descending: bool,
+    min_act_rate: float,
     page_index: int,
     n_table_rows: int,
 ) -> sqlite3.Cursor:
@@ -272,13 +276,14 @@ def _rank_features_by_col(
         f"""
         SELECT *
         FROM feature
-        WHERE sae_id = :sae_id
+        WHERE sae_id = :sae_id AND sequence_act_rate > :min_act_rate
         ORDER BY {col} {"DESC" if is_descending else "ASC"}
         LIMIT :limit
         OFFSET :offset
         """,
         {
             "sae_id": sae_id,
+            "min_act_rate": min_act_rate,
             "limit": n_table_rows,
             "offset": n_table_rows * page_index,
         },
@@ -289,6 +294,7 @@ def _rank_features_by_label(
     sae_id: str,
     cur: sqlite3.Cursor,
     ranking_option: LabelRankingOption,
+    min_act_rate: float,
     page_index: int,
     n_table_rows: int,
     n_labels: int,
@@ -305,6 +311,7 @@ def _rank_features_by_label(
             cur=cur,
             col="feature_id",
             is_descending=is_descending,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
@@ -315,6 +322,7 @@ def _rank_features_by_label(
             sae_id=sae_id,
             cur=cur,
             is_descending=is_descending,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
@@ -325,6 +333,7 @@ def _rank_features_by_label(
             key="label_pcts",
             label_index=int(y_true),
             is_descending=is_descending,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
@@ -335,6 +344,7 @@ def _rank_features_by_label(
             key="false_neg_pcts",
             label_index=int(y_true),
             is_descending=is_descending,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
@@ -345,6 +355,7 @@ def _rank_features_by_label(
             key="pred_label_pcts",
             label_index=int(y_pred),
             is_descending=is_descending,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
@@ -355,6 +366,7 @@ def _rank_features_by_label(
             key="false_pos_pcts",
             label_index=int(y_pred),
             is_descending=is_descending,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
@@ -365,6 +377,7 @@ def _rank_features_by_label(
             true_label_index=int(y_true),
             pred_label_index=int(y_pred),
             is_descending=is_descending,
+            min_act_rate=min_act_rate,
             page_index=page_index,
             n_table_rows=n_table_rows,
             n_labels=n_labels,
@@ -375,6 +388,7 @@ def _rank_features_by_overall_error_pct(
     sae_id: str,
     cur: sqlite3.Cursor,
     is_descending: bool,
+    min_act_rate: float,
     page_index: int,
     n_table_rows: int,
 ) -> sqlite3.Cursor:
@@ -384,13 +398,14 @@ def _rank_features_by_overall_error_pct(
         f"""
         SELECT *
         FROM feature
-        WHERE sae_id = :sae_id
+        WHERE sae_id = :sae_id AND sequence_act_rate > :min_act_rate
         ORDER BY JSON_EXTRACT(cm, '$.error_pct') {order}
         LIMIT :limit
         OFFSET :offset
         """,
         {
             "sae_id": sae_id,
+            "min_act_rate": min_act_rate,
             "limit": n_table_rows,
             "offset": n_table_rows * page_index,
         },
@@ -403,6 +418,7 @@ def _rank_features_by_cm_value(
     key: str,
     label_index: int,
     is_descending: bool,
+    min_act_rate: float,
     page_index: int,
     n_table_rows: int,
 ) -> sqlite3.Cursor:
@@ -412,13 +428,14 @@ def _rank_features_by_cm_value(
         f"""
         SELECT *
         FROM feature
-        WHERE sae_id = :sae_id
+        WHERE sae_id = :sae_id AND sequence_act_rate > :min_act_rate
         ORDER BY JSON_EXTRACT(cm, '$.' || :key || '[' || :label_index || ']') {order}
         LIMIT :limit
         OFFSET :offset
         """,
         {
             "sae_id": sae_id,
+            "min_act_rate": min_act_rate,
             "key": key,
             "label_index": label_index,
             "limit": n_table_rows,
@@ -433,6 +450,7 @@ def _rank_features_by_cm_cell(
     true_label_index: int,
     pred_label_index: int,
     is_descending: bool,
+    min_act_rate: float,
     page_index: int,
     n_table_rows: int,
     n_labels: int,
@@ -444,13 +462,14 @@ def _rank_features_by_cm_cell(
         f"""
         SELECT *
         FROM feature
-        WHERE sae_id = :sae_id
+        WHERE sae_id = :sae_id AND sequence_act_rate > :min_act_rate
         ORDER BY JSON_EXTRACT(cm, '$.cells[' || :index || '].pct') {order}
         LIMIT :limit
         OFFSET :offset
         """,
         {
             "sae_id": sae_id,
+            "min_act_rate": min_act_rate,
             "index": index,
             "limit": n_table_rows,
             "offset": n_table_rows * page_index,

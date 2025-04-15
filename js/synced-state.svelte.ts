@@ -72,6 +72,7 @@ export let sae_ids: OneWaySyncedState<"sae_ids">;
 export let sae_id: OneWaySyncedState<"sae_id">;
 export let sae_data: OneWaySyncedState<"sae_data">;
 export let table_ranking_option: TwoWaySyncedState<"table_ranking_option">;
+export let table_min_act_rate: TwoWaySyncedState<"table_min_act_rate">;
 export let table_page_index: TwoWaySyncedState<"table_page_index">;
 export let max_table_page_index: OneWaySyncedState<"max_table_page_index">;
 export let table_features: OneWaySyncedState<"table_features">;
@@ -87,6 +88,7 @@ export function setupSyncedState(model: AnyModel<DataModel>) {
   sae_id = new OneWaySyncedState("sae_id", model);
   sae_data = new OneWaySyncedState("sae_data", model);
   table_ranking_option = new TwoWaySyncedState("table_ranking_option", model);
+  table_min_act_rate = new TwoWaySyncedState("table_min_act_rate", model);
   table_page_index = new TwoWaySyncedState("table_page_index", model);
   max_table_page_index = new OneWaySyncedState("max_table_page_index", model);
   table_features = new OneWaySyncedState("table_features", model);

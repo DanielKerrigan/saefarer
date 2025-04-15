@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { model_info, table_ranking_option } from "../synced-state.svelte";
+  import {
+    model_info,
+    table_min_act_rate,
+    table_ranking_option,
+  } from "../synced-state.svelte";
   import type { RankingOption } from "../types";
 
   const rankingOptions: { label: string; value: RankingOption["kind"] }[] = [
@@ -70,6 +74,20 @@
       ...table_ranking_option.value,
       descending: value === "descending",
     };
+  }
+
+  let minActRateInputValue = $derived(table_min_act_rate.value);
+
+  function onMinActRateKeydown(
+    event: KeyboardEvent & { currentTarget: EventTarget & HTMLInputElement },
+  ) {
+    if (event.key === "Enter") {
+      updateMinActRate();
+    }
+  }
+
+  function updateMinActRate() {
+    table_min_act_rate.value = minActRateInputValue;
   }
 </script>
 
@@ -146,6 +164,20 @@
       <span>Descending</span>
     </label>
   </div>
+
+  <div class="sae-feature-table-min-act-rate">
+    <label>
+      <span class="sae-label">Min. act. rate:</span>
+      <input
+        type="number"
+        bind:value={minActRateInputValue}
+        onkeydown={onMinActRateKeydown}
+        onblur={() => updateMinActRate()}
+        step="0.0001"
+        style:width="7em"
+      />
+    </label>
+  </div>
 </div>
 
 <style>
@@ -164,6 +196,12 @@
   select {
     border: 1px solid var(--color-black);
     border-radius: 0.25em;
+  }
+
+  input {
+    border: 1px solid var(--color-black);
+    border-radius: 0.25em;
+    padding: 0 0.25em;
   }
 
   .sae-label {

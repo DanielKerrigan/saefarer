@@ -31,102 +31,90 @@
 </script>
 
 <div class="sae-table-container">
-  <div class="sae-table-content">
-    <div class="sae-table-controls">
-      <RankingControls />
+  <div class="sae-table-controls">
+    <RankingControls />
+  </div>
+  <div
+    class="sae-table"
+    style:--cell-padding-x="{cellPaddingX}px"
+    style:--cell-padding-y="{cellPaddingY}px"
+  >
+    <div class="sae-table-cell sae-table-header sae-table-number-header">
+      ID
     </div>
-    <div
-      class="sae-table"
-      style:--cell-padding-x="{cellPaddingX}px"
-      style:--cell-padding-y="{cellPaddingY}px"
-    >
-      <div class="sae-table-cell sae-table-header sae-table-number-header">
-        ID
-      </div>
-      <div class="sae-table-cell sae-table-header sae-table-number-header">
-        Act. Rate
-      </div>
-      <div class="sae-table-cell sae-table-header">Act. Distribution</div>
-      <div class="sae-table-cell sae-table-header">Effect</div>
-      <div class="sae-table-cell sae-table-header">Example</div>
+    <div class="sae-table-cell sae-table-header sae-table-number-header">
+      Act. Rate
+    </div>
+    <div class="sae-table-cell sae-table-header">Act. Distribution</div>
+    <div class="sae-table-cell sae-table-header">Probabilities</div>
+    <div class="sae-table-cell sae-table-header">Example</div>
 
-      {#each table_features.value as feature, i}
-        {@const showBorder = i !== table_features.value.length - 1}
-        <div
-          class="sae-table-cell sae-table-number-value"
-          class:sae-table-border={showBorder}
-        >
-          <div>
-            <button
-              class="sae-table-feature-id-btn"
-              onclick={() => onClickFeature(feature.feature_id)}
-            >
-              {feature.feature_id}
-            </button>
-          </div>
+    {#each table_features.value as feature, i}
+      {@const showBorder = i !== table_features.value.length - 1}
+      <div
+        class="sae-table-cell sae-table-number-value"
+        class:sae-table-border={showBorder}
+      >
+        <div>
+          <button
+            class="sae-table-feature-id-btn"
+            onclick={() => onClickFeature(feature.feature_id)}
+          >
+            {feature.feature_id}
+          </button>
         </div>
-        <div
-          class="sae-table-cell sae-table-number-value"
-          class:sae-table-border={showBorder}
-        >
-          <div>
-            {activationRateFormat(feature.sequence_act_rate)}
-          </div>
+      </div>
+      <div
+        class="sae-table-cell sae-table-number-value"
+        class:sae-table-border={showBorder}
+      >
+        <div>
+          {activationRateFormat(feature.sequence_act_rate)}
         </div>
-        <div class="sae-table-cell" class:sae-table-border={showBorder}>
-          <Histogram
-            data={feature.token_acts_histogram}
-            width={visWidth}
-            height={contentRowHeight}
-          />
-        </div>
-        <div class="sae-table-cell" class:sae-table-border={showBorder}>
-          <MarginalEffectsPlot
-            marginalEffects={feature.marginal_effects}
-            width={visWidth}
-            height={contentRowHeight}
-            color={labelColor}
-            showColorLegend={false}
-            marginTop={2}
-            marginRight={2}
-            marginBottom={2}
-            marginLeft={2}
-            circleRadius={0}
-            showXAxis={false}
-            showYAxis={false}
-          />
-        </div>
-        <div
-          class="sae-table-cell sae-table-example-sequence"
-          class:sae-table-border={showBorder}
-        >
-          <TokenSequence
-            color={scaleSequential([0, feature.max_act], interpolateBuPu)}
-            sequence={feature.sequence_intervals["Max Activations"]
-              .sequences[0]}
-            wrap={false}
-          />
-        </div>
-      {/each}
-    </div>
-    <div class="sae-table-pagination">
-      <PageControls />
-    </div>
+      </div>
+      <div class="sae-table-cell" class:sae-table-border={showBorder}>
+        <Histogram
+          data={feature.token_acts_histogram}
+          width={visWidth}
+          height={contentRowHeight}
+        />
+      </div>
+      <div class="sae-table-cell" class:sae-table-border={showBorder}>
+        <MarginalEffectsPlot
+          marginalEffects={feature.marginal_effects}
+          width={visWidth}
+          height={contentRowHeight}
+          color={labelColor}
+          showColorLegend={false}
+          marginTop={2}
+          marginRight={2}
+          marginBottom={2}
+          marginLeft={2}
+          circleRadius={0}
+          showXAxis={false}
+          showYAxis={false}
+        />
+      </div>
+      <div
+        class="sae-table-cell sae-table-example-sequence"
+        class:sae-table-border={showBorder}
+      >
+        <TokenSequence
+          color={scaleSequential([0, feature.max_act], interpolateBuPu)}
+          sequence={feature.sequence_intervals["Max Activations"].sequences[0]}
+          wrap={false}
+        />
+      </div>
+    {/each}
+  </div>
+  <div class="sae-table-pagination">
+    <PageControls />
   </div>
 </div>
 
 <style>
   .sae-table-container {
-    max-height: 100%;
-    max-width: 100%;
     height: 100%;
-    width: 100%;
-
-    display: flex;
-    justify-content: center;
-  }
-
-  .sae-table-content {
     display: flex;
     flex-direction: column;
     gap: 0.5em;
