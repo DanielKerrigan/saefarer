@@ -15,9 +15,9 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: prefix-dev/setup-pixi@v0.8.4
+      - uses: prefix-dev/setup-pixi@v0.8.8
         with:
-          pixi-version: v0.40.3
+          pixi-version: v0.47.0
       - run: pixi run build
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
