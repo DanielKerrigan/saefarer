@@ -38,22 +38,22 @@
   button {
     border: none;
     border-radius: 0;
-    background-color: transparent;
+    background-color: var(--color-black);
     color: var(--color-white);
   }
 
   button:hover:enabled {
-    color: var(--color-white);
-    background-color: var(--color-neutral-700);
+    color: var(--color-black);
+    background-color: var(--color-white);
   }
 
   button:active:enabled {
-    color: var(--color-white);
-    background-color: var(--color-neutral-500);
+    color: var(--color-black);
+    background-color: var(--color-neutral-300);
   }
 
   button.tab-selected {
-    border-bottom: 1px solid var(--color-white);
+    border-bottom: 2px solid var(--color-white);
   }
 
   ul {

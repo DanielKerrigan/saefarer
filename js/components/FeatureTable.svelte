@@ -1,33 +1,39 @@
 <script lang="ts">
   import RankingControls from "./RankingControls.svelte";
-  import { format } from "d3-format";
-  import { base_font_size, table_features } from "../synced-state.svelte";
+  import { font_sizes, table_features } from "../synced-state.svelte";
   import Histogram from "./vis/Histogram.svelte";
-  import MarginalEffectsPlot from "./vis/MarginalEffectsPlot.svelte";
+  import MarginalEffectsHeatmap from "./vis/MarginalEffectsHeatmap.svelte";
+  import { descending } from "d3-array";
   import { scaleSequential } from "d3-scale";
-  import type { ScaleOrdinal } from "d3-scale";
-  import { interpolateBuPu } from "d3-scale-chromatic";
+  import { interpolateBlues } from "d3-scale-chromatic";
   import TokenSequence from "./TokenSequence.svelte";
   import PageControls from "./PageControls.svelte";
+  import type { FeatureData } from "../types";
+  import { activationRatePctFormat } from "./vis/vis-utils";
 
   let {
-    labelColor,
     onClickFeature,
   }: {
-    labelColor: ScaleOrdinal<number, string>;
     onClickFeature: (feature_id: number) => void;
   } = $props();
 
-  const activationRateFormat = format(".1~e");
-
   const dividerWidth = 1;
-  const cellPaddingX = $derived(base_font_size.value * 0.5);
-  const cellPaddingY = $derived(base_font_size.value * 0.25);
-  const contentRowHeight = $derived(base_font_size.value * 3);
+  const cellPaddingX = $derived(font_sizes.base * 0.5);
+  const cellPaddingY = $derived(font_sizes.base * 0.25);
+  const contentRowHeight = $derived(font_sizes.base * 3);
   const totalRowHeight = $derived(
     contentRowHeight + dividerWidth + 2 * cellPaddingY,
   );
   const visWidth = $derived(contentRowHeight * 3);
+  const marginalPlotMarginLeft = 80;
+
+  function getTopClasses(feature: FeatureData): number[] {
+    return feature.cm.pred_label_pcts
+      .map((pct, label) => ({ pct, label }))
+      .sort((a, b) => descending(a.pct, b.pct))
+      .slice(0, 3)
+      .map(({ label }) => label);
+  }
 </script>
 
 <div class="sae-table-container">
@@ -39,14 +45,18 @@
     style:--cell-padding-x="{cellPaddingX}px"
     style:--cell-padding-y="{cellPaddingY}px"
   >
-    <div class="sae-table-cell sae-table-header sae-table-number-header">
+    <div class="sae-table-cell sae-table-header sae-table-header-align-right">
       ID
     </div>
-    <div class="sae-table-cell sae-table-header sae-table-number-header">
+    <div class="sae-table-cell sae-table-header sae-table-header-align-right">
       Act. Rate
     </div>
-    <div class="sae-table-cell sae-table-header">Act. Distribution</div>
-    <div class="sae-table-cell sae-table-header">Probabilities</div>
+    <div class="sae-table-cell sae-table-header sae-table-header-align-right">
+      Act. Distribution
+    </div>
+    <div class="sae-table-cell sae-table-header sae-table-header-align-right">
+      Top Class Probabilities
+    </div>
     <div class="sae-table-cell sae-table-header">Example</div>
 
     {#each table_features.value as feature, i}
@@ -69,30 +79,32 @@
         class:sae-table-border={showBorder}
       >
         <div>
-          {activationRateFormat(feature.sequence_act_rate)}
+          {activationRatePctFormat(feature.sequence_act_rate)}
         </div>
       </div>
       <div class="sae-table-cell" class:sae-table-border={showBorder}>
         <Histogram
-          data={feature.token_acts_histogram}
+          data={feature.sequence_acts_histogram}
           width={visWidth}
           height={contentRowHeight}
+          tooltipEnabled={false}
         />
       </div>
       <div class="sae-table-cell" class:sae-table-border={showBorder}>
-        <MarginalEffectsPlot
+        <MarginalEffectsHeatmap
           marginalEffects={feature.marginal_effects}
-          width={visWidth}
+          classes={getTopClasses(feature)}
+          width={visWidth + marginalPlotMarginLeft}
           height={contentRowHeight}
-          color={labelColor}
+          maxColorDomain={1}
           showColorLegend={false}
-          marginTop={2}
-          marginRight={2}
-          marginBottom={2}
-          marginLeft={2}
-          circleRadius={0}
+          marginTop={0}
+          marginRight={0}
+          marginBottom={0}
+          marginLeft={marginalPlotMarginLeft}
           showXAxis={false}
-          showYAxis={false}
+          showYAxis={true}
+          tooltipEnabled={false}
         />
       </div>
       <div
@@ -100,7 +112,7 @@
         class:sae-table-border={showBorder}
       >
         <TokenSequence
-          color={scaleSequential([0, feature.max_act], interpolateBuPu)}
+          colorScale={scaleSequential([0, feature.max_act], interpolateBlues)}
           sequence={feature.sequence_intervals["Max Activations"].sequences[0]}
           wrap={false}
         />
@@ -140,14 +152,14 @@
 
   .sae-table-header {
     text-transform: uppercase;
-    font-weight: 500;
+    font-weight: var(--font-medium);
     position: sticky;
     top: 0;
     z-index: 10;
     background-color: var(--color-white);
   }
 
-  .sae-table-number-header {
+  .sae-table-header-align-right {
     text-align: end;
   }
 

@@ -6,7 +6,7 @@
 <script lang="ts">
   import { scaleLinear } from "d3-scale";
   import type { ScaleSequential, ScaleDiverging } from "d3-scale";
-  import { defaultFormat, scaleCanvas } from "../vis-utils";
+  import { scaleCanvas } from "../vis-utils";
   import { axis } from "../axis/axis";
 
   let {
@@ -19,16 +19,24 @@
     marginBottom = 10,
     marginLeft = 10,
     title = "",
+    tickLabelFontSize = 10,
+    titleFontSize = 12,
+    tickFormat,
   }: {
     width: number;
     height: number;
-    color: ScaleSequential<string> | ScaleDiverging<string>;
+    color:
+      | ScaleSequential<string, string | never>
+      | ScaleDiverging<string, string | never>;
     orientation: "horizontal" | "vertical";
     marginTop?: number;
     marginRight?: number;
     marginBottom?: number;
     marginLeft?: number;
     title?: string;
+    tickLabelFontSize?: number;
+    titleFontSize?: number;
+    tickFormat?: (value: number) => string;
   } = $props();
 
   let canvas: HTMLCanvasElement | null = $state(null);
@@ -44,7 +52,9 @@
 
   function drawHorizontal(
     ctx: CanvasRenderingContext2D,
-    color: ScaleSequential<string> | ScaleDiverging<string>,
+    color:
+      | ScaleSequential<string, string | never>
+      | ScaleDiverging<string, string | never>,
     width: number,
     height: number,
     marginTop: number,
@@ -75,8 +85,8 @@
     axis(ctx, "bottom", x, {
       translateY: height - marginBottom,
       tickValues,
-      tickFormat: defaultFormat,
-      title: title,
+      tickFormat,
+      title,
       titleAnchor: "left",
       titleOffsetX: marginLeft,
       titleOffsetY: -marginBottom - colorHeight,
@@ -84,12 +94,16 @@
       marginRight,
       marginBottom,
       marginLeft,
+      tickLabelFontSize,
+      titleFontSize,
     });
   }
 
   function drawVertical(
     ctx: CanvasRenderingContext2D,
-    color: ScaleSequential<string> | ScaleDiverging<string>,
+    color:
+      | ScaleSequential<string, string | never>
+      | ScaleDiverging<string, string | never>,
     width: number,
     height: number,
     marginTop: number,
@@ -117,12 +131,14 @@
     axis(ctx, "right", y, {
       translateX: width - marginRight,
       tickValues,
-      tickFormat: defaultFormat,
-      title: title,
+      tickFormat,
+      title,
       marginTop,
       marginRight,
       marginBottom,
       marginLeft,
+      tickLabelFontSize,
+      titleFontSize,
     });
   }
 

@@ -12,7 +12,7 @@
     labels: string[];
     fontSize?: number;
     title?: string;
-    titleFontWeight?: number;
+    titleFontWeight?: number | string;
   } = $props();
 </script>
 

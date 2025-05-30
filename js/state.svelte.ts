@@ -1,14 +1,13 @@
-function getRootDiv() {
-  let value: HTMLDivElement | null = $state(null);
+class RootElement {
+  value: HTMLElement;
 
-  return {
-    get value() {
-      return value;
-    },
-    set value(v: HTMLDivElement | null) {
-      value = v;
-    },
-  };
+  constructor(value: HTMLElement) {
+    this.value = $state(value);
+  }
 }
 
-export let rootDiv = getRootDiv();
+export let root: RootElement;
+
+export function setupState(element: HTMLElement) {
+  root = new RootElement(element);
+}

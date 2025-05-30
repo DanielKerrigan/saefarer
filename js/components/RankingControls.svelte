@@ -76,7 +76,7 @@
     };
   }
 
-  let minActRateInputValue = $derived(table_min_act_rate.value);
+  let minActRateInputValue = $derived(table_min_act_rate.value * 100);
 
   function onMinActRateKeydown(
     event: KeyboardEvent & { currentTarget: EventTarget & HTMLInputElement },
@@ -87,101 +87,113 @@
   }
 
   function updateMinActRate() {
-    table_min_act_rate.value = minActRateInputValue;
+    table_min_act_rate.value = minActRateInputValue / 100;
   }
 </script>
 
 <div class="sae-container">
-  <label>
-    <span class="sae-label">Ranking:</span>
-    <select value={table_ranking_option.value.kind} onchange={onChangeRanking}>
-      {#each rankingOptions as opt}
-        <option value={opt.value}>{opt.label}</option>
-      {/each}
-    </select>
-  </label>
-
-  {#if table_ranking_option.value.kind === "label"}
+  <div class="sae-control-row">
     <label>
-      <span class="sae-label">ŷ:</span>
+      <span style:font-weight="var(--font-medium)">Ranking:</span>
       <select
-        value={table_ranking_option.value.pred_label}
-        onchange={(e) => onChangeLabel(e, "pred_label")}
+        value={table_ranking_option.value.kind}
+        onchange={onChangeRanking}
       >
-        <optgroup label="Extras">
-          {#each extraLabelOptions as opt}
-            <option value={opt.value}>{opt.label}</option>
-          {/each}
-        </optgroup>
-        <optgroup label="Labels">
-          {#each labelOptions as opt}
-            <option value={opt.value}>{opt.label}</option>
-          {/each}
-        </optgroup>
+        {#each rankingOptions as opt}
+          <option value={opt.value}>{opt.label}</option>
+        {/each}
       </select>
     </label>
-
-    <label>
-      <span class="sae-label">y:</span>
-      <select
-        value={table_ranking_option.value.true_label}
-        onchange={(e) => onChangeLabel(e, "true_label")}
-      >
-        <optgroup label="Extras">
-          {#each extraLabelOptions as opt}
-            <option value={opt.value}>{opt.label}</option>
-          {/each}
-        </optgroup>
-        <optgroup label="Labels">
-          {#each labelOptions as opt}
-            <option value={opt.value}>{opt.label}</option>
-          {/each}
-        </optgroup>
-      </select>
-    </label>
-  {/if}
-
-  <div class="sae-feature-table-order">
-    <label>
-      <input
-        type="radio"
-        name="direction"
-        value={"ascending"}
-        checked={!table_ranking_option.value.descending}
-        onchange={onChangeDirection}
-      />
-      <span>Ascending</span>
-    </label>
-
-    <label>
-      <input
-        type="radio"
-        name="direction"
-        value={"descending"}
-        checked={table_ranking_option.value.descending}
-        onchange={onChangeDirection}
-      />
-      <span>Descending</span>
-    </label>
+    {#if table_ranking_option.value.kind === "label"}
+      <label>
+        <span style:font-weight="var(--font-medium)">Predicted label:</span>
+        <select
+          value={table_ranking_option.value.pred_label}
+          onchange={(e) => onChangeLabel(e, "pred_label")}
+        >
+          <optgroup label="Extras">
+            {#each extraLabelOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </optgroup>
+          <optgroup label="Labels">
+            {#each labelOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </optgroup>
+        </select>
+      </label>
+      <label>
+        <span style:font-weight="var(--font-medium)">True label:</span>
+        <select
+          value={table_ranking_option.value.true_label}
+          onchange={(e) => onChangeLabel(e, "true_label")}
+        >
+          <optgroup label="Extras">
+            {#each extraLabelOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </optgroup>
+          <optgroup label="Labels">
+            {#each labelOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </optgroup>
+        </select>
+      </label>
+    {/if}
   </div>
 
-  <div class="sae-feature-table-min-act-rate">
-    <label>
-      <span class="sae-label">Min. act. rate:</span>
-      <input
-        type="number"
-        bind:value={minActRateInputValue}
-        onkeydown={onMinActRateKeydown}
-        onblur={() => updateMinActRate()}
-        step="0.0001"
-        style:width="7em"
-      />
-    </label>
+  <div class="sae-control-row">
+    <div class="sae-feature-table-order">
+      <span style:font-weight="var(--font-medium)">Order:</span>
+      <label>
+        <input
+          type="radio"
+          name="direction"
+          value={"ascending"}
+          checked={!table_ranking_option.value.descending}
+          onchange={onChangeDirection}
+        />
+        <span>Ascending</span>
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="direction"
+          value={"descending"}
+          checked={table_ranking_option.value.descending}
+          onchange={onChangeDirection}
+        />
+        <span>Descending</span>
+      </label>
+    </div>
+    <div class="sae-feature-table-min-act-rate">
+      <label>
+        <span style:font-weight="var(--font-medium)">Min. activation rate:</span
+        >
+        <input
+          type="number"
+          bind:value={minActRateInputValue}
+          onkeydown={onMinActRateKeydown}
+          onblur={() => updateMinActRate()}
+          step="0.0001"
+          style:width="7em"
+        />
+        <span>%</span>
+      </label>
+    </div>
   </div>
 </div>
 
 <style>
   .sae-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+
+  .sae-control-row {
     display: flex;
     align-items: center;
     gap: 1em;
@@ -204,12 +216,9 @@
     padding: 0 0.25em;
   }
 
-  .sae-label {
-    font-weight: 500;
-  }
-
   .sae-feature-table-order {
     display: flex;
+    align-items: center;
     gap: 0.5em;
   }
 </style>

@@ -2,13 +2,14 @@
   import { model_info, sae_data } from "../synced-state.svelte";
   import ConfusionMatrix from "./vis/ConfusionMatrix.svelte";
   import Histogram from "./vis/Histogram.svelte";
-  import { format } from "d3-format";
   import {
+    activationRateLogFormat,
+    activationRatePctFormat,
+    countFormat,
     getSizeWithAspectRatio,
     getSizeWithAspectRatioMargins,
+    percentFormat,
   } from "./vis/vis-utils";
-
-  const percentFormat = format(".1%");
 
   const percentDead = $derived(
     sae_data.value.n_dead_features / sae_data.value.n_total_features,
@@ -24,10 +25,10 @@
     getSizeWithAspectRatio(maxHistWidth, maxHistHeight, 1.6),
   );
 
-  const cmMarginTop = 72;
-  const cmMarginRight = 72;
-  const cmMarginBottom = 10;
-  const cmMarginLeft = 72;
+  const cmMarginTop = 8;
+  const cmMarginRight = 88;
+  const cmMarginBottom = 80;
+  const cmMarginLeft = 80;
 
   let maxCMWidth = $state(0);
   let maxCMHeight = $state(0);
@@ -69,6 +70,22 @@
         height={histSize.height}
         xAxisLabel={"lg activation rate →"}
         yAxisLabel={"↑ Feature count"}
+        tooltipData={[
+          {
+            key: "Feature count",
+            value: (_x1, _x2, y) => countFormat(y),
+          },
+          {
+            key: "Activation rate",
+            value: (x1, x2, _y) =>
+              `${activationRatePctFormat(10 ** x1)} to ${activationRatePctFormat(10 ** x2)}`,
+          },
+          {
+            key: "Log 10 act. rate",
+            value: (x1, x2, _y) =>
+              `${activationRateLogFormat(x1)} to ${activationRateLogFormat(x2)}`,
+          },
+        ]}
       />
     </div>
   </div>

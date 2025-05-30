@@ -68,7 +68,7 @@
     title?: string;
     titleFontSize?: number;
     titleFontFamily?: string;
-    titleFontWeight?: number;
+    titleFontWeight?: number | string;
     titleOffsetX?: number;
     titleOffsetY?: number;
     titleAnchor?: TitleAnchor;

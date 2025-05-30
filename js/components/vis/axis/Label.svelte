@@ -21,7 +21,7 @@
     fontSize?: number;
     fontFamily?: string;
     fontColor?: string;
-    fontWeight?: number;
+    fontWeight?: number | string;
     dominantBaseline?:
       | "auto"
       | "text-bottom"
@@ -35,13 +35,9 @@
     textAnchor?: "start" | "middle" | "end";
   } = $props();
 
-  let tspan: SVGTSpanElement;
+  let tspan: SVGTSpanElement | undefined = $state(undefined);
 
-  function updateText(label: string, width: number) {
-    if (!tspan) {
-      return;
-    }
-
+  function updateText(label: string, width: number, tspan: SVGTSpanElement) {
     tspan.textContent = label;
 
     let part = label;
@@ -53,7 +49,9 @@
   }
 
   $effect(() => {
-    updateText(label, width);
+    if (tspan) {
+      updateText(label, width, tspan);
+    }
   });
 </script>
 

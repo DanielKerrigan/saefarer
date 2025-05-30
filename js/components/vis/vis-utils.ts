@@ -22,17 +22,6 @@ export function scaleCanvas(
   context.scale(devicePixelRatio, devicePixelRatio);
 }
 
-export function defaultFormat(x: number): string {
-  /* [0, 1] is a common range for predictions and features.
-    With SI suffixes, 0.5 becomes 500m. I'd rather it just be 0.5. */
-
-  if ((x >= 0.001 && x <= 1) || (x >= -1 && x <= 0.001)) {
-    return format(".3~f")(x);
-  } else {
-    return format("~s")(x);
-  }
-}
-
 export function getSizeWithAspectRatio(
   maxWidth: number,
   maxHeight: number,
@@ -63,3 +52,33 @@ export function getSizeWithAspectRatioMargins(
     height: size.height + marginTop + marginBottom,
   };
 }
+
+export function defaultFormat(x: number): string {
+  /* [0, 1] is a common range for predictions and features.
+    With SI suffixes, 0.5 becomes 500m. I'd rather it just be 0.5. */
+
+  if ((x >= 0.001 && x <= 1) || (x >= -1 && x <= 0.001)) {
+    return format(".3~f")(x);
+  } else {
+    return format("~s")(x);
+  }
+}
+
+export function activationRatePctFormat(x: number): string {
+  if (x < 0.00001) {
+    return format(".1~p")(x);
+  } else if (x < 0.001) {
+    return format(".2~p")(x);
+  } else {
+    return format(".3~p")(x);
+  }
+}
+
+export const activationRateLogFormat = format(".3~f");
+export const activationValueFormat = format(".2~f");
+export const probabilityFormat = format(".2~f");
+
+export const percentFormat = format(".2~%");
+export const percentagePointFormat = (d: number) => format(".2~f")(d * 100);
+export const countFormat = format(",d");
+export const siFormat = format(".3~s");

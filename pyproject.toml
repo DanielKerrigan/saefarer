@@ -79,10 +79,17 @@ format-py = "ruff format"
 format-js = "npm run format"
 format = { depends-on = ["format-py", "format-js"] }
 style = { depends-on = ["lint", "format"] }
+
+# development
+jupyter = "jupyter-lab"
+dev = "npm run dev"
+
 # testing
 test-py = "pytest"
+
 # generating documentation
 docs = "cd docs && make html"
+
 # building
 # build the Python package and possibly the JS package
 # based on the `skip-if-exists` config above

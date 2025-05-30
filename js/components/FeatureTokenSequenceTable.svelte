@@ -1,14 +1,19 @@
 <script lang="ts">
-  import { base_font_size, detail_feature } from "../synced-state.svelte";
-  import type { ScaleSequential, ScaleOrdinal } from "d3-scale";
+  import {
+    detail_feature,
+    font_sizes,
+    model_info,
+  } from "../synced-state.svelte";
+  import type { ScaleSequential } from "d3-scale";
   import TokenSequence from "./TokenSequence.svelte";
   import QuantitativeColorLegend from "./vis/legends/QuantitativeColorLegend.svelte";
+  import TooltipButton from "./TooltipButton.svelte";
+  import { activationValueFormat } from "./vis/vis-utils";
+  import TooltipTable from "./TooltipTable.svelte";
 
   let {
-    labelColor,
     tokenColor,
   }: {
-    labelColor: ScaleOrdinal<number, string>;
     tokenColor: ScaleSequential<string>;
   } = $props();
 
@@ -19,17 +24,15 @@
     detail_feature.value.sequence_intervals[chosenIntervalKey],
   );
 
-  const cellPaddingX = $derived(base_font_size.value * 0.5);
-  const cellPaddingY = $derived(base_font_size.value * 0.25);
-
   let wrapSequences = $state(false);
 </script>
 
 <div class="sae-sequence-container">
   <div class="sae-sequences-header">
     <div class="sae-sequences-controls">
+      <span style:font-weight="var(--font-medium)">Example Activations</span>
       <label>
-        <span>Example Activations:</span>
+        <span>Range:</span>
         <select bind:value={chosenIntervalKey}>
           {#each Object.keys(detail_feature.value.sequence_intervals) as intervalName}
             <option value={intervalName}>
@@ -40,7 +43,7 @@
       </label>
       <label>
         <input type="checkbox" bind:checked={wrapSequences} />
-        <span>Wrap</span>
+        <span>Wrap text</span>
       </label>
     </div>
 
@@ -51,67 +54,92 @@
         color={tokenColor}
         orientation="horizontal"
         title="Activation value"
-        marginTop={16}
+        marginTop={18}
         marginBottom={24}
+        titleFontSize={font_sizes.sm}
+        tickLabelFontSize={font_sizes.xs}
+        tickFormat={(d) => (d === 0 ? "> 0" : activationValueFormat(d))}
       />
     </div>
   </div>
 
-  <div
-    class="sae-sequences-table"
-    style:--cell-padding-x="{cellPaddingX}px"
-    style:--cell-padding-y="{cellPaddingY}px"
-  >
-    <div
-      class="sae-sequences-table-cell sae-sequences-table-header sae-sequences-table-number-header"
-    >
-      #
-    </div>
-    <div
-      class="sae-sequences-table-cell sae-sequences-table-header sae-sequences-table-square-header"
-    >
-      ŷ
-    </div>
-    <div
-      class="sae-sequences-table-cell sae-sequences-table-header sae-sequences-table-square-header"
-    >
-      y
-    </div>
+  <div class="sae-sequences-table">
+    <div class="sae-sequences-table-cell sae-sequences-table-header"></div>
+    <div class="sae-sequences-table-cell sae-sequences-table-header">Pred.</div>
+    <div class="sae-sequences-table-cell sae-sequences-table-header">True</div>
     <div class="sae-sequences-table-cell sae-sequences-table-header">
-      TOKENS
+      Tokens
     </div>
 
     {#each seqInterval.sequences as seq, i}
       {@const showBorder = i !== seqInterval.sequences.length - 1}
       <div
-        class="sae-sequences-table-cell sae-sequences-table-number-value"
+        class="sae-sequences-table-cell"
         class:sae-sequences-table-border={showBorder}
       >
-        {seq.sequence_index}
+        <TooltipButton position="left">
+          {#snippet trigger()}
+            <svg
+              width="{font_sizes.base}px"
+              height="{font_sizes.base}px"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              color="currentcolor"
+            >
+              <path
+                d="M12 11.5V16.5"
+                stroke="currentcolor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 7.51L12.01 7.49889"
+                stroke="currentcolor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+                stroke="currentcolor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          {/snippet}
+
+          {#snippet content()}
+            <TooltipTable
+              data={[{ key: "Instance index", value: `${seq.sequence_index}` }]}
+            />
+          {/snippet}
+        </TooltipButton>
       </div>
       <div
-        class="sae-sequences-table-cell sae-sequences-table-y"
+        class="sae-sequences-table-cell"
         class:sae-sequences-table-border={showBorder}
       >
-        <div
-          class="sae-sequences-table-square"
-          style:background-color={labelColor(seq.pred_label)}
-        ></div>
+        {model_info.value.labels[seq.pred_label]}
       </div>
       <div
-        class="sae-sequences-table-cell sae-sequences-table-y"
+        class="sae-sequences-table-cell"
         class:sae-sequences-table-border={showBorder}
       >
-        <div
-          class="sae-sequences-table-square"
-          style:background-color={labelColor(seq.label)}
-        ></div>
+        {model_info.value.labels[seq.label]}
       </div>
       <div
         class="sae-sequences-table-cell sae-sequences-table-tokens"
         class:sae-sequences-table-border={showBorder}
       >
-        <TokenSequence color={tokenColor} sequence={seq} wrap={wrapSequences} />
+        <TokenSequence
+          colorScale={tokenColor}
+          sequence={seq}
+          wrap={wrapSequences}
+        />
       </div>
     {/each}
   </div>
@@ -119,7 +147,6 @@
 
 <style>
   select {
-    align-self: flex-start;
     border: 1px solid var(--color-black);
     border-radius: 0.25em;
   }
@@ -127,11 +154,7 @@
   label {
     display: flex;
     align-items: center;
-    gap: 0.5em;
-  }
-
-  label span:first-child {
-    font-weight: 500;
+    gap: 0.25em;
   }
 
   .sae-sequence-container {
@@ -150,7 +173,9 @@
 
   .sae-sequences-controls {
     display: flex;
-    justify-content: space-between;
+    gap: 1em;
+    align-items: center;
+    justify-content: flex-start;
   }
 
   .sae-sequences-table {
@@ -168,43 +193,18 @@
   }
 
   .sae-sequences-table-cell {
-    padding: var(--cell-padding-y) var(--cell-padding-x);
+    padding: 0.25em 0.5em;
+    display: flex;
+    align-items: center;
   }
 
   .sae-sequences-table-header {
-    font-weight: 500;
+    text-transform: uppercase;
+    font-weight: var(--font-medium);
     position: sticky;
     top: 0;
     z-index: 10;
     background-color: var(--color-white);
-  }
-
-  .sae-sequences-table-number-header {
-    text-align: end;
-  }
-
-  .sae-sequences-table-number-value {
-    font-family: var(--font-mono);
-    display: flex;
-    justify-content: end;
-    align-items: center;
-  }
-
-  .sae-sequences-table-square-header {
-    text-align: center;
-  }
-
-  .sae-sequences-table-y {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .sae-sequences-table-square {
-    justify-self: center;
-    align-self: center;
-    width: 1em;
-    height: 1em;
   }
 
   .sae-sequences-table-border {

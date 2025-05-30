@@ -1,25 +1,23 @@
 <script lang="ts">
-  import { hcl } from "d3-color";
   import type { ScaleSequential } from "d3-scale";
   import type { FeatureTokenSequence, DisplayToken } from "../types";
-  import { rootDiv } from "../state.svelte";
-  import TokenTooltipContent from "./TokenTooltipContent.svelte";
-  import Tooltip from "./Tooltip.svelte";
+  import VisTooltip from "./VisTooltip.svelte";
+  import { activationValueFormat } from "./vis/vis-utils";
+  import TooltipTable from "./TooltipTable.svelte";
 
   let {
-    color,
+    colorScale,
     sequence,
     wrap,
   }: {
-    color: ScaleSequential<string>;
+    colorScale: ScaleSequential<string>;
     sequence: FeatureTokenSequence;
     wrap: boolean;
   } = $props();
 
   let tooltipInfo: {
     data: DisplayToken;
-    rootRect: DOMRect;
-    targetRect: DOMRect;
+    anchor: HTMLElement;
   } | null = $state(null);
 
   function onMouseEnterToken(
@@ -28,17 +26,9 @@
     },
     data: DisplayToken,
   ) {
-    if (!rootDiv.value) {
-      return;
-    }
-
-    const targetRect = event.currentTarget.getBoundingClientRect();
-    const rootRect = rootDiv.value.getBoundingClientRect();
-
     tooltipInfo = {
       data,
-      rootRect,
-      targetRect,
+      anchor: event.currentTarget,
     };
   }
 
@@ -49,17 +39,16 @@
 
 <div class="sae-sequence" style:flex-wrap={wrap ? "wrap" : "nowrap"}>
   {#each sequence.display_tokens as dt, i}
-    {@const tokenColor = color(dt.max_act)}
+    {@const tokenColor =
+      dt.max_act > 0 ? colorScale(dt.max_act) : "var(--color-white)"}
     <!-- TODO: do this properly -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="sae-token"
-      style:--border-color={tokenColor}
-      style:background={tokenColor}
-      style:color={hcl(tokenColor).l > 50
-        ? "var(--color-black)"
-        : "var(--color-white)"}
-      style:font-weight={i === sequence.max_token_index ? "bold" : "normal"}
+      style:--token-color={tokenColor}
+      style:font-weight={i === sequence.max_token_index
+        ? "var(--font-bold)"
+        : "var(--font-normal)"}
       onmouseenter={(event) => onMouseEnterToken(event, dt)}
       onmouseleave={onMouseLeaveToken}
     >
@@ -68,13 +57,19 @@
   {/each}
 
   {#if tooltipInfo}
-    <Tooltip {...tooltipInfo}>
-      {#snippet content()}
-        {#if tooltipInfo}
-          <TokenTooltipContent data={tooltipInfo.data} />
-        {/if}
-      {/snippet}
-    </Tooltip>
+    <VisTooltip {...tooltipInfo}>
+      {#if tooltipInfo}
+        <TooltipTable
+          data={[
+            { key: "Token", value: tooltipInfo.data.display },
+            {
+              key: "Activation",
+              value: activationValueFormat(tooltipInfo.data.max_act),
+            },
+          ]}
+        />
+      {/if}
+    </VisTooltip>
   {/if}
 </div>
 
@@ -84,11 +79,14 @@
   }
 
   .sae-token {
-    border: 1px solid var(--border-color);
+    line-height: 1.2;
+    border-bottom: 0.25em solid var(--token-color);
+    background-color: var(--color-white);
+    color: var(--color-black);
   }
 
   .sae-token:hover {
-    border-color: var(--color-red-600);
+    background-color: var(--color-neutral-300);
   }
 
   .sae-token-name {
