@@ -29,6 +29,7 @@ class Widget(anywidget.AnyWidget):
     base_font_size = traitlets.Int().tag(sync=True)
     n_table_rows = traitlets.Int().tag(sync=True)
 
+    dataset_info = traitlets.Dict().tag(sync=True)
     model_info = traitlets.Dict().tag(sync=True)
 
     sae_ids = traitlets.List().tag(sync=True)
@@ -39,6 +40,7 @@ class Widget(anywidget.AnyWidget):
     table_min_act_rate = traitlets.Float().tag(sync=True)
     table_page_index = traitlets.Int().tag(sync=True)
     max_table_page_index = traitlets.Int().tag(sync=True)
+    num_filtered_features = traitlets.Int().tag(sync=True)
     table_features = traitlets.List().tag(sync=True)
 
     detail_feature = traitlets.Dict().tag(sync=True)
@@ -59,6 +61,7 @@ class Widget(anywidget.AnyWidget):
         self.base_font_size = cfg.base_font_size
         self.n_table_rows = cfg.n_table_rows
 
+        self.dataset_info = db.read_misc("dataset_info", self.cur)
         self.model_info = db.read_misc("model_info", self.cur)
 
         self.sae_ids = db.read_sae_ids(self.cur)
@@ -69,10 +72,17 @@ class Widget(anywidget.AnyWidget):
             "kind": "feature_id",
             "descending": True,
         }
-        self.table_min_act_rate = 0
+        self.table_min_act_rate = (
+            cfg.default_min_act_rate
+            if cfg.default_min_act_rate is not None
+            else cfg.default_min_act_instances / self.dataset_info["n_sequences"]
+            if cfg.default_min_act_instances is not None
+            else 0
+        )
         self.table_page_index = 0
+        self.num_filtered_features = self.sae_data["n_alive_features"]
         self.max_table_page_index = (
-            math.ceil(self.sae_data["n_alive_features"] / self.n_table_rows) - 1
+            math.ceil(self.num_filtered_features / self.n_table_rows) - 1
         )
         self.table_features = db.rank_features(
             self.sae_id,
@@ -81,7 +91,7 @@ class Widget(anywidget.AnyWidget):
             self.table_min_act_rate,
             self.table_page_index,
             self.n_table_rows,
-            len(self.model_info["labels"]),
+            len(self.dataset_info["labels"]),
         )
 
         self.detail_feature = self.table_features[0]
@@ -111,38 +121,42 @@ class Widget(anywidget.AnyWidget):
 
     @traitlets.observe("table_page_index")
     def _on_table_page_index_change(self, _):
-        self.table_features = db.rank_features(
-            self.sae_id,
-            self.cur,
-            self.table_ranking_option,
-            self.table_min_act_rate,
-            self.table_page_index,
-            self.n_table_rows,
-            len(self.model_info["labels"]),
-        )
+        self._update_table_features()
 
     @traitlets.observe("table_ranking_option")
     def table_ranking_option_change(self, _):
         """When the ranking option is changed, go back to the first page.
         Updating table_features will happen in the change handler for
-        table_page_index. If we are already on the first change,
+        table_page_index. If we are already on the first page,
         then update table_features here."""
 
         if self.table_page_index == 0:
-            self.table_features = db.rank_features(
-                self.sae_id,
-                self.cur,
-                self.table_ranking_option,
-                self.table_min_act_rate,
-                self.table_page_index,
-                self.n_table_rows,
-                len(self.model_info["labels"]),
-            )
+            self._update_table_features()
         else:
             self.table_page_index = 0
 
     @traitlets.observe("table_min_act_rate")
     def _on_table_min_act_rate(self, _):
+        """When the table is filtered, go back to the first page.
+        Updating table_features will happen in the change handler for
+        table_page_index. If we are already on the first page,
+        then update table_features here."""
+
+        self.num_filtered_features = db.count_features(
+            self.sae_id,
+            self.cur,
+            self.table_min_act_rate,
+        )
+        self.max_table_page_index = (
+            math.ceil(self.num_filtered_features / self.n_table_rows) - 1
+        )
+
+        if self.table_page_index == 0:
+            self._update_table_features()
+        else:
+            self.table_page_index = 0
+
+    def _update_table_features(self):
         self.table_features = db.rank_features(
             self.sae_id,
             self.cur,

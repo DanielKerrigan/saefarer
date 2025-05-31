@@ -21,20 +21,20 @@ from saefarer.analysis.types import (
     SequenceInterval,
     SequenceIntervalIndices,
 )
-from saefarer.utils import top_k_indices_values
 
 if TYPE_CHECKING:
     import numpy.typing as npt
     from transformers import PreTrainedTokenizer
 
     from saefarer.analysis.config import AnalysisConfig
-    from saefarer.analysis.types import ModelInfo
+    from saefarer.analysis.types import DatasetInfo, ModelInfo
 
 
 @torch.inference_mode()
 def get_feature_data(
     feature_id: int,
     sae_id: str,
+    dataset_info: "DatasetInfo",
     model_info: "ModelInfo",
     token_acts: torch.Tensor,
     positive_token_acts_mask: torch.Tensor,
@@ -62,13 +62,23 @@ def get_feature_data(
     positive_sequence_acts = sequence_acts[positive_sequence_acts_mask]
     sequence_act_rate = positive_sequence_acts.numel() / sequence_acts.numel()
     positive_sequence_acts_np = positive_sequence_acts.numpy(force=True)
+    sequence_act_range = (
+        positive_sequence_acts_np.min().item(),
+        positive_sequence_acts_np.max().item(),
+    )
     sequence_acts_histogram = _get_act_histogram(
-        positive_sequence_acts_np, cfg.n_activation_bins, token_act_range
+        positive_sequence_acts_np, cfg.n_activation_bins, sequence_act_range
     )
 
     # Example sequences
     sequence_intervals = _get_example_sequences(
-        tokenizer, ds, token_acts, token_act_range, cfg, rng
+        tokenizer,
+        ds,
+        token_acts,
+        sequence_acts,
+        sequence_acts_histogram["thresholds"],
+        cfg,
+        rng,
     )
 
     # Marginal effects
@@ -83,7 +93,7 @@ def get_feature_data(
     cm = get_confusion_matrix(
         ds["label"][positive_sequence_acts_mask_cpu],
         ds["pred_label"][positive_sequence_acts_mask_cpu],
-        model_info["label_indices"],
+        dataset_info["label_indices"],
     )
 
     # Additional feature statistics
@@ -110,49 +120,28 @@ def get_feature_data(
 def _get_example_sequences(
     tokenizer: "PreTrainedTokenizer",
     ds: dict[str, torch.Tensor],
-    feature_activations: torch.Tensor,
-    acts_range: tuple[float, float],
+    token_activations: torch.Tensor,
+    sequence_activations: torch.Tensor,
+    thresholds: list[float],
     cfg: "AnalysisConfig",
     rng: np.random.Generator,
-) -> dict[str, SequenceInterval]:
-    interval_indices = _get_interval_indices(feature_activations, acts_range, cfg, rng)
+) -> list[SequenceInterval]:
+    interval_indices = _get_interval_indices(sequence_activations, thresholds, cfg, rng)
 
-    sequence_intervals: dict[str, SequenceInterval] = {}
+    sequence_intervals: list[SequenceInterval] = []
 
-    for key, interval in interval_indices.items():
+    for interval in interval_indices:
         key_seq: list[FeatureTokenSequence] = []
 
-        for point in interval.indices:
-            seq_i = int(point[0].item())
-            tok_i = int(point[1].item())
-
+        for seq_i in interval.indices.tolist():
             tok_ids = ds[cfg.tokens_column][seq_i]
-            acts = feature_activations[seq_i]
-
-            extras: dict[str, list[str]] = {}
-
-            for entry in cfg.extra_token_columns:
-                if isinstance(entry, str):
-                    col, formatter = entry, str
-                else:
-                    col, formatter = entry
-
-                values = ds[col][seq_i]
-
-                # this would be the case if the value is
-                # the same for every token in the sequence
-                if values.dim() == 0:
-                    values = [values.item()] * tok_ids.shape[0]
-                else:
-                    values = values.tolist()
-
-                extras[col] = [formatter(value) for value in values]
+            acts = token_activations[seq_i]
+            tok_i = int(torch.argmax(acts).item())
 
             token_sequence = _get_feature_token_sequence(
                 tokenizer=tokenizer,
                 input_ids=tok_ids.tolist(),
                 activations=acts.tolist(),
-                extras=extras,
                 sequence_index=seq_i,
                 token_index=tok_i,
                 ds=ds,
@@ -160,10 +149,12 @@ def _get_example_sequences(
             )
             key_seq.append(token_sequence)
 
-        sequence_intervals[key] = SequenceInterval(
-            min_max_act=interval.min_max_act,
-            max_max_act=interval.max_max_act,
-            sequences=key_seq,
+        sequence_intervals.append(
+            SequenceInterval(
+                min_max_act=interval.min_max_act,
+                max_max_act=interval.max_max_act,
+                sequences=key_seq,
+            )
         )
 
     return sequence_intervals
@@ -171,38 +162,41 @@ def _get_example_sequences(
 
 @torch.inference_mode()
 def _get_interval_indices(
-    feature_activations: torch.Tensor,
-    acts_range: tuple[float, float],
+    sequence_activations: torch.Tensor,
+    thresholds: list[float],
     cfg: "AnalysisConfig",
     rng: np.random.Generator,
-) -> dict[str, SequenceIntervalIndices]:
-    sequence_indices: dict[str, SequenceIntervalIndices] = {}
+) -> list[SequenceIntervalIndices]:
+    sequence_indices: list[SequenceIntervalIndices] = []
 
-    top_indices, top_values = top_k_indices_values(
-        feature_activations, k=cfg.n_example_sequences, largest=True
+    top_values, top_indices = torch.topk(
+        sequence_activations, k=cfg.n_example_sequences
     )
 
-    sequence_indices["Max Activations"] = SequenceIntervalIndices(
-        top_values.min().item(),
-        top_values.max().item(),
-        top_indices,
+    positive_mask = top_values > 0
+    top_values_positive = top_values[positive_mask]
+    top_indices_positive = top_indices[positive_mask]
+
+    sequence_indices.append(
+        SequenceIntervalIndices(
+            min_max_act=top_values_positive.min().item(),
+            max_max_act=top_values_positive.max().item(),
+            indices=top_indices_positive,
+        )
     )
 
-    activation_ranges = torch.linspace(
-        acts_range[0],
-        acts_range[1],
-        cfg.n_sequence_intervals + 1,
-    )
+    bins_per_interval = cfg.n_activation_bins // cfg.n_sequence_intervals
+    interval_thresholds = list(range(0, len(thresholds), bins_per_interval))
+    interval_ranges = list(zip(interval_thresholds, interval_thresholds[1:]))
 
-    interval_min_max = reversed(list(zip(activation_ranges, activation_ranges[1:])))
-
-    for i, (interval_min, interval_max) in enumerate(interval_min_max):
-        valid_indices = torch.stack(
-            torch.where(
-                (feature_activations >= interval_min)
-                & (feature_activations < interval_max)
-            ),
-            dim=-1,
+    for i, (interval_min, interval_max) in enumerate(interval_ranges):
+        valid_indices = (
+            (
+                (sequence_activations >= interval_min)
+                & (sequence_activations < interval_max)
+            )
+            .nonzero()
+            .squeeze()
         )
 
         if valid_indices.shape[0] > cfg.n_example_sequences:
@@ -217,10 +211,12 @@ def _get_interval_indices(
 
             valid_indices = valid_indices[rand_indices]
 
-        sequence_indices[f"Interval {i + 1}"] = SequenceIntervalIndices(
-            interval_min.item(),
-            interval_max.item(),
-            valid_indices,
+        sequence_indices.append(
+            SequenceIntervalIndices(
+                min_max_act=interval_min,
+                max_max_act=interval_max,
+                indices=valid_indices,
+            )
         )
 
     return sequence_indices
@@ -231,12 +227,28 @@ def _get_feature_token_sequence(
     tokenizer: "PreTrainedTokenizer",
     input_ids: list[int],
     activations: list[float],
-    extras: dict[str, list[str]],
     sequence_index: int,
     token_index: int,
     ds: dict[str, torch.Tensor],
     cfg: "AnalysisConfig",
 ) -> FeatureTokenSequence:
+    # token metadata columns
+
+    token_extras: dict[str, list[str]] = {}
+
+    for entry in cfg.extra_token_columns:
+        if isinstance(entry, str):
+            col, formatter = entry, str
+        else:
+            col, formatter = entry
+
+        values = ds[col][sequence_index].tolist()
+        token_extras[col] = [formatter(value) for value in values]
+
+    # group tokens into "super tokens" to handle characters like emojis
+    # which get split into multiple tokens but need to be combined in
+    # order to be correctly displayed
+
     display_tokens: list[DisplayToken] = []
 
     seq = tokenizer.decode(input_ids)
@@ -252,7 +264,7 @@ def _get_feature_token_sequence(
     for i in range(len(input_ids)):
         token_id_group.append(input_ids[i])
         activations_group.append(activations[i])
-        for k, v in extras.items():
+        for k, v in token_extras.items():
             extras_group[k].append(v[i])
 
         super_token = tokenizer.decode(token_id_group)
@@ -278,6 +290,9 @@ def _get_feature_token_sequence(
             extras_group = defaultdict(list)
 
     assert max_super_token_index != -1
+    assert not token_id_group and not activations_group
+
+    # take a subset of the tokens
 
     if cfg.n_context_tokens >= 0:
         min_index = max(0, max_super_token_index - cfg.n_context_tokens)
@@ -291,6 +306,18 @@ def _get_feature_token_sequence(
         display_tokens_subset = display_tokens
         max_token_index = max_super_token_index
 
+    # sequence metadata
+
+    sequence_extras: dict[str, str] = {}
+
+    for entry in cfg.extra_sequence_columns:
+        if isinstance(entry, str):
+            col, formatter = entry, str
+        else:
+            col, formatter = entry
+
+        sequence_extras[col] = formatter(ds[col][sequence_index].item())
+
     token_sequence = FeatureTokenSequence(
         sequence_index=sequence_index,
         display_tokens=display_tokens_subset,
@@ -298,6 +325,7 @@ def _get_feature_token_sequence(
         label=int(ds["label"][sequence_index]),
         pred_label=int(ds["pred_label"][sequence_index]),
         pred_probs=ds["pred_probs"][sequence_index].tolist(),
+        extras=sequence_extras,
     )
 
     return token_sequence

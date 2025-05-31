@@ -10,7 +10,12 @@ from datasets import (
 from sklearn.metrics import confusion_matrix
 from torch.utils.data import DataLoader
 
-from saefarer.analysis.types import ConfusionMatrix, ConfusionMatrixCell, ModelInfo
+from saefarer.analysis.types import (
+    ConfusionMatrix,
+    ConfusionMatrixCell,
+    DatasetInfo,
+    ModelInfo,
+)
 
 if TYPE_CHECKING:
     from transformers import PreTrainedModel
@@ -50,6 +55,17 @@ def get_dataset_with_predictions(
     return ds
 
 
+def get_dataset_info(cfg: "AnalysisConfig"):
+    label_indices = list(range(len(cfg.labels)))
+
+    return DatasetInfo(
+        n_sequences=cfg.total_analysis_sequences,
+        n_tokens=cfg.total_analysis_sequences * cfg.model_sequence_length,
+        labels=cfg.labels,
+        label_indices=label_indices,
+    )
+
+
 @torch.inference_mode()
 def _get_model_predictions(
     model: "PreTrainedModel",
@@ -87,17 +103,17 @@ def _get_model_predictions(
 
 
 @torch.inference_mode()
-def get_model_info(ds: dict[str, torch.Tensor], cfg: "AnalysisConfig") -> ModelInfo:
-    label_indices = list(range(len(cfg.labels)))
-    cm = get_confusion_matrix(ds["label"], ds["pred_label"], label_indices)
+def get_model_info(ds: dict[str, torch.Tensor], dataset_info: DatasetInfo) -> ModelInfo:
+    cm = get_confusion_matrix(
+        ds["label"], ds["pred_label"], dataset_info["label_indices"]
+    )
 
     mean_probabilities = ds["pred_probs"].mean(dim=0).tolist()
 
+    nll = F.nll_loss(torch.log(ds["pred_probs"]), ds["label"])
+
     return ModelInfo(
-        labels=cfg.labels,
-        label_indices=label_indices,
-        cm=cm,
-        mean_pred_label_probs=mean_probabilities,
+        cm=cm, mean_pred_label_probs=mean_probabilities, log_loss=nll.item()
     )
 
 

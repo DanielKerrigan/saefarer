@@ -36,8 +36,11 @@ class AnalysisConfig:
     # ui
     n_example_sequences: int = 10
     n_context_tokens: int = 5
-    n_sequence_intervals: int = 10
+    n_sequence_intervals: int = 8
     extra_token_columns: list[str | tuple[str, Callable[[Any], str]]] = field(
+        default_factory=list
+    )
+    extra_sequence_columns: list[str | tuple[str, Callable[[Any], str]]] = field(
         default_factory=list
     )
     # logging

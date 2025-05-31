@@ -1,8 +1,8 @@
 <script lang="ts">
   import {
+    dataset_info,
     detail_feature,
     font_sizes,
-    model_info,
   } from "../synced-state.svelte";
   import type { ScaleSequential } from "d3-scale";
   import TokenSequence from "./TokenSequence.svelte";
@@ -10,6 +10,7 @@
   import TooltipButton from "./TooltipButton.svelte";
   import { activationValueFormat } from "./vis/vis-utils";
   import TooltipTable from "./TooltipTable.svelte";
+  import { range } from "d3-array";
 
   let {
     tokenColor,
@@ -17,9 +18,7 @@
     tokenColor: ScaleSequential<string>;
   } = $props();
 
-  let chosenIntervalKey = $state(
-    Object.keys(detail_feature.value.sequence_intervals)[0],
-  );
+  let chosenIntervalKey = $state(0);
   let seqInterval = $derived(
     detail_feature.value.sequence_intervals[chosenIntervalKey],
   );
@@ -34,9 +33,10 @@
       <label>
         <span>Range:</span>
         <select bind:value={chosenIntervalKey}>
-          {#each Object.keys(detail_feature.value.sequence_intervals) as intervalName}
-            <option value={intervalName}>
-              {intervalName}
+          <option value={0}> Max activations </option>
+          {#each range(detail_feature.value.sequence_intervals.length - 1, 0, -1) as i}
+            <option value={i}>
+              Interval {i + 1}
             </option>
           {/each}
         </select>
@@ -123,13 +123,13 @@
         class="sae-sequences-table-cell"
         class:sae-sequences-table-border={showBorder}
       >
-        {model_info.value.labels[seq.pred_label]}
+        {dataset_info.value.labels[seq.pred_label]}
       </div>
       <div
         class="sae-sequences-table-cell"
         class:sae-sequences-table-border={showBorder}
       >
-        {model_info.value.labels[seq.label]}
+        {dataset_info.value.labels[seq.label]}
       </div>
       <div
         class="sae-sequences-table-cell sae-sequences-table-tokens"

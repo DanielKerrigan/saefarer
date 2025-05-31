@@ -75,19 +75,18 @@ class FontSizes {
   }
 }
 
-// one-way synced state
 export let height: OneWaySyncedState<"height">;
 export let n_table_rows: OneWaySyncedState<"n_table_rows">;
+export let dataset_info: OneWaySyncedState<"dataset_info">;
 export let model_info: OneWaySyncedState<"model_info">;
 export let sae_ids: OneWaySyncedState<"sae_ids">;
 export let sae_id: OneWaySyncedState<"sae_id">;
 export let sae_data: OneWaySyncedState<"sae_data">;
-
-// two-way synced state
 export let table_ranking_option: TwoWaySyncedState<"table_ranking_option">;
 export let table_min_act_rate: TwoWaySyncedState<"table_min_act_rate">;
 export let table_page_index: TwoWaySyncedState<"table_page_index">;
 export let max_table_page_index: OneWaySyncedState<"max_table_page_index">;
+export let num_filtered_features: OneWaySyncedState<"num_filtered_features">;
 export let table_features: OneWaySyncedState<"table_features">;
 export let detail_feature: OneWaySyncedState<"detail_feature">;
 export let detail_feature_id: TwoWaySyncedState<"detail_feature_id">;
@@ -96,19 +95,18 @@ export let detail_feature_id: TwoWaySyncedState<"detail_feature_id">;
 export let font_sizes: FontSizes;
 
 export function setupSyncedState(model: AnyModel<DataModel>) {
-  // one-way synced state
   height = new OneWaySyncedState("height", model);
   n_table_rows = new OneWaySyncedState("n_table_rows", model);
+  dataset_info = new OneWaySyncedState("dataset_info", model);
   model_info = new OneWaySyncedState("model_info", model);
   sae_ids = new OneWaySyncedState("sae_ids", model);
   sae_id = new OneWaySyncedState("sae_id", model);
   sae_data = new OneWaySyncedState("sae_data", model);
-
-  // two-way synced state
   table_ranking_option = new TwoWaySyncedState("table_ranking_option", model);
   table_min_act_rate = new TwoWaySyncedState("table_min_act_rate", model);
   table_page_index = new TwoWaySyncedState("table_page_index", model);
   max_table_page_index = new OneWaySyncedState("max_table_page_index", model);
+  num_filtered_features = new OneWaySyncedState("num_filtered_features", model);
   table_features = new OneWaySyncedState("table_features", model);
   detail_feature = new OneWaySyncedState("detail_feature", model);
   detail_feature_id = new TwoWaySyncedState("detail_feature_id", model);

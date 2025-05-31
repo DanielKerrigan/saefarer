@@ -27,9 +27,11 @@ export type FeatureTokenSequence = {
   label: number;
   pred_label: number;
   pred_probs: number[];
+  extras: Record<string, string>;
 };
 
 export type SequenceInterval = {
+  index: number;
   min_max_act: number;
   max_max_act: number;
   sequences: FeatureTokenSequence[];
@@ -67,7 +69,7 @@ export type FeatureData = {
   sequence_acts_histogram: HistogramData;
   marginal_effects: MarginalEffectsData;
   cm: ConfusionMatrixData;
-  sequence_intervals: Record<string, SequenceInterval>;
+  sequence_intervals: SequenceInterval[];
   mean_pred_label_probs: number[];
 };
 
@@ -111,17 +113,24 @@ export type RankingOption =
   | SequenceActRateRankingOption
   | LabelRankingOption;
 
-export type ModelInfo = {
+export type DatasetInfo = {
   labels: string[];
   label_indices: number[];
+  n_sequences: number;
+  n_tokens: number;
+};
+
+export type ModelInfo = {
   cm: ConfusionMatrixData;
   mean_pred_label_probs: number[];
+  log_loss: number;
 };
 
 export type DataModel = {
   height: number;
   base_font_size: number;
   n_table_rows: number;
+  dataset_info: DatasetInfo;
   model_info: ModelInfo;
   sae_ids: string[];
   sae_id: string;
@@ -130,6 +139,7 @@ export type DataModel = {
   table_min_act_rate: number;
   table_page_index: number;
   max_table_page_index: number;
+  num_filtered_features: number;
   table_features: FeatureData[];
   detail_feature: FeatureData;
   detail_feature_id: number;

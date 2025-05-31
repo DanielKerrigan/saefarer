@@ -8,8 +8,7 @@
   import type { HistogramData, MarginalEffectsData } from "../../types";
   import Axis from "./axis/Axis.svelte";
   import { pairs } from "d3-array";
-  import { format } from "d3-format";
-  import { interpolateReds, interpolatePRGn } from "d3-scale-chromatic";
+  import { interpolateBlues, interpolatePRGn } from "d3-scale-chromatic";
   import {
     activationValueFormat,
     countFormat,
@@ -17,7 +16,11 @@
     probabilityFormat,
   } from "./vis-utils";
   import QuantitativeColorLegend from "./legends/QuantitativeColorLegend.svelte";
-  import { font_sizes, model_info } from "../../synced-state.svelte";
+  import {
+    dataset_info,
+    font_sizes,
+    model_info,
+  } from "../../synced-state.svelte";
   import Histogram from "./Histogram.svelte";
   import DashedOutlineRect from "./DashedOutlineRect.svelte";
   import VisTooltip from "../VisTooltip.svelte";
@@ -143,7 +146,7 @@
   const sequentialColor = $derived(
     scaleSequential<string>()
       .domain([0, maxProb])
-      .interpolator(interpolateReds)
+      .interpolator(interpolateBlues)
       .unknown("var(--color-neutral-300)"),
   );
 
@@ -231,7 +234,7 @@
           orientation={"left"}
           scale={y}
           translateX={marginLeft}
-          tickFormat={(labelIndex) => model_info.value.labels[labelIndex]}
+          tickFormat={(labelIndex) => dataset_info.value.labels[labelIndex]}
           title={yAxisLabel}
           marginTop={svgMarginTop}
           marginRight={svgMarginRight}
@@ -305,7 +308,7 @@
             },
             {
               key: "Predicted label",
-              value: model_info.value.labels[tooltipInfo.labelIndex],
+              value: dataset_info.value.labels[tooltipInfo.labelIndex],
             },
             {
               key: "Mean probability",

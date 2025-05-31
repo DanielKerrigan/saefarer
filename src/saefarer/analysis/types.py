@@ -33,6 +33,7 @@ class FeatureTokenSequence(TypedDict):
     label: int
     pred_label: int
     pred_probs: list[float]
+    extras: dict[str, str]
 
 
 class SequenceInterval(TypedDict):
@@ -73,7 +74,7 @@ class FeatureData(TypedDict):
     sequence_acts_histogram: HistogramData
     marginal_effects: MarginalEffectsData
     cm: ConfusionMatrix
-    sequence_intervals: dict[str, SequenceInterval]
+    sequence_intervals: list[SequenceInterval]
     mean_pred_label_probs: list[float]
 
 
@@ -117,11 +118,17 @@ RankingOption = (
 )
 
 
-class ModelInfo(TypedDict):
+class DatasetInfo(TypedDict):
     labels: list[str]
     label_indices: list[int]
+    n_sequences: int
+    n_tokens: int
+
+
+class ModelInfo(TypedDict):
     cm: ConfusionMatrix
     mean_pred_label_probs: list[float]
+    log_loss: float
 
 
 # Python only

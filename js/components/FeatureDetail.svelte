@@ -2,6 +2,7 @@
   import { scaleSequential } from "d3-scale";
   import { interpolatePlasma } from "d3-scale-chromatic";
   import {
+    dataset_info,
     detail_feature,
     detail_feature_id,
     model_info,
@@ -106,7 +107,7 @@
         <MarginalEffectsHeatmap
           marginalEffects={detail_feature.value.marginal_effects}
           distribution={detail_feature.value.sequence_acts_histogram}
-          classes={model_info.value.label_indices}
+          classes={dataset_info.value.label_indices}
           compareToBaseProbs={marginalCompareToBase}
           marginTop={32}
           marginRight={88}

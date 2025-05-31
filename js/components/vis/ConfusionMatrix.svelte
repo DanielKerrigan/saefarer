@@ -9,7 +9,7 @@
   import { extent, max, zip } from "d3-array";
   import type { ConfusionMatrixData, ConfusionMatrixCell } from "../../types";
   import Axis from "./axis/Axis.svelte";
-  import { font_sizes, model_info } from "../../synced-state.svelte";
+  import { dataset_info, font_sizes } from "../../synced-state.svelte";
   import { interpolateOranges, interpolatePiYG } from "d3-scale-chromatic";
   import QuantitativeColorLegend from "./legends/QuantitativeColorLegend.svelte";
   import VisTooltip from "../VisTooltip.svelte";
@@ -134,14 +134,14 @@
 
   const x = $derived(
     scaleBand<number>()
-      .domain(model_info.value.label_indices)
+      .domain(dataset_info.value.label_indices)
       .range([marginLeft, width - marginRight])
       .padding(0),
   );
 
   const y = $derived(
     scaleBand<number>()
-      .domain(model_info.value.label_indices)
+      .domain(dataset_info.value.label_indices)
       .range([marginTop, height - marginBottom])
       .padding(0),
   );
@@ -167,7 +167,7 @@
   const color = $derived(getColor(cells, showDifference));
 
   function indexToLabel(i: number): string {
-    return model_info.value.labels[i];
+    return dataset_info.value.labels[i];
   }
 
   const tickLabelFontSize = font_sizes.xs;
@@ -300,11 +300,11 @@
           data={[
             {
               key: "True label",
-              value: model_info.value.labels[tooltipInfo.data.label],
+              value: dataset_info.value.labels[tooltipInfo.data.label],
             },
             {
               key: "Predicted label",
-              value: model_info.value.labels[tooltipInfo.data.pred_label],
+              value: dataset_info.value.labels[tooltipInfo.data.pred_label],
             },
             {
               key: "Percent of data",

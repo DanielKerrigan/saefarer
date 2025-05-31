@@ -21,6 +21,7 @@ import saefarer.analysis.database as db
 from saefarer import sae
 from saefarer.analysis.feature_analysis import get_feature_data
 from saefarer.analysis.model_and_dataset import (
+    get_dataset_info,
     get_dataset_with_predictions,
     get_model_info,
 )
@@ -59,8 +60,10 @@ def analyze(
     rng = np.random.default_rng()
 
     ds = get_dataset_with_predictions(model, dataset, cfg)
-    model_info = get_model_info(ds, cfg)
+    dataset_info = get_dataset_info(cfg)
+    model_info = get_model_info(ds, dataset_info)
 
+    db.insert_misc("dataset_info", dataset_info, con, cur)
     db.insert_misc("model_info", model_info, con, cur)
 
     # this is in preparation of supporting multiple SAEs
@@ -101,6 +104,7 @@ def analyze(
                 feature_data = get_feature_data(
                     feature,
                     sae_id,
+                    dataset_info,
                     model_info,
                     feature_activations,
                     positive_activation_mask,

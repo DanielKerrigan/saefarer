@@ -263,6 +263,28 @@ def rank_features(
     return [row_to_feature_data(row) for row in rows]
 
 
+def count_features(
+    sae_id: str,
+    cur: sqlite3.Cursor,
+    min_act_rate: float,
+) -> int:
+    res = cur.execute(
+        """
+        SELECT COUNT(feature_id)
+        FROM feature
+        WHERE sae_id = :sae_id AND sequence_act_rate > :min_act_rate
+        """,
+        {
+            "sae_id": sae_id,
+            "min_act_rate": min_act_rate,
+        },
+    )
+
+    row = res.fetchone()
+
+    return row[0]
+
+
 def _rank_features_by_col(
     sae_id: str,
     cur: sqlite3.Cursor,

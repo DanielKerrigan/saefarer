@@ -5,7 +5,7 @@
   import MarginalEffectsHeatmap from "./vis/MarginalEffectsHeatmap.svelte";
   import { descending } from "d3-array";
   import { scaleSequential } from "d3-scale";
-  import { interpolateBlues } from "d3-scale-chromatic";
+  import { interpolatePlasma } from "d3-scale-chromatic";
   import TokenSequence from "./TokenSequence.svelte";
   import PageControls from "./PageControls.svelte";
   import type { FeatureData } from "../types";
@@ -112,8 +112,10 @@
         class:sae-table-border={showBorder}
       >
         <TokenSequence
-          colorScale={scaleSequential([0, feature.max_act], interpolateBlues)}
-          sequence={feature.sequence_intervals["Max Activations"].sequences[0]}
+          colorScale={scaleSequential([0, feature.max_act], (d) =>
+            interpolatePlasma(1 - d),
+          )}
+          sequence={feature.sequence_intervals[0].sequences[0]}
           wrap={false}
         />
       </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    model_info,
+    dataset_info,
     table_min_act_rate,
     table_ranking_option,
   } from "../synced-state.svelte";
@@ -18,7 +18,7 @@
   ];
 
   const labelOptions = $derived(
-    model_info.value.labels.map((d, i) => ({
+    dataset_info.value.labels.map((d, i) => ({
       label: d,
       value: `${i}`,
     })),
