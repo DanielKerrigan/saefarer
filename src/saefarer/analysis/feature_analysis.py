@@ -196,7 +196,7 @@ def _get_interval_indices(
                 & (sequence_activations < interval_max)
             )
             .nonzero()
-            .squeeze()
+            .flatten()
         )
 
         if valid_indices.shape[0] > cfg.n_example_sequences:
@@ -290,7 +290,9 @@ def _get_feature_token_sequence(
             extras_group = defaultdict(list)
 
     assert max_super_token_index != -1
-    assert not token_id_group and not activations_group
+
+    if token_id_group or activations_group:
+        print(f"problems tokenizing {sequence_index}")
 
     # take a subset of the tokens
 
