@@ -11,11 +11,17 @@ from saefarer.utils import get_default_device
 def main(sae_path, db_path):
     """Analyze the SAE"""
 
+    print("Loading dataset")
+
     dataset = load_from_disk("stocktwits-crypto_tokenized/train")
+
+    print("Loading model and tokenizer")
 
     model_name = "ElKulako/cryptobert"
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+
+    print("Creating config")
 
     cfg = AnalysisConfig(
         device=get_default_device(),
@@ -31,7 +37,13 @@ def main(sae_path, db_path):
         n_context_tokens=5,
     )
 
+    print(f"Using device {cfg.device}")
+
+    print("Loading SAE")
+
     sae = SAE.load(sae_path, cfg.device)
+
+    print("Starting analysis")
 
     analyze(
         cfg=cfg,

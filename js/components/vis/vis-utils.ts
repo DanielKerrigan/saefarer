@@ -77,7 +77,7 @@ export function activationRatePctFormat(x: number): string {
 export const activationRateLogFormat = format(".3~f");
 export const activationValueFormat = format(".2~f");
 export const probabilityFormat = format(".2~f");
-
+export const logLossFormat = format(".3~f");
 export const percentFormat = format(".2~%");
 export const percentagePointFormat = (d: number) => format(".2~f")(d * 100);
 export const countFormat = format(",d");

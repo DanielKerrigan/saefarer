@@ -2,6 +2,7 @@
   import { scaleSequential } from "d3-scale";
   import { interpolatePlasma } from "d3-scale-chromatic";
   import {
+    can_inference,
     dataset_info,
     detail_feature,
     detail_feature_id,
@@ -17,6 +18,7 @@
     getSizeWithAspectRatioMargins,
   } from "./vis/vis-utils";
   import MarginalEffectsHeatmap from "./vis/MarginalEffectsHeatmap.svelte";
+  import FeatureTesting from "./FeatureTesting.svelte";
 
   let {}: {} = $props();
 
@@ -88,7 +90,12 @@
       </span>
     </div>
   </div>
-  <div class="sae-main">
+  <div
+    class={[
+      "sae-main",
+      can_inference.value ? "sae-grid-inference" : "sae-grid-no-inference",
+    ]}
+  >
     <div class="sae-effects-container">
       <div class="sae-effects-controls">
         <div style:font-weight="var(--font-medium)">
@@ -153,6 +160,12 @@
     <div class="sae-sequences-container">
       <FeatureTokenSequenceTable {tokenColor} />
     </div>
+
+    {#if can_inference.value}
+      <div class="sae-inference-container">
+        <FeatureTesting {tokenColor} featureId={detail_feature_id.value} />
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -163,7 +176,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1em;
+    gap: 1.5em;
   }
 
   label {
@@ -203,12 +216,33 @@
     min-height: 0;
 
     display: grid;
+    gap: 1.5em;
+  }
+
+  .sae-grid-inference {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(12, minmax(0, 1fr));
+    grid-template-areas:
+      "effects sequences"
+      "effects sequences"
+      "effects sequences"
+      "effects sequences"
+      "effects sequences"
+      "effects sequences"
+      "cm inference"
+      "cm inference"
+      "cm inference"
+      "cm inference"
+      "cm inference"
+      "cm inference";
+  }
+
+  .sae-grid-no-inference {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(2, minmax(0, 1fr));
     grid-template-areas:
       "effects sequences"
       "cm sequences";
-    gap: 1em;
   }
 
   /* marginal plot */
@@ -263,6 +297,14 @@
 
   .sae-sequences-container {
     grid-area: sequences;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  /* inferencing */
+
+  .sae-inference-container {
+    grid-area: inference;
     min-height: 0;
     min-width: 0;
   }

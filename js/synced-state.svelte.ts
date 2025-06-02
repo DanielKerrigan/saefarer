@@ -90,6 +90,9 @@ export let num_filtered_features: OneWaySyncedState<"num_filtered_features">;
 export let table_features: OneWaySyncedState<"table_features">;
 export let detail_feature: OneWaySyncedState<"detail_feature">;
 export let detail_feature_id: TwoWaySyncedState<"detail_feature_id">;
+export let can_inference: OneWaySyncedState<"can_inference">;
+export let inference_input: TwoWaySyncedState<"inference_input">;
+export let inference_output: OneWaySyncedState<"inference_output">;
 
 // derived state
 export let font_sizes: FontSizes;
@@ -110,6 +113,9 @@ export function setupSyncedState(model: AnyModel<DataModel>) {
   table_features = new OneWaySyncedState("table_features", model);
   detail_feature = new OneWaySyncedState("detail_feature", model);
   detail_feature_id = new TwoWaySyncedState("detail_feature_id", model);
+  can_inference = new OneWaySyncedState("can_inference", model);
+  inference_input = new TwoWaySyncedState("inference_input", model);
+  inference_output = new OneWaySyncedState("inference_output", model);
 
   // derived state
   font_sizes = new FontSizes(model);

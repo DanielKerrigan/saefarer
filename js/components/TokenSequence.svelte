@@ -9,15 +9,20 @@
     colorScale,
     sequence,
     wrap,
+    tooltipEnabled = true,
+    hidePadding = false,
   }: {
     colorScale: ScaleSequential<string>;
     sequence: FeatureTokenSequence;
     wrap: boolean;
+    tooltipEnabled?: boolean;
+    hidePadding?: boolean;
   } = $props();
 
   let tooltipInfo: {
     data: DisplayToken;
     anchor: HTMLElement;
+    index: number;
   } | null = $state(null);
 
   function onMouseEnterToken(
@@ -25,10 +30,12 @@
       currentTarget: EventTarget & HTMLDivElement;
     },
     data: DisplayToken,
+    index: number,
   ) {
     tooltipInfo = {
       data,
       anchor: event.currentTarget,
+      index,
     };
   }
 
@@ -39,21 +46,28 @@
 
 <div class="sae-sequence" style:flex-wrap={wrap ? "wrap" : "nowrap"}>
   {#each sequence.display_tokens as dt, i}
-    {@const tokenColor =
-      dt.max_act > 0 ? colorScale(dt.max_act) : "var(--color-white)"}
-    <!-- TODO: do this properly -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-      class="sae-token"
-      style:--token-color={tokenColor}
-      style:font-weight={i === sequence.max_token_index
-        ? "var(--font-bold)"
-        : "var(--font-normal)"}
-      onmouseenter={(event) => onMouseEnterToken(event, dt)}
-      onmouseleave={onMouseLeaveToken}
-    >
-      <span class="sae-token-name">{dt.display}</span>
-    </div>
+    {#if !hidePadding || dt.display !== "<pad>"}
+      {@const tokenColor =
+        dt.max_act > 0 ? colorScale(dt.max_act) : "var(--color-white)"}
+      <!-- TODO: do this properly -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="sae-token"
+        style:--token-color={tokenColor}
+        style:font-weight={i === sequence.max_token_index && dt.max_act > 0
+          ? "var(--font-bold)"
+          : "var(--font-normal)"}
+        style:background-color={tooltipEnabled && tooltipInfo?.index === i
+          ? "var(--color-neutral-300)"
+          : "var(--color-white)"}
+        onmouseenter={tooltipEnabled
+          ? (event) => onMouseEnterToken(event, dt, i)
+          : null}
+        onmouseleave={tooltipEnabled ? onMouseLeaveToken : null}
+      >
+        <span class="sae-token-name">{dt.display}</span>
+      </div>
+    {/if}
   {/each}
 
   {#if tooltipInfo}
@@ -83,10 +97,6 @@
     border-bottom: 0.25em solid var(--token-color);
     background-color: var(--color-white);
     color: var(--color-black);
-  }
-
-  .sae-token:hover {
-    background-color: var(--color-neutral-300);
   }
 
   .sae-token-name {

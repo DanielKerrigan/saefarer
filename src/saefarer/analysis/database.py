@@ -326,7 +326,7 @@ def _rank_features_by_label(
     is_descending = ranking_option["descending"]
 
     if (y_true == "any" and y_pred == "any") or (
-        y_true == "other" and y_pred == "other"
+        y_true == "different" and y_pred == "different"
     ):
         return _rank_features_by_col(
             sae_id=sae_id,
@@ -337,8 +337,8 @@ def _rank_features_by_label(
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
-    elif (y_true == "any" and y_pred == "other") or (
-        y_true == "other" and y_pred == "any"
+    elif (y_true == "any" and y_pred == "different") or (
+        y_true == "different" and y_pred == "any"
     ):
         return _rank_features_by_overall_error_pct(
             sae_id=sae_id,
@@ -359,7 +359,7 @@ def _rank_features_by_label(
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
-    elif y_pred == "other":
+    elif y_pred == "different":
         return _rank_features_by_cm_value(
             sae_id=sae_id,
             cur=cur,
@@ -381,7 +381,7 @@ def _rank_features_by_label(
             page_index=page_index,
             n_table_rows=n_table_rows,
         )
-    elif y_true == "other":
+    elif y_true == "different":
         return _rank_features_by_cm_value(
             sae_id=sae_id,
             cur=cur,

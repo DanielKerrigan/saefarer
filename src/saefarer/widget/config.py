@@ -1,6 +1,7 @@
 """Configuration for Widget."""
 
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass
@@ -12,3 +13,5 @@ class WidgetConfig:
     n_table_rows: int = 10
     default_min_act_instances: int | None = 32
     default_min_act_rate: float | None = None
+    # only for inference
+    device: 'Literal["cpu", "mps", "cuda", "xpu", "xla"]' = "cuda"

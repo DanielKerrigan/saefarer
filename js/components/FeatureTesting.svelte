@@ -1,81 +1,74 @@
 <script lang="ts">
-  import {
-    dataset_info,
-    detail_feature,
-    font_sizes,
-  } from "../synced-state.svelte";
   import type { ScaleSequential } from "d3-scale";
   import TokenSequence from "./TokenSequence.svelte";
-  import QuantitativeColorLegend from "./vis/legends/QuantitativeColorLegend.svelte";
+  import {
+    dataset_info,
+    font_sizes,
+    inference_input,
+    inference_output,
+  } from "../synced-state.svelte";
   import TooltipButton from "./TooltipButton.svelte";
-  import { activationValueFormat } from "./vis/vis-utils";
   import TooltipTable from "./TooltipTable.svelte";
-  import { range } from "d3-array";
+  import { percentFormat } from "./vis/vis-utils";
 
   let {
     tokenColor,
+    featureId,
   }: {
     tokenColor: ScaleSequential<string>;
+    featureId: number;
   } = $props();
 
-  let chosenIntervalKey = $state(0);
-  let seqInterval = $derived(
-    detail_feature.value.sequence_intervals[chosenIntervalKey],
+  let wrapSequence = $state(false);
+  let hidePadding = $state(true);
+
+  let inferenceSequence = $derived(
+    featureId === inference_input.value.feature_index
+      ? inference_input.value.sequence
+      : "",
   );
 
-  let wrapSequences = $state(false);
+  function onTestFeature() {
+    inference_input.value = {
+      feature_index: featureId,
+      sequence: inferenceSequence,
+    };
+  }
 </script>
 
-<div class="sae-sequence-container">
-  <div class="sae-sequences-header">
-    <div class="sae-sequences-controls">
-      <span style:font-weight="var(--font-medium)">Example Activations</span>
-      <label>
-        <span>Range:</span>
-        <select bind:value={chosenIntervalKey}>
-          <option value={0}> Max activations </option>
-          {#each range(detail_feature.value.sequence_intervals.length - 1, 0, -1) as i}
-            <option value={i}>
-              Interval {i}
-            </option>
-          {/each}
-        </select>
-      </label>
-      <label>
-        <input type="checkbox" bind:checked={wrapSequences} />
-        <span>Wrap text</span>
-      </label>
-    </div>
-
-    <div class="sae-sequences-color-legend">
-      <QuantitativeColorLegend
-        width={256}
-        height={56}
-        color={tokenColor}
-        orientation="horizontal"
-        title="Activation value"
-        marginTop={18}
-        marginBottom={24}
-        titleFontSize={font_sizes.sm}
-        tickLabelFontSize={font_sizes.xs}
-        tickFormat={(d) => (d === 0 ? "> 0" : activationValueFormat(d))}
-      />
-    </div>
+<div class="sae-feature-testing-container">
+  <div class="sae-controls">
+    <span style:font-weight="var(--font-medium)">Test Feature</span>
+    <label>
+      <input type="checkbox" bind:checked={hidePadding} />
+      <span>Hide padding</span>
+    </label>
+    <label>
+      <input type="checkbox" bind:checked={wrapSequence} />
+      <span>Wrap text</span>
+    </label>
   </div>
 
-  <div class="sae-sequences-table">
-    <div class="sae-sequences-table-cell sae-sequences-table-header"></div>
-    <div class="sae-sequences-table-cell sae-sequences-table-header">Pred.</div>
-    <div class="sae-sequences-table-cell sae-sequences-table-header">True</div>
-    <div class="sae-sequences-table-cell sae-sequences-table-header">
-      Tokens
-    </div>
+  <div class="sae-input-row">
+    <input type="text" bind:value={inferenceSequence} />
+    <button onclick={onTestFeature}>Test</button>
+  </div>
 
-    {#each seqInterval.sequences as seq, i}
-      {@const showBorder = i !== seqInterval.sequences.length - 1}
+  {#if inference_output.value.feature_index === featureId}
+    <div class="sae-sequences-table">
+      <div class="sae-sequences-table-cell sae-sequences-table-header"></div>
+      <div class="sae-sequences-table-cell sae-sequences-table-header">
+        Pred.
+      </div>
+      <div class="sae-sequences-table-cell sae-sequences-table-header">
+        Prob.
+      </div>
+      <div class="sae-sequences-table-cell sae-sequences-table-header">
+        Tokens
+      </div>
       <div
         class="sae-sequences-table-cell"
-        class:sae-sequences-table-border={showBorder}
+        class:sae-sequences-table-border={true}
       >
         <TooltipButton position="left">
           {#snippet trigger()}
@@ -113,52 +106,48 @@
           {/snippet}
 
           {#snippet content()}
-            <TooltipTable
-              data={[{ key: "Instance index", value: `${seq.sequence_index}` }]}
-            />
+            <TooltipTable data={[{ key: "Instance index", value: `-1` }]} />
           {/snippet}
         </TooltipButton>
       </div>
       <div
         class="sae-sequences-table-cell"
-        class:sae-sequences-table-border={showBorder}
+        class:sae-sequences-table-border={true}
       >
-        {dataset_info.value.labels[seq.pred_label]}
+        {dataset_info.value.labels[inference_output.value.pred_label]}
       </div>
       <div
         class="sae-sequences-table-cell"
-        class:sae-sequences-table-border={showBorder}
+        class:sae-sequences-table-border={true}
       >
-        {dataset_info.value.labels[seq.label]}
+        {percentFormat(
+          inference_output.value.pred_probs[inference_output.value.pred_label],
+        )}
       </div>
       <div
         class="sae-sequences-table-cell sae-sequences-table-tokens"
-        class:sae-sequences-table-border={showBorder}
+        class:sae-sequences-table-border={true}
       >
         <TokenSequence
           colorScale={tokenColor}
-          sequence={seq}
-          wrap={wrapSequences}
-          hidePadding={false}
+          sequence={inference_output.value}
+          wrap={wrapSequence}
+          {hidePadding}
         />
       </div>
-    {/each}
-  </div>
+    </div>
+  {/if}
 </div>
 
 <style>
-  select {
-    border: 1px solid var(--color-black);
-    border-radius: 0.25em;
-  }
-
-  label {
+  .sae-controls {
     display: flex;
+    gap: 1em;
     align-items: center;
-    gap: 0.25em;
+    justify-content: flex-start;
   }
 
-  .sae-sequence-container {
+  .sae-feature-testing-container {
     min-height: 0;
     max-height: 100%;
     display: flex;
@@ -166,17 +155,16 @@
     gap: 0.5em;
   }
 
-  .sae-sequences-header {
+  .sae-input-row {
     display: flex;
-    flex-direction: column;
     gap: 0.25em;
   }
 
-  .sae-sequences-controls {
-    display: flex;
-    gap: 1em;
-    align-items: center;
-    justify-content: flex-start;
+  .sae-input-row input {
+    border: 1px solid var(--color-black);
+    border-radius: 0.25em;
+    padding: 0em 0.25em;
+    width: 100%;
   }
 
   .sae-sequences-table {

@@ -1,6 +1,6 @@
 """Utility functions."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import torch
@@ -9,13 +9,13 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
 
-def get_default_device() -> torch.device:
+def get_default_device() -> 'Literal["cpu", "mps", "cuda"]':
     if torch.cuda.is_available():
-        return torch.device("cuda")
+        return "cuda"
     elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
-        return torch.device("mps")
+        return "mps"
     else:
-        return torch.device("cpu")
+        return "cpu"
 
 
 def top_k_indices_values(

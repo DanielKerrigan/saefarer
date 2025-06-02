@@ -1,3 +1,4 @@
+import datetime
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -29,6 +30,8 @@ def get_dataset_with_predictions(
     dataset: Dataset | IterableDataset | DataLoader,
     cfg: "AnalysisConfig",
 ) -> dict[str, torch.Tensor]:
+    print("Loading instances")
+
     if isinstance(dataset, Dataset):
         ds = dataset[0 : cfg.total_analysis_sequences]
     else:
@@ -48,9 +51,13 @@ def get_dataset_with_predictions(
 
         ds = next(iter(dataloader))
 
+    print("Beginning to get model's predictions on instances", datetime.datetime.now())
+
     predicted_probabilities = _get_model_predictions(model, ds, cfg)
     ds["pred_probs"] = predicted_probabilities
     ds["pred_label"] = predicted_probabilities.argmax(dim=1)
+
+    print("Finished getting model's predictions on instances", datetime.datetime.now())
 
     return ds
 

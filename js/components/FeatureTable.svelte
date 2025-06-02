@@ -117,6 +117,7 @@
           )}
           sequence={feature.sequence_intervals[0].sequences[0]}
           wrap={false}
+          tooltipEnabled={false}
         />
       </div>
     {/each}

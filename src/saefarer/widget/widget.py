@@ -8,9 +8,18 @@ import anywidget
 import traitlets
 
 import saefarer.analysis.database as db
+from saefarer.analysis.config import AnalysisConfig
+from saefarer.analysis.inference import inference
 
 if TYPE_CHECKING:
-    from saefarer.analysis.types import RankingOption
+    from transformers import PreTrainedModel, PreTrainedTokenizer
+
+    from saefarer import sae
+    from saefarer.analysis.types import (
+        FeatureTokenSequence,
+        InferenceInput,
+        RankingOption,
+    )
     from saefarer.widget.config import WidgetConfig
 
 _DEV = True
@@ -46,7 +55,19 @@ class Widget(anywidget.AnyWidget):
     detail_feature = traitlets.Dict().tag(sync=True)
     detail_feature_id = traitlets.Int().tag(sync=True)
 
-    def __init__(self, path: str | os.PathLike, cfg: "WidgetConfig", **kwargs):
+    can_inference = traitlets.Bool().tag(sync=True)
+    inference_input = traitlets.Dict().tag(sync=True)  # type: ignore
+    inference_output = traitlets.Dict().tag(sync=True)  # type: ignore
+
+    def __init__(
+        self,
+        path: str | os.PathLike,
+        cfg: "WidgetConfig",
+        model: "PreTrainedModel | None" = None,
+        tokenizer: "PreTrainedTokenizer | None" = None,
+        sae: "sae.SAE | None" = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         path = Path(path)
@@ -61,6 +82,8 @@ class Widget(anywidget.AnyWidget):
         self.base_font_size = cfg.base_font_size
         self.n_table_rows = cfg.n_table_rows
 
+        analysis_cfg_dict = db.read_misc("analysis_cfg", self.cur)
+        self.analysis_cfg = AnalysisConfig.from_dict(analysis_cfg_dict)
         self.dataset_info = db.read_misc("dataset_info", self.cur)
         self.model_info = db.read_misc("model_info", self.cur)
 
@@ -96,6 +119,42 @@ class Widget(anywidget.AnyWidget):
 
         self.detail_feature = self.table_features[0]
         self.detail_feature_id = self.detail_feature["feature_id"]
+
+        self.model = model
+        self.tokenizer = tokenizer
+        self.sae = sae
+
+        if (
+            self.model is not None
+            and self.tokenizer is not None
+            and self.sae is not None
+        ):
+            self.can_inference = True
+            self.model.to(cfg.device)  # type: ignore
+        else:
+            self.can_inference = False
+
+        if not self.can_inference and (
+            model is not None or tokenizer is not None or sae is not None
+        ):
+            raise ValueError(
+                "model, tokenizer, and sae must all be set in order to inference"
+            )
+
+        self.inference_input: "InferenceInput" = {
+            "feature_index": -1,
+            "sequence": "",
+        }
+        self.inference_output: "FeatureTokenSequence" = {
+            "feature_index": -1,
+            "sequence_index": -1,
+            "display_tokens": [],
+            "max_token_index": -1,
+            "label": -1,
+            "pred_label": -1,
+            "pred_probs": [],
+            "extras": {},
+        }
 
     @traitlets.observe("detail_feature_id")
     def _on_detail_feature_id_change(self, change):
@@ -164,5 +223,24 @@ class Widget(anywidget.AnyWidget):
             self.table_min_act_rate,
             self.table_page_index,
             self.n_table_rows,
-            len(self.model_info["labels"]),
+            len(self.dataset_info["labels"]),
+        )
+
+    @traitlets.observe("inference_input")
+    def _on_inference_input_change(self, _):
+        if self.inference_input["feature_index"] == -1:
+            return
+
+        if not self.can_inference:
+            return
+
+        if self.model is None or self.tokenizer is None or self.sae is None:
+            return
+
+        self.inference_output = inference(
+            self.inference_input,
+            self.model,
+            self.tokenizer,
+            self.sae,
+            self.analysis_cfg,
         )

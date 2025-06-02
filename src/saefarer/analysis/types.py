@@ -27,6 +27,7 @@ class DisplayToken(TypedDict):
 
 
 class FeatureTokenSequence(TypedDict):
+    feature_index: int
     sequence_index: int
     display_tokens: list[DisplayToken]
     max_token_index: int
@@ -129,6 +130,11 @@ class ModelInfo(TypedDict):
     cm: ConfusionMatrix
     mean_pred_label_probs: list[float]
     log_loss: float
+
+
+class InferenceInput(TypedDict):
+    feature_index: int
+    sequence: str
 
 
 # Python only

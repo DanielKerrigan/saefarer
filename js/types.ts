@@ -21,6 +21,7 @@ export type DisplayToken = {
 };
 
 export type FeatureTokenSequence = {
+  feature_index: number;
   sequence_index: number;
   display_tokens: DisplayToken[];
   max_token_index: number;
@@ -126,6 +127,11 @@ export type ModelInfo = {
   log_loss: number;
 };
 
+export type InferenceInput = {
+  feature_index: number;
+  sequence: string;
+};
+
 export type DataModel = {
   height: number;
   base_font_size: number;
@@ -143,6 +149,9 @@ export type DataModel = {
   table_features: FeatureData[];
   detail_feature: FeatureData;
   detail_feature_id: number;
+  can_inference: boolean;
+  inference_input: InferenceInput;
+  inference_output: FeatureTokenSequence;
 };
 
 // JS only

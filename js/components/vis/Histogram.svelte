@@ -155,6 +155,7 @@
         numTicks={5}
         titleFontSize={font_sizes.sm}
         tickLabelFontSize={font_sizes.xs}
+        showDomain={true}
       />
     {/if}
 

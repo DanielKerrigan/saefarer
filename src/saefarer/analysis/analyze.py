@@ -4,6 +4,8 @@ https://github.com/callummcdougall/sae_vis
 https://github.com/jbloomAus/SAEDashboard
 """
 
+import dataclasses
+import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -63,6 +65,7 @@ def analyze(
     dataset_info = get_dataset_info(cfg)
     model_info = get_model_info(ds, dataset_info)
 
+    db.insert_misc("analysis_cfg", dataclasses.asdict(cfg), con, cur)
     db.insert_misc("dataset_info", dataset_info, con, cur)
     db.insert_misc("model_info", model_info, con, cur)
 
@@ -79,6 +82,8 @@ def analyze(
         alive_feature_ids[i : i + cfg.feature_batch_size]
         for i in range(0, n_alive_features, cfg.feature_batch_size)
     ]
+
+    print("Beginning to analyze features", datetime.datetime.now())
 
     progress_bar = tqdm(
         total=n_alive_features,
@@ -122,6 +127,8 @@ def analyze(
             progress_bar.update()
 
     progress_bar.close()
+
+    print("Finished analyzing features", datetime.datetime.now())
 
     if non_activating_feature_ids:
         alive_feature_ids = list(

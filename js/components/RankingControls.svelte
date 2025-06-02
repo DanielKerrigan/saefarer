@@ -14,7 +14,7 @@
 
   const extraLabelOptions = [
     { label: "Any", value: "any" },
-    { label: "Other", value: "other" },
+    { label: "Different", value: "different" },
   ];
 
   const labelOptions = $derived(
@@ -43,7 +43,7 @@
       table_ranking_option.value = {
         kind: "label",
         true_label: "any",
-        pred_label: "other",
+        pred_label: "different",
         descending: table_ranking_option.value.descending,
       };
     }
@@ -111,7 +111,7 @@
           value={table_ranking_option.value.pred_label}
           onchange={(e) => onChangeLabel(e, "pred_label")}
         >
-          <optgroup label="Extras">
+          <optgroup label="Wildcards">
             {#each extraLabelOptions as opt}
               <option value={opt.value}>{opt.label}</option>
             {/each}
@@ -129,7 +129,7 @@
           value={table_ranking_option.value.true_label}
           onchange={(e) => onChangeLabel(e, "true_label")}
         >
-          <optgroup label="Extras">
+          <optgroup label="Wildcards">
             {#each extraLabelOptions as opt}
               <option value={opt.value}>{opt.label}</option>
             {/each}

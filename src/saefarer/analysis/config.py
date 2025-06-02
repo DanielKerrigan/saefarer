@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, Literal
 
 if TYPE_CHECKING:
-    import torch
+    pass
 
 
 @dataclass
@@ -19,7 +19,7 @@ class AnalysisConfig:
     # default
 
     # device
-    device: 'Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device' = "cuda"
+    device: 'Literal["cpu", "mps", "cuda", "xpu", "xla"]' = "cuda"
     # dataset
     tokens_column: str = "input_ids"
     attn_mask_column: str = "attention_mask"
@@ -50,3 +50,9 @@ class AnalysisConfig:
         self.total_analysis_sequences = (
             self.total_analysis_tokens // self.model_sequence_length
         )
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        data_copy = data.copy()
+        data_copy.pop("total_analysis_sequences")
+        return cls(**data_copy)

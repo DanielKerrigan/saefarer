@@ -72,6 +72,7 @@ def get_feature_data(
 
     # Example sequences
     sequence_intervals = _get_example_sequences(
+        feature_id,
         tokenizer,
         ds,
         token_acts,
@@ -118,6 +119,7 @@ def get_feature_data(
 
 @torch.inference_mode()
 def _get_example_sequences(
+    feature_index: int,
     tokenizer: "PreTrainedTokenizer",
     ds: dict[str, torch.Tensor],
     token_activations: torch.Tensor,
@@ -139,6 +141,7 @@ def _get_example_sequences(
             tok_i = int(torch.argmax(acts).item())
 
             token_sequence = _get_feature_token_sequence(
+                feature_index=feature_index,
                 tokenizer=tokenizer,
                 input_ids=tok_ids.tolist(),
                 activations=acts.tolist(),
@@ -186,7 +189,8 @@ def _get_interval_indices(
     )
 
     bins_per_interval = cfg.n_activation_bins // cfg.n_sequence_intervals
-    interval_thresholds = list(range(0, len(thresholds), bins_per_interval))
+    interval_indices = list(range(0, len(thresholds), bins_per_interval))
+    interval_thresholds = [thresholds[i] for i in interval_indices]
     interval_ranges = list(zip(interval_thresholds, interval_thresholds[1:]))
 
     for i, (interval_min, interval_max) in enumerate(interval_ranges):
@@ -224,6 +228,7 @@ def _get_interval_indices(
 
 @torch.inference_mode()
 def _get_feature_token_sequence(
+    feature_index: int,
     tokenizer: "PreTrainedTokenizer",
     input_ids: list[int],
     activations: list[float],
@@ -245,10 +250,52 @@ def _get_feature_token_sequence(
         values = ds[col][sequence_index].tolist()
         token_extras[col] = [formatter(value) for value in values]
 
-    # group tokens into "super tokens" to handle characters like emojis
-    # which get split into multiple tokens but need to be combined in
-    # order to be correctly displayed
+    display_tokens_subset, max_token_index = get_display_tokens(
+        tokenizer=tokenizer,
+        input_ids=input_ids,
+        activations=activations,
+        sequence_index=sequence_index,
+        token_index=token_index,
+        token_extras=token_extras,
+        n_context_tokens=cfg.n_context_tokens,
+    )
 
+    # sequence metadata
+
+    sequence_extras: dict[str, str] = {}
+
+    for entry in cfg.extra_sequence_columns:
+        if isinstance(entry, str):
+            col, formatter = entry, str
+        else:
+            col, formatter = entry
+
+        sequence_extras[col] = formatter(ds[col][sequence_index].item())
+
+    token_sequence = FeatureTokenSequence(
+        feature_index=feature_index,
+        sequence_index=sequence_index,
+        display_tokens=display_tokens_subset,
+        max_token_index=max_token_index,
+        label=int(ds["label"][sequence_index]),
+        pred_label=int(ds["pred_label"][sequence_index]),
+        pred_probs=ds["pred_probs"][sequence_index].tolist(),
+        extras=sequence_extras,
+    )
+
+    return token_sequence
+
+
+@torch.inference_mode()
+def get_display_tokens(
+    tokenizer: "PreTrainedTokenizer",
+    input_ids: list[int],
+    activations: list[float],
+    sequence_index: int,
+    token_index: int,
+    token_extras: dict[str, list[str]],
+    n_context_tokens: int,
+):
     display_tokens: list[DisplayToken] = []
 
     seq = tokenizer.decode(input_ids)
@@ -296,10 +343,10 @@ def _get_feature_token_sequence(
 
     # take a subset of the tokens
 
-    if cfg.n_context_tokens >= 0:
-        min_index = max(0, max_super_token_index - cfg.n_context_tokens)
+    if n_context_tokens >= 0:
+        min_index = max(0, max_super_token_index - n_context_tokens)
         max_index = min(
-            len(display_tokens) - 1, max_super_token_index + cfg.n_context_tokens
+            len(display_tokens) - 1, max_super_token_index + n_context_tokens
         )
 
         display_tokens_subset = display_tokens[min_index:max_index]
@@ -308,29 +355,7 @@ def _get_feature_token_sequence(
         display_tokens_subset = display_tokens
         max_token_index = max_super_token_index
 
-    # sequence metadata
-
-    sequence_extras: dict[str, str] = {}
-
-    for entry in cfg.extra_sequence_columns:
-        if isinstance(entry, str):
-            col, formatter = entry, str
-        else:
-            col, formatter = entry
-
-        sequence_extras[col] = formatter(ds[col][sequence_index].item())
-
-    token_sequence = FeatureTokenSequence(
-        sequence_index=sequence_index,
-        display_tokens=display_tokens_subset,
-        max_token_index=max_token_index,
-        label=int(ds["label"][sequence_index]),
-        pred_label=int(ds["pred_label"][sequence_index]),
-        pred_probs=ds["pred_probs"][sequence_index].tolist(),
-        extras=sequence_extras,
-    )
-
-    return token_sequence
+    return display_tokens_subset, max_token_index
 
 
 @torch.inference_mode()

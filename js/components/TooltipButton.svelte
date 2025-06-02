@@ -8,21 +8,27 @@
     position = "auto",
     trigger,
     content,
+    clickingEnabled = false,
   }: {
     position?: Position;
     trigger: Snippet;
     content: Snippet;
+    clickingEnabled?: boolean;
   } = $props();
 
   // dimensions and location
 
   function getTop(
     contentHeight: number,
-    rootRect: DOMRect,
-    anchorRect: DOMRect,
+    rootRect: DOMRect | null,
+    anchorRect: DOMRect | null,
     space: number,
     position: Position,
   ) {
+    if (rootRect === null || anchorRect === null) {
+      return 0;
+    }
+
     const halfContentHeight = contentHeight / 2;
     const halfAnchorHeight = anchorRect.height / 2;
 
@@ -44,11 +50,15 @@
 
   function getLeft(
     contentWidth: number,
-    rootRect: DOMRect,
-    anchorRect: DOMRect,
+    rootRect: DOMRect | null,
+    anchorRect: DOMRect | null,
     space: number,
     position: Position,
   ) {
+    if (rootRect === null || anchorRect === null) {
+      return 0;
+    }
+
     const halfContentWidth = contentWidth / 2;
     const anchorRectMiddle =
       anchorRect.left - rootRect.left + anchorRect.width / 2;
@@ -80,12 +90,8 @@
   let contentWidth = $state(0);
   let contentHeight = $state(0);
 
-  const anchorRect = $derived(
-    anchor === undefined
-      ? new DOMRect(0, 0, 0, 0)
-      : anchor.getBoundingClientRect(),
-  );
-  const rootRect = $derived(root.value.getBoundingClientRect());
+  let anchorRect: DOMRect | null = $state(null);
+  let rootRect: DOMRect | null = $state(null);
 
   let top = $derived(
     getTop(contentHeight, rootRect, anchorRect, space, position),
@@ -105,7 +111,9 @@
   }
 
   function onmouseenter() {
-    if (!locked) {
+    if (!locked && anchor) {
+      anchorRect = anchor.getBoundingClientRect();
+      rootRect = root.value.getBoundingClientRect();
       show = true;
     }
   }
@@ -118,7 +126,12 @@
 </script>
 
 <div class="sae-tooltip-container">
-  <button {onclick} {onmouseenter} {onmouseleave} bind:this={anchor}>
+  <button
+    onclick={clickingEnabled ? onclick : null}
+    {onmouseenter}
+    {onmouseleave}
+    bind:this={anchor}
+  >
     {@render trigger()}
   </button>
 

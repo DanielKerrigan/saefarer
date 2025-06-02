@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { model_info, sae_data } from "../synced-state.svelte";
+  import { dataset_info, model_info, sae_data } from "../synced-state.svelte";
   import ConfusionMatrix from "./vis/ConfusionMatrix.svelte";
   import Histogram from "./vis/Histogram.svelte";
   import {
@@ -8,6 +8,7 @@
     countFormat,
     getSizeWithAspectRatio,
     getSizeWithAspectRatioMargins,
+    logLossFormat,
     percentFormat,
     siFormat,
   } from "./vis/vis-utils";
@@ -60,11 +61,11 @@
           <tbody>
             <tr>
               <td>Instances</td>
-              <td>{countFormat(model_info.value.cm.n_sequences)}</td>
+              <td>{siFormat(dataset_info.value.n_sequences)}</td>
             </tr>
             <tr>
               <td>Tokens</td>
-              <td>{siFormat(model_info.value.cm.n_sequences)}</td>
+              <td>{siFormat(dataset_info.value.n_tokens)}</td>
             </tr>
           </tbody>
         </table>
@@ -81,7 +82,7 @@
             </tr>
             <tr>
               <td>Log loss</td>
-              <td>{percentFormat(model_info.value.cm.error_pct)}</td>
+              <td>{logLossFormat(model_info.value.log_loss)}</td>
             </tr>
           </tbody>
         </table>
