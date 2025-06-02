@@ -28,6 +28,7 @@ dev = [
     "pytest",
     "ruff>=0.9.3",
     "sphinx",
+    "twine"
 ]
 tensorboard = ["tensorboard"]
 wandb = ["wandb"]
@@ -89,7 +90,11 @@ docs = "cd docs && make html"
 # building
 # build the Python package and possibly the JS package
 # based on the `skip-if-exists` config above
+clean = "rm src/saefarer/static/*"
 build = "python -m build"
+
+# releasing
+release = "twine upload dist/*"
 
 [tool.ruff]
 extend-include = ["*.ipynb"]

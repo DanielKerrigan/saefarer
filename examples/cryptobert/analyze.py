@@ -8,12 +8,12 @@ from saefarer.sae import SAE
 from saefarer.utils import get_default_device
 
 
-def main(sae_path, db_path):
+def main(dataset_path, sae_path, db_path):
     """Analyze the SAE"""
 
     print("Loading dataset")
 
-    dataset = load_from_disk("stocktwits-crypto_tokenized/train")
+    dataset = load_from_disk(dataset_path)
 
     print("Loading model and tokenizer")
 
@@ -57,13 +57,20 @@ def main(sae_path, db_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--sae", type=str, help="SAE file path", default="sae.pt")
     parser.add_argument(
         "-d",
-        "--db",
+        "--dataset",
+        type=str,
+        help="Dataset path",
+        default="stocktwits-crypto_tokenized/train",
+    )
+    parser.add_argument("-s", "--sae", type=str, help="SAE path", default="sae.pt")
+    parser.add_argument(
+        "-o",
+        "--output",
         type=str,
         default="analysis.db",
         help="Output database file path",
     )
     args = parser.parse_args()
-    main(args.sae, args.db)
+    main(args.dataset, args.sae, args.output)
