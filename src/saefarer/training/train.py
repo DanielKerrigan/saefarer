@@ -73,7 +73,9 @@ def train(
 
         # logging
 
-        if cfg.log_batch_freq and i % cfg.log_batch_freq == 0:
+        if cfg.log_batch_freq and (
+            i % cfg.log_batch_freq == 0 or i == cfg.total_training_batches
+        ):
             log_data = logger.LogData(
                 elapsed_seconds=time.time() - start_time,
                 n_training_batches=i,
