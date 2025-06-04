@@ -42,8 +42,8 @@
     } else {
       table_ranking_option.value = {
         kind: "label",
-        true_label: "any",
-        pred_label: "different",
+        true_label: "different",
+        pred_label: "any",
         descending: table_ranking_option.value.descending,
       };
     }

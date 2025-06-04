@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     )
     from saefarer.widget.config import WidgetConfig
 
-_DEV = False
+_DEV = True
 
 
 class Widget(anywidget.AnyWidget):
@@ -92,7 +92,9 @@ class Widget(anywidget.AnyWidget):
         self.sae_data = db.read_sae_data(self.sae_ids[0], self.cur)
 
         self.table_ranking_option: "RankingOption" = {
-            "kind": "feature_id",
+            "kind": "label",
+            "true_label": "different",
+            "pred_label": "any",
             "descending": True,
         }
         self.table_min_act_rate = (

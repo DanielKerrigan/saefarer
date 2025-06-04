@@ -10,8 +10,8 @@ If you are in a Python environment that has SAEfarer installed, then running the
 
 ```bash
 # 1. download and tokenize the dataset
-python download-stocktwits-crypto.py
-python tokenize-stocktwits-crypto.py
+python download-dataset.py
+python tokenize-dataset.py
 
 # 2. train the sparse autoencoder
 python train.py

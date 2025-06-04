@@ -4894,7 +4894,7 @@ packages:
 - pypi: .
   name: saefarer
   version: 0.0.0
-  sha256: 2f2040d59aa035dd4aff08eae52f9bd896d35e8c16a48fe85c55492f516b8304
+  sha256: 72d7b94b7ecc474130844a9414ea5d4b34c23684cd96d55eef021487fd41f328
   requires_dist:
   - anywidget>=0.9.13,<0.10
   - numba

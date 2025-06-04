@@ -140,6 +140,12 @@
 </div>
 
 <style>
+  label {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+  }
+
   .sae-controls {
     display: flex;
     gap: 1em;
