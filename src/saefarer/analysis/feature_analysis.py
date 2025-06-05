@@ -24,10 +24,10 @@ from saefarer.analysis.types import (
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-    from transformers import PreTrainedTokenizer
 
     from saefarer.analysis.config import AnalysisConfig
     from saefarer.analysis.types import DatasetInfo, ModelInfo
+    from saefarer.protocols import TokenizerProtocol
 
 
 @torch.inference_mode()
@@ -38,7 +38,7 @@ def get_feature_data(
     model_info: "ModelInfo",
     token_acts: torch.Tensor,
     positive_token_acts_mask: torch.Tensor,
-    tokenizer: "PreTrainedTokenizer",
+    tokenizer: "TokenizerProtocol",
     ds: dict[str, torch.Tensor],
     cfg: "AnalysisConfig",
     rng: np.random.Generator,
@@ -120,7 +120,7 @@ def get_feature_data(
 @torch.inference_mode()
 def _get_example_sequences(
     feature_index: int,
-    tokenizer: "PreTrainedTokenizer",
+    tokenizer: "TokenizerProtocol",
     ds: dict[str, torch.Tensor],
     token_activations: torch.Tensor,
     sequence_activations: torch.Tensor,
@@ -229,7 +229,7 @@ def _get_interval_indices(
 @torch.inference_mode()
 def _get_feature_token_sequence(
     feature_index: int,
-    tokenizer: "PreTrainedTokenizer",
+    tokenizer: "TokenizerProtocol",
     input_ids: list[int],
     activations: list[float],
     sequence_index: int,
@@ -288,14 +288,14 @@ def _get_feature_token_sequence(
 
 @torch.inference_mode()
 def get_display_tokens(
-    tokenizer: "PreTrainedTokenizer",
+    tokenizer: "TokenizerProtocol",
     input_ids: list[int],
     activations: list[float],
     sequence_index: int,
     token_index: int,
     token_extras: dict[str, list[str]],
     n_context_tokens: int,
-):
+) -> tuple[list[DisplayToken], int]:
     display_tokens: list[DisplayToken] = []
 
     seq = tokenizer.decode(input_ids)
@@ -326,7 +326,9 @@ def get_display_tokens(
                 acts=activations_group,
                 max_act=max(activations_group),
                 extras=extras_group,
-                is_special=super_token in tokenizer.all_special_tokens,
+                # if it's a special token, then it should be the only
+                # one in the super token. TODO: make sure this is true
+                is_special=input_ids[i] in tokenizer.all_special_ids,
             )
 
             display_tokens.append(display_token)
@@ -338,8 +340,24 @@ def get_display_tokens(
 
     assert max_super_token_index != -1
 
-    if token_id_group or activations_group:
-        print(f"problems tokenizing {sequence_index}")
+    if token_id_group:
+        # this could happen if the original text is longer than the max length
+        # for the tokenizer and a multi-token character like an emoji gets split
+        print(
+            f"Problem decoding {len(token_id_group)} tokens for instance {sequence_index}"
+        )
+
+        for token_id, act in zip(token_id_group, activations_group):
+            super_token = tokenizer.decode(token_id)
+            display_token = DisplayToken(
+                display=super_token,
+                token_ids=[token_id],
+                acts=[act],
+                max_act=act,
+                extras={},
+                is_special=token_id in tokenizer.all_special_ids,
+            )
+            display_tokens.append(display_token)
 
     # take a subset of the tokens
 

@@ -4893,8 +4893,8 @@ packages:
   requires_python: '>=3.7'
 - pypi: .
   name: saefarer
-  version: 0.0.0
-  sha256: 72d7b94b7ecc474130844a9414ea5d4b34c23684cd96d55eef021487fd41f328
+  version: 0.0.1
+  sha256: ce0cbd6d2390fd55e81638f82dd84a6671335da2db8518c0e811cbfb7a55a1a7
   requires_dist:
   - anywidget>=0.9.13,<0.10
   - numba

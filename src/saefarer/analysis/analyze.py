@@ -36,9 +36,10 @@ from saefarer.analysis.types import (
 if TYPE_CHECKING:
     from os import PathLike
 
-    from transformers import PreTrainedModel, PreTrainedTokenizer
+    from transformers import PreTrainedModel
 
     from saefarer.analysis.config import AnalysisConfig
+    from saefarer.protocols import TokenizerProtocol
 
 
 @torch.inference_mode()
@@ -47,7 +48,7 @@ def analyze(
     model: "PreTrainedModel",
     dataset: Dataset | IterableDataset | DataLoader,
     sae: "sae.SAE",
-    tokenizer: "PreTrainedTokenizer",
+    tokenizer: "TokenizerProtocol",
     output_path: "str | PathLike",
 ):
     output_path = Path(output_path)

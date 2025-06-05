@@ -1,8 +1,13 @@
 import argparse
 
 from datasets import load_from_disk
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    BertTokenizerFast,
+)
 
+from saefarer.adapters.tokenizers import HuggingFaceBertTokenizerAdapter
 from saefarer.analysis import AnalysisConfig, analyze
 from saefarer.sae import SAE
 from saefarer.utils import get_default_device
@@ -28,7 +33,10 @@ def main(
 
     model_name = "Kyle1668/ag-news-19200-bert-base-uncased"
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    tokenizer: BertTokenizerFast = AutoTokenizer.from_pretrained(
+        model_name, use_fast=True
+    )  # type: ignore
+    sf_tokenizer = HuggingFaceBertTokenizerAdapter(tokenizer)
 
     print("Creating config")
 
@@ -39,7 +47,7 @@ def main(
         device=device,
         tokens_column="input_ids",
         attn_mask_column="attention_mask",
-        labels=[label for _, label in sorted(model.config.id2label.items())],
+        labels=["World", "Sports", "Business", "Sci/Tech"],
         model_batch_size_sequences=model_batch_size_sequences,
         model_sequence_length=128,
         feature_batch_size=feature_batch_size,
@@ -62,7 +70,7 @@ def main(
         model=model,
         dataset=dataset,  # type: ignore
         sae=sae,
-        tokenizer=tokenizer,  # type: ignore
+        tokenizer=sf_tokenizer,
         output_path=db_path,
     )
 

@@ -1,8 +1,13 @@
 import argparse
 
 from datasets import load_from_disk
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    RobertaTokenizerFast,
+)
 
+from saefarer.adapters.tokenizers import HuggingFaceRobertaTokenizerAdapter
 from saefarer.analysis import AnalysisConfig, analyze
 from saefarer.sae import SAE
 from saefarer.utils import get_default_device
@@ -28,7 +33,10 @@ def main(
 
     model_name = "ElKulako/cryptobert"
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    tokenizer: "RobertaTokenizerFast" = AutoTokenizer.from_pretrained(
+        model_name, use_fast=True
+    )  # type: ignore
+    sf_tokenizer = HuggingFaceRobertaTokenizerAdapter(tokenizer)
 
     print("Creating config")
 
@@ -62,7 +70,7 @@ def main(
         model=model,
         dataset=dataset,  # type: ignore
         sae=sae,
-        tokenizer=tokenizer,  # type: ignore
+        tokenizer=sf_tokenizer,
         output_path=db_path,
     )
 
