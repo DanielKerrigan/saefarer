@@ -96,8 +96,14 @@ def analyze(
     token_act_rates = []
     sequence_act_rates = []
 
+    sae_activations = torch.zeros(
+        ds[cfg.tokens_column].shape + (cfg.feature_batch_size,),
+        device=cfg.device,
+        dtype=sae.dtype,
+    )
+
     for features in feature_batches:
-        sae_activations = _get_sae_activations(features, sae, model, ds, cfg)
+        _fill_sae_activations_buffer(sae_activations, features, sae, model, ds, cfg)
 
         for i, feature in enumerate(features):
             feature_activations = sae_activations[..., i]
@@ -126,6 +132,8 @@ def analyze(
                 db.insert_feature(feature_data, con, cur)
 
             progress_bar.update()
+
+        sae_activations.zero_()
 
     progress_bar.close()
 
@@ -160,19 +168,17 @@ def analyze(
 
 
 @torch.inference_mode()
-def _get_sae_activations(
+def _fill_sae_activations_buffer(
+    sae_activations: torch.Tensor,
     feature_indices: list[int],
     sae: "sae.SAE",
     model: "PreTrainedModel",
     ds: dict[str, torch.Tensor],
     cfg: "AnalysisConfig",
-) -> torch.Tensor:
+):
     tokens = ds[cfg.tokens_column]
     attn_masks = ds[cfg.attn_mask_column]
 
-    sae_activations = torch.zeros(
-        tokens.shape + (len(feature_indices),), device=cfg.device, dtype=sae.dtype
-    )
     offset = 0
 
     token_batches = tokens.split(cfg.model_batch_size_sequences)
@@ -195,8 +201,6 @@ def _get_sae_activations(
         end = offset
 
         sae_activations[start:end, :, :] = batch_sae_acts[..., feature_indices]
-
-    return sae_activations
 
 
 @torch.inference_mode()
