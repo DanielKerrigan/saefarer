@@ -48,7 +48,9 @@ class ActivationsStore:
         else:
             self.dataset_dataloader = dataset
 
-        batch_shape = next(iter(self.dataset_dataloader))[self.cfg.dataset_column].shape
+        batch_shape = next(iter(self.dataset_dataloader))[
+            self.cfg.token_ids_column
+        ].shape
 
         assert batch_shape[0] == self.cfg.model_batch_size_sequences, (
             f"DataLoader batch size is {batch_shape[0]} but cfg.model_batch_size_sequences = {self.cfg.model_batch_size_sequences}"
@@ -166,7 +168,7 @@ class ActivationsStore:
 
         def get_tokens_and_attn_mask():
             batch = next(self.dataset_batch_iter)
-            tokens = batch[self.cfg.dataset_column].to(self.device)
+            tokens = batch[self.cfg.token_ids_column].to(self.device)
             mask = (
                 batch[self.cfg.attn_mask_column].to(self.device)
                 if self.cfg.attn_mask_column

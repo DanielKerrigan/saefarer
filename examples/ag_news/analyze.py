@@ -45,7 +45,7 @@ def main(
 
     cfg = AnalysisConfig(
         device=device,
-        tokens_column="input_ids",
+        token_ids_column="input_ids",
         attn_mask_column="attention_mask",
         labels=["World", "Sports", "Business", "Sci/Tech"],
         model_batch_size_sequences=model_batch_size_sequences,

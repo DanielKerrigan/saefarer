@@ -17,7 +17,7 @@ export type DisplayToken = {
   acts: number[];
   max_act: number;
   extras: Record<string, string[]>;
-  is_special: boolean;
+  is_padding: boolean;
 };
 
 export type FeatureTokenSequence = {

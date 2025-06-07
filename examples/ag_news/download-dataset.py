@@ -1,20 +1,43 @@
+# %% imports
 import bz2
 from io import StringIO
+from pathlib import Path
+from urllib.request import urlretrieve
 
-# from urllib.request import urlretrieve
 import pandas as pd
 from datasets import ClassLabel, Dataset, DatasetDict, Features, Value
 
-# download the file
-# urlretrieve("http://groups.di.unipi.it/~gulli/newsSpace.bz2", "ag-news.tsv.bz2")
+# %% download the file
+download_path = Path("ag-news.tsv.bz2")
 
-# unzip it
-with bz2.open("ag-news.tsv.bz2", mode="rt", encoding="latin1") as f:
-    content = f.read()
-    # replace escaped tab with space
-    content = content.replace("\\\t", " ")
-    # replace escaped new line with space
-    content = content.replace("\\\n", " ")
+if download_path.exists():
+    print(f"{download_path} already exists, skipping download")
+else:
+    print("Downloading file")
+    urlretrieve("http://groups.di.unipi.it/~gulli/newsSpace.bz2", download_path)
+
+# %% unzip and do some minor cleaning
+print("Reading file")
+with bz2.open("ag-news.tsv.bz2", mode="rb") as f:
+    content_bytes = f.read()
+    content = content_bytes.decode("ascii", "replace")
+
+    replacements = [
+        ("\r", ""),  # remove \r
+        ("\\\t", " "),  # replace escaped tab with space
+        ("\n\\\n", "\\"),  # remove single backslash on own line
+        ("\n...", "..."),  # remove new line before ...
+        ("\\\n", "\\"),  # replace escaped new line with \
+        ("�", ""),  # remove unknown
+    ]
+
+    for old, new in replacements:
+        content = content.replace(old, new)
+
+
+# %% parse the file
+
+print("Parsing file")
 
 columns = [
     "source",
@@ -47,30 +70,41 @@ df_original = pd.read_csv(
     sep="\t",
     names=columns,
     engine="python",
-    encoding="latin1",
     on_bad_lines=on_bad_lines,
+    quoting=3,
 )
 
+print(f"{df_original.shape=}")
+print(f"{df_original['category'].unique()=}")
 
-class_index_map = {0: "World", 1: "Sports", 2: "Business", 3: "Sci/Tech"}
-class_names = list(class_index_map.values())
+# %% process the dataset
 
+print("Processing dataframe")
+
+class_names = ["World", "Sports", "Business", "Sci/Tech"]
 column_subset = ["title", "description", "category"]
-df = df_original[df_original["category"].isin(class_names)][column_subset]
 
-df.dropna(inplace=True)
+df = (
+    df_original[df_original["category"].isin(class_names)][column_subset]
+    .dropna()
+    .assign(text=lambda df: df["title"] + " " + df["description"])
+    .rename(columns={"category": "label"})
+    .drop(columns=["title", "description"])
+    .loc[lambda x: ~x["text"].str.contains("http")]
+    .drop_duplicates()
+)
 
-df["text"] = df["title"] + " " + df["description"]
+print(f"{df.shape=}")
 
-df.rename(columns={"category": "label"}, inplace=True)
-df.drop(columns=["title", "description"], inplace=True)
+# %% create hugging face dataset
+# https://stackoverflow.com/a/76218276/5016634
+
+print("Creating hugging face dataset")
 
 features = Features({"text": Value("string"), "label": ClassLabel(names=class_names)})
-
 dataset = Dataset.from_pandas(df, features=features, preserve_index=False)
 
-# https://stackoverflow.com/a/76218276/5016634
-train_testvalid = dataset.train_test_split(train_size=0.8, shuffle=True, seed=1)
+train_testvalid = dataset.train_test_split(train_size=0.9, shuffle=True, seed=1)
 test_valid = train_testvalid["test"].train_test_split(
     train_size=0.5, shuffle=True, seed=2
 )

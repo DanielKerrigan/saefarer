@@ -92,7 +92,7 @@ def get_feature_data(
 
     # Confusion matrix
     cm = get_confusion_matrix(
-        ds["label"][positive_sequence_acts_mask_cpu],
+        ds[cfg.label_column][positive_sequence_acts_mask_cpu],
         ds["pred_label"][positive_sequence_acts_mask_cpu],
         dataset_info["label_indices"],
     )
@@ -136,7 +136,7 @@ def _get_example_sequences(
         key_seq: list[FeatureTokenSequence] = []
 
         for seq_i in interval.indices.tolist():
-            tok_ids = ds[cfg.tokens_column][seq_i]
+            tok_ids = ds[cfg.token_ids_column][seq_i]
             acts = token_activations[seq_i]
             tok_i = int(torch.argmax(acts).item())
 
@@ -328,7 +328,7 @@ def get_display_tokens(
                 extras=extras_group,
                 # if it's a special token, then it should be the only
                 # one in the super token. TODO: make sure this is true
-                is_special=input_ids[i] in tokenizer.all_special_ids,
+                is_padding=input_ids[i] == tokenizer.pad_token_id,
             )
 
             display_tokens.append(display_token)
@@ -355,7 +355,7 @@ def get_display_tokens(
                 acts=[act],
                 max_act=act,
                 extras={},
-                is_special=token_id in tokenizer.all_special_ids,
+                is_padding=token_id == tokenizer.pad_token_id,
             )
             display_tokens.append(display_token)
 

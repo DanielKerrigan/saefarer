@@ -21,7 +21,7 @@ class AnalysisConfig:
     # device
     device: 'Literal["cpu", "mps", "cuda", "xpu", "xla"]' = "cuda"
     # dataset
-    tokens_column: str = "input_ids"
+    token_ids_column: str = "input_ids"
     attn_mask_column: str = "attention_mask"
     label_column: str = "label"
     # batch sizes
@@ -33,6 +33,8 @@ class AnalysisConfig:
     total_analysis_sequences: int = field(init=False)
     feature_indices: list[int] = field(default_factory=list)
     n_activation_bins: int = 32
+    # inferencing
+    hidden_state_index: int = -2
     # ui
     n_example_sequences: int = 10
     n_context_tokens: int = 5

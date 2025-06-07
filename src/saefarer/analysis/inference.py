@@ -7,33 +7,31 @@ from saefarer.analysis.feature_analysis import get_display_tokens
 from saefarer.analysis.types import FeatureTokenSequence
 
 if TYPE_CHECKING:
-    from transformers import PreTrainedModel, PreTrainedTokenizer
+    from transformers import PreTrainedModel
 
     from saefarer import sae
-    from saefarer.analysis.config import AnalysisConfig
+    from saefarer.analysis import AnalysisConfig
     from saefarer.analysis.types import InferenceInput
+    from saefarer.protocols import TokenizerProtocol
 
 
 def inference(
     inference_input: "InferenceInput",
     model: "PreTrainedModel",
-    tokenizer: "PreTrainedTokenizer",
+    tokenizer: "TokenizerProtocol",
     sae: "sae.SAE",
     cfg: "AnalysisConfig",
 ) -> "FeatureTokenSequence":
-    tokenize_results = tokenizer(
-        inference_input["sequence"],
-        padding="max_length",
-        max_length=cfg.model_sequence_length,
-        truncation=True,
+    tokenize_results = tokenizer.encode(
+        inference_input["sequence"], max_length=cfg.model_sequence_length
     )
 
-    token_ids = (
-        torch.tensor(tokenize_results[cfg.tokens_column]).unsqueeze(0).to(sae.device)
-    )
-    attention_mask = (
-        torch.tensor(tokenize_results[cfg.attn_mask_column]).unsqueeze(0).to(sae.device)
-    )
+    input_ids = tokenize_results["token_ids"]
+    token_ids = torch.tensor(input_ids, device=sae.device).unsqueeze(0)
+
+    attention_mask = torch.tensor(
+        tokenize_results["attention_mask"], device=sae.device
+    ).unsqueeze(0)
 
     model_results = model(
         token_ids,
@@ -43,13 +41,13 @@ def inference(
     pred_probs = F.softmax(model_results.logits, dim=1).flatten()
     pred_label: int = pred_probs.argmax().item()  # type: ignore
 
-    model_acts = model_results.hidden_states[sae.cfg.hidden_state_index]
+    model_acts = model_results.hidden_states[cfg.hidden_state_index]
     sae_acts, _ = sae.encode(model_acts)
     feature_acts = sae_acts[0, :, inference_input["feature_index"]]
 
     display_tokens, max_token_index = get_display_tokens(
         tokenizer=tokenizer,
-        input_ids=tokenize_results[cfg.tokens_column],  # type: ignore
+        input_ids=input_ids,
         activations=feature_acts.tolist(),
         sequence_index=-1,
         token_index=feature_acts.argmax().item(),  # type: ignore

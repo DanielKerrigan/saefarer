@@ -64,7 +64,7 @@ def analyze(
 
     ds = get_dataset_with_predictions(model, dataset, cfg)
     dataset_info = get_dataset_info(cfg)
-    model_info = get_model_info(ds, dataset_info)
+    model_info = get_model_info(ds, dataset_info, cfg)
 
     db.insert_misc("analysis_cfg", dataclasses.asdict(cfg), con, cur)
     db.insert_misc("dataset_info", dataset_info, con, cur)
@@ -97,7 +97,7 @@ def analyze(
     sequence_act_rates = []
 
     sae_activations = torch.zeros(
-        ds[cfg.tokens_column].shape + (cfg.feature_batch_size,),
+        ds[cfg.token_ids_column].shape + (cfg.feature_batch_size,),
         device=cfg.device,
         dtype=sae.dtype,
     )
@@ -176,7 +176,7 @@ def _fill_sae_activations_buffer(
     ds: dict[str, torch.Tensor],
     cfg: "AnalysisConfig",
 ):
-    tokens = ds[cfg.tokens_column]
+    tokens = ds[cfg.token_ids_column]
     attn_masks = ds[cfg.attn_mask_column]
 
     offset = 0
@@ -193,7 +193,7 @@ def _fill_sae_activations_buffer(
             attention_mask=attn_mask_batch,
             output_hidden_states=True,
         )
-        batch_model_acts = batch_model_output.hidden_states[sae.cfg.hidden_state_index]
+        batch_model_acts = batch_model_output.hidden_states[cfg.hidden_state_index]
         batch_sae_acts, _ = sae.encode(batch_model_acts)
 
         start = offset

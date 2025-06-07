@@ -79,7 +79,7 @@ def _get_model_predictions(
     ds: dict[str, torch.Tensor],
     cfg: "AnalysisConfig",
 ) -> torch.Tensor:
-    tokens = ds[cfg.tokens_column]
+    tokens = ds[cfg.token_ids_column]
     attn_masks = ds[cfg.attn_mask_column]
 
     predicted_probabilities = torch.zeros(
@@ -110,14 +110,18 @@ def _get_model_predictions(
 
 
 @torch.inference_mode()
-def get_model_info(ds: dict[str, torch.Tensor], dataset_info: DatasetInfo) -> ModelInfo:
+def get_model_info(
+    ds: dict[str, torch.Tensor],
+    dataset_info: DatasetInfo,
+    cfg: "AnalysisConfig",
+) -> ModelInfo:
     cm = get_confusion_matrix(
-        ds["label"], ds["pred_label"], dataset_info["label_indices"]
+        ds[cfg.label_column], ds["pred_label"], dataset_info["label_indices"]
     )
 
     mean_probabilities = ds["pred_probs"].mean(dim=0).tolist()
 
-    nll = F.nll_loss(torch.log(ds["pred_probs"]), ds["label"])
+    nll = F.nll_loss(torch.log(ds["pred_probs"]), ds[cfg.label_column])
 
     return ModelInfo(
         cm=cm, mean_pred_label_probs=mean_probabilities, log_loss=nll.item()

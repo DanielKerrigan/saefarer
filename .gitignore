@@ -11,6 +11,7 @@ examples/*/*/
 wandb
 examples/**/*.sh
 examples/**/*.bz2
+examples/**/*.tsv
 docs/build
 
 # Python

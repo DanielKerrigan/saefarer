@@ -27,7 +27,7 @@ def main(
         device=get_default_device(),
         dtype="float32",
         # dataset
-        dataset_column="input_ids",
+        token_ids_column="input_ids",
         attn_mask_column="attention_mask",
         # dimensions
         d_in=768,

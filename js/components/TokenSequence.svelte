@@ -46,7 +46,7 @@
 
 <div class="sae-sequence" style:flex-wrap={wrap ? "wrap" : "nowrap"}>
   {#each sequence.display_tokens as dt, i}
-    {#if !hidePadding || dt.display !== "<pad>"}
+    {#if !(hidePadding && dt.is_padding)}
       {@const tokenColor =
         dt.max_act > 0 ? colorScale(dt.max_act) : "var(--color-white)"}
       <!-- TODO: do this properly -->

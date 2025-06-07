@@ -23,7 +23,7 @@ class DisplayToken(TypedDict):
     acts: list[float]
     max_act: float
     extras: dict[str, list[str]]
-    is_special: bool
+    is_padding: bool
 
 
 class FeatureTokenSequence(TypedDict):

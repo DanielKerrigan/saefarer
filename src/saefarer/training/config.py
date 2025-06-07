@@ -1,21 +1,18 @@
 """Configuration for SAE training."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
-
-if TYPE_CHECKING:
-    import torch
+from typing import Literal
 
 
 @dataclass
 class TrainingConfig:
     """Configuration class for training SAEs."""
 
-    device: 'Literal["cpu", "mps", "cuda", "xpu", "xla"] | torch.device' = "cuda"
+    device: Literal["cpu", "mps", "cuda", "xpu", "xla"] = "cuda"
     dtype: Literal["float16", "bfloat16", "float32", "float64"] = "float32"
     # dataset
-    dataset_column: str = "input_ids"
-    attn_mask_column: str = ""
+    token_ids_column: str = "input_ids"
+    attn_mask_column: str = "attention_mask"
     # dimensions
     d_in: int = 64
     expansion_factor: int = 4
@@ -26,7 +23,8 @@ class TrainingConfig:
     aux_k_coef: float = 1 / 32
     dead_tokens_threshold: int = 10_000_000
     dead_steps_threshold: int = field(init=False)
-    hidden_state_index: int = -1
+    # inferencing
+    hidden_state_index: int = -2
     # activation normalization
     normalize: bool = False
     # batch sizes

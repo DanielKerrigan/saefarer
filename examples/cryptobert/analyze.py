@@ -45,7 +45,7 @@ def main(
 
     cfg = AnalysisConfig(
         device=device,
-        tokens_column="input_ids",
+        token_ids_column="input_ids",
         attn_mask_column="attention_mask",
         labels=[label for _, label in sorted(model.config.id2label.items())],
         model_batch_size_sequences=model_batch_size_sequences,

@@ -12,7 +12,7 @@ from saefarer.analysis.config import AnalysisConfig
 from saefarer.analysis.inference import inference
 
 if TYPE_CHECKING:
-    from transformers import PreTrainedModel, PreTrainedTokenizer
+    from transformers import PreTrainedModel
 
     from saefarer import sae
     from saefarer.analysis.types import (
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
         InferenceInput,
         RankingOption,
     )
+    from saefarer.protocols import TokenizerProtocol
     from saefarer.widget.config import WidgetConfig
 
 _DEV = True
@@ -64,7 +65,7 @@ class Widget(anywidget.AnyWidget):
         path: str | os.PathLike,
         cfg: "WidgetConfig",
         model: "PreTrainedModel | None" = None,
-        tokenizer: "PreTrainedTokenizer | None" = None,
+        tokenizer: "TokenizerProtocol | None" = None,
         sae: "sae.SAE | None" = None,
         **kwargs,
     ):
@@ -244,5 +245,4 @@ class Widget(anywidget.AnyWidget):
             self.model,
             self.tokenizer,
             self.sae,
-            self.analysis_cfg,
         )
