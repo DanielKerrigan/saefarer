@@ -5,7 +5,7 @@ name: website
 on:
   push:
     tags:
-      - "v*"
+      - "temp*"
 
 # security: restrict permissions for CI jobs.
 permissions:

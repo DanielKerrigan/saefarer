@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from saefarer.protocols import TokenizerProtocol
     from saefarer.widget.config import WidgetConfig
 
-_DEV = True
+_DEV = False
 
 
 class Widget(anywidget.AnyWidget):
