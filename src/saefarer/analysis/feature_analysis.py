@@ -270,7 +270,7 @@ def _get_feature_token_sequence(
         else:
             col, formatter = entry
 
-        sequence_extras[col] = formatter(ds[col][sequence_index].item())
+        sequence_extras[col] = formatter(ds[col][sequence_index])
 
     token_sequence = FeatureTokenSequence(
         feature_index=feature_index,

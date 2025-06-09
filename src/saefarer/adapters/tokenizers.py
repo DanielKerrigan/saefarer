@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from saefarer.protocols import EncodingOutput
+
 if TYPE_CHECKING:
     from transformers import (
         BertTokenizer,
@@ -15,7 +17,7 @@ class HuggingFaceBertTokenizerAdapter:
         tokenizer: "BertTokenizer | BertTokenizerFast",
     ):
         self.tokenizer = tokenizer
-        self.pad_token_id = tokenizer.pad_token_id
+        self.pad_token_id: int = tokenizer.pad_token_id  # type: ignore
 
     def encode(
         self,
@@ -29,10 +31,10 @@ class HuggingFaceBertTokenizerAdapter:
             truncation=True,
         )
 
-        return {
-            "token_ids": output["input_ids"],
-            "attention_mask": output["attention_mask"],
-        }
+        token_ids: list[int] = output["input_ids"]  # type: ignore
+        attention_mask: list[int] = output["attention_mask"]  # type: ignore
+
+        return EncodingOutput(token_ids=token_ids, attention_mask=attention_mask)
 
     def decode(self, token_ids: list[int]) -> str:
         tokens = []
@@ -52,7 +54,7 @@ class HuggingFaceRobertaTokenizerAdapter:
         tokenizer: "RobertaTokenizer | RobertaTokenizerFast",
     ):
         self.tokenizer = tokenizer
-        self.pad_token_id = tokenizer.pad_token_id
+        self.pad_token_id: int = tokenizer.pad_token_id  # type: ignore
 
     def encode(
         self,
@@ -66,10 +68,10 @@ class HuggingFaceRobertaTokenizerAdapter:
             truncation=True,
         )
 
-        return {
-            "token_ids": output["input_ids"],
-            "attention_mask": output["attention_mask"],
-        }
+        token_ids: list[int] = output["input_ids"]  # type: ignore
+        attention_mask: list[int] = output["attention_mask"]  # type: ignore
+
+        return EncodingOutput(token_ids=token_ids, attention_mask=attention_mask)
 
     def decode(self, token_ids: list[int]) -> str:
         return self.tokenizer.decode(token_ids)

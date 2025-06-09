@@ -55,6 +55,7 @@ def main(
         feature_indices=feature_indices,
         n_example_sequences=10,
         n_context_tokens=5,
+        extra_sequence_columns=["source"],
     )
 
     print(f"Using device {cfg.device}")
