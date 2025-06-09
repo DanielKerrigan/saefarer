@@ -128,7 +128,6 @@
 
         <!-- bar -->
         <rect
-          style:pointer-events="none"
           x={x(edges[i][0]) + 0.5}
           width={Math.max(0, x(edges[i][1]) - x(edges[i][0]) - 1)}
           y={y(data.counts[i])}
@@ -136,6 +135,7 @@
           fill={i === tooltipInfo?.index
             ? "var(--color-black)"
             : "var(--color-neutral-500)"}
+          pointer-events="none"
         />
       {/each}
     </g>

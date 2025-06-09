@@ -19,6 +19,8 @@
   } from "./vis/vis-utils";
   import MarginalEffectsHeatmap from "./vis/MarginalEffectsHeatmap.svelte";
   import FeatureTesting from "./FeatureTesting.svelte";
+  import TooltipButton from "./TooltipButton.svelte";
+  import InfoIcon from "./icons/InfoIcon.svelte";
 
   let {}: {} = $props();
 
@@ -66,6 +68,9 @@
 
   let marginalCompareToBase = $state(false);
   let cmCompareToWhole = $state(false);
+
+  const marginalCompareMessage = "Compare to base probabilities";
+  const cmCompareMessage = "Compare to whole dataset";
 </script>
 
 <div class="sae-container">
@@ -98,12 +103,26 @@
   >
     <div class="sae-effects-container">
       <div class="sae-effects-controls">
-        <div style:font-weight="var(--font-medium)">
-          Predicted Probabilities
+        <div class="sae-title">
+          <span>Predicted Probabilities</span>
+          <TooltipButton position="right">
+            {#snippet trigger()}
+              <InfoIcon />
+            {/snippet}
+            {#snippet content()}
+              <div class="sae-info">
+                Each cell in the heatmap shows the model's mean predicted
+                probability for the given class on instances that cause the
+                feature to activate in the given range. Checking "{marginalCompareMessage}"
+                shows the difference relative to the model's mean predicted
+                probabilities for the entire dataset.
+              </div>
+            {/snippet}
+          </TooltipButton>
         </div>
         <label>
           <input type="checkbox" bind:checked={marginalCompareToBase} />
-          <span>Compare to base probabilities</span>
+          <span>{marginalCompareMessage}</span>
         </label>
       </div>
       <div
@@ -131,10 +150,25 @@
 
     <div class="sae-cm-container">
       <div class="sae-cm-controls">
-        <div style:font-weight="var(--font-medium)">Confusion Matrix</div>
+        <div class="sae-title">
+          <span>Confusion Matrix</span>
+          <TooltipButton position="right">
+            {#snippet trigger()}
+              <InfoIcon />
+            {/snippet}
+            {#snippet content()}
+              <div class="sae-info">
+                This confusion matrix is calculated from instances that cause
+                this feature to activate. Checking "{cmCompareMessage}" shows
+                the difference relative to the confusion matrix for all
+                instances.
+              </div>
+            {/snippet}
+          </TooltipButton>
+        </div>
         <label>
           <input type="checkbox" bind:checked={cmCompareToWhole} />
-          <span>Compare to whole dataset</span>
+          <span>{cmCompareMessage}</span>
         </label>
       </div>
       <div
@@ -180,6 +214,21 @@
   }
 
   label {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+  }
+
+  .sae-info {
+    font-size: var(--text-sm);
+    max-width: 24em;
+  }
+
+  .sae-title > span {
+    font-weight: var(--font-medium);
+  }
+
+  .sae-title {
     display: flex;
     align-items: center;
     gap: 0.25em;

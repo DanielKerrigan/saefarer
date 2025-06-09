@@ -82,3 +82,15 @@ export const percentFormat = format(".2~%");
 export const percentagePointFormat = (d: number) => format(".2~f")(d * 100);
 export const countFormat = format(",d");
 export const siFormat = format(".3~s");
+
+export const actValueHistogramTooltipData = [
+  {
+    key: "Instance count",
+    value: (_x1: number, _x2: number, y: number) => countFormat(y),
+  },
+  {
+    key: "Activation value",
+    value: (x1: number, x2: number, _y: number) =>
+      `${activationValueFormat(x1)} to ${activationValueFormat(x2)}`,
+  },
+];

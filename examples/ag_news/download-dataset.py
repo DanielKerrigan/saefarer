@@ -84,14 +84,23 @@ print("Processing dataframe")
 class_names = ["World", "Sports", "Business", "Sci/Tech"]
 column_subset = ["title", "description", "category"]
 
+
+def row_filter(x):
+    title_not_url = ~x["title"].str.contains("http")
+    desc_not_url = ~x["description"].str.contains("http")
+    desc_set = x["description"].str.strip() != "\\N"
+    return title_not_url & desc_not_url & desc_set
+
+
 df = (
-    df_original[df_original["category"].isin(class_names)][column_subset]
-    .dropna()
+    df_original[df_original["category"].isin(class_names)]
+    .dropna(subset=column_subset)
+    .drop_duplicates(subset=column_subset)
+    .loc[row_filter]
     .assign(text=lambda df: df["title"] + " " + df["description"])
+    .drop(columns=["url", "image", "description", "rank", "video"])
     .rename(columns={"category": "label"})
-    .drop(columns=["title", "description"])
-    .loc[lambda x: ~x["text"].str.contains("http")]
-    .drop_duplicates()
+    .fillna("NA")
 )
 
 print(f"{df.shape=}")
@@ -101,7 +110,15 @@ print(f"{df.shape=}")
 
 print("Creating hugging face dataset")
 
-features = Features({"text": Value("string"), "label": ClassLabel(names=class_names)})
+features = Features(
+    {
+        "text": Value("string"),
+        "source": Value("string"),
+        "title": Value("string"),
+        "pubdate": Value("string"),
+        "label": ClassLabel(names=class_names),
+    }
+)
 dataset = Dataset.from_pandas(df, features=features, preserve_index=False)
 
 train_testvalid = dataset.train_test_split(train_size=0.9, shuffle=True, seed=1)

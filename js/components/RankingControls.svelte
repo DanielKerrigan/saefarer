@@ -4,11 +4,13 @@
     table_min_act_rate,
     table_ranking_option,
   } from "../synced-state.svelte";
-  import type { RankingOption } from "../types";
+  import type { LabelRankingOption, RankingOption } from "../types";
+  import InfoIcon from "./icons/InfoIcon.svelte";
+  import TooltipButton from "./TooltipButton.svelte";
 
   const rankingOptions: { label: string; value: RankingOption["kind"] }[] = [
     { label: "ID", value: "feature_id" },
-    { label: "Act. Rate", value: "sequence_act_rate" },
+    { label: "Activation Rate", value: "sequence_act_rate" },
     { label: "Confusion Matrix", value: "label" },
   ];
 
@@ -89,12 +91,48 @@
   function updateMinActRate() {
     table_min_act_rate.value = minActRateInputValue / 100;
   }
+
+  function getCMRankingExlanation(rankingOption: LabelRankingOption): string {
+    const { true_label, pred_label } = rankingOption;
+
+    const prefix = "Your current selection ranks the features by";
+    const poi = "the percentage of instances where";
+
+    const any = "any";
+    const diff = "different";
+
+    const getName = (i: string) => dataset_info.value.labels[Number(i)];
+
+    if (
+      (true_label === any && pred_label === any) ||
+      (true_label === diff && pred_label === diff)
+    ) {
+      return `${prefix} their ID. Try another combination!`;
+    } else if (
+      (true_label === any && pred_label === diff) ||
+      (true_label === diff && pred_label === any)
+    ) {
+      return `${prefix} ${poi} the model is wrong.`;
+    } else if (true_label === any) {
+      return `${prefix} ${poi} the model predicts ${getName(pred_label)}.`;
+    } else if (pred_label === any) {
+      return `${prefix} ${poi} the true label is ${getName(true_label)}.`;
+    } else if (true_label === diff) {
+      return `${prefix} ${poi} the model incorrectly predicts ${getName(pred_label)}.`;
+    } else if (pred_label === diff) {
+      return `${prefix} ${poi} the true label is ${getName(true_label)} and the model is incorrect.`;
+    } else if (pred_label === true_label) {
+      return `${prefix} ${poi} the model correctly predicts ${getName(true_label)}.`;
+    } else {
+      return `${prefix} ${poi} the model predicts ${getName(pred_label)}, but the true label is ${getName(true_label)}.`;
+    }
+  }
 </script>
 
 <div class="sae-container">
   <div class="sae-control-row">
     <label>
-      <span style:font-weight="var(--font-medium)">Ranking:</span>
+      <span class="sae-title">Ranking:</span>
       <select
         value={table_ranking_option.value.kind}
         onchange={onChangeRanking}
@@ -106,7 +144,7 @@
     </label>
     {#if table_ranking_option.value.kind === "label"}
       <label>
-        <span style:font-weight="var(--font-medium)">Predicted label:</span>
+        <span class="sae-title">Predicted label:</span>
         <select
           value={table_ranking_option.value.pred_label}
           onchange={(e) => onChangeLabel(e, "pred_label")}
@@ -124,7 +162,7 @@
         </select>
       </label>
       <label>
-        <span style:font-weight="var(--font-medium)">True label:</span>
+        <span class="sae-title">True label:</span>
         <select
           value={table_ranking_option.value.true_label}
           onchange={(e) => onChangeLabel(e, "true_label")}
@@ -134,7 +172,7 @@
               <option value={opt.value}>{opt.label}</option>
             {/each}
           </optgroup>
-          <optgroup label="Labels">
+          <optgroup label="Classes">
             {#each labelOptions as opt}
               <option value={opt.value}>{opt.label}</option>
             {/each}
@@ -142,11 +180,37 @@
         </select>
       </label>
     {/if}
+
+    <TooltipButton position="bottom">
+      {#snippet trigger()}
+        <InfoIcon />
+      {/snippet}
+      {#snippet content()}
+        <div class="sae-info">
+          {#if table_ranking_option.value.kind === "feature_id"}
+            The ID ranking orders the features by their index in the SAE. This
+            essentially provides a random order.
+          {:else if table_ranking_option.value.kind === "sequence_act_rate"}
+            The activation rate ranking orders the features by the percentage of
+            instances in the dataset that cause them to activate.
+          {:else}
+            <p>
+              The confusion matrix ranking orders the features based on the
+              model's predictions on the instances that cause the features to
+              activate.
+            </p>
+            <p>
+              {getCMRankingExlanation(table_ranking_option.value)}
+            </p>
+          {/if}
+        </div>
+      {/snippet}
+    </TooltipButton>
   </div>
 
   <div class="sae-control-row">
     <div class="sae-feature-table-order">
-      <span style:font-weight="var(--font-medium)">Order:</span>
+      <span class="sae-title">Order:</span>
       <label>
         <input
           type="radio"
@@ -170,8 +234,7 @@
     </div>
     <div class="sae-feature-table-min-act-rate">
       <label>
-        <span style:font-weight="var(--font-medium)">Min. activation rate:</span
-        >
+        <span class="sae-title">Min. activation rate:</span>
         <input
           type="number"
           bind:value={minActRateInputValue}
@@ -197,6 +260,15 @@
     display: flex;
     align-items: center;
     gap: 1em;
+  }
+
+  .sae-info {
+    font-size: var(--text-sm);
+    max-width: 32em;
+  }
+
+  .sae-title {
+    font-weight: var(--font-medium);
   }
 
   label {

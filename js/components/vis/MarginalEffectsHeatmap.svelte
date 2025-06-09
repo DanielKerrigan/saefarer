@@ -11,7 +11,7 @@
   import { interpolateBlues, interpolatePRGn } from "d3-scale-chromatic";
   import {
     activationValueFormat,
-    countFormat,
+    actValueHistogramTooltipData,
     defaultFormat,
     probabilityFormat,
   } from "./vis-utils";
@@ -93,21 +93,25 @@
   };
 
   const series: Series[] = $derived(
-    marginalEffects.probs.map((probsForLabel, labelIndex) => ({
-      labelIndex,
-      points: pairs(marginalEffects.thresholds).map(([binStart, binEnd], i) => {
-        const prob = probsForLabel[i] >= 0 ? probsForLabel[i] : NaN;
-        const delta = Number.isNaN(prob)
-          ? NaN
-          : prob - model_info.value.cm.pred_label_pcts[labelIndex];
-        return {
-          startAct: binStart,
-          endAct: binEnd,
-          prob,
-          delta,
-        };
-      }),
-    })),
+    marginalEffects.probs
+      .map((probsForLabel, labelIndex) => ({
+        labelIndex,
+        points: pairs(marginalEffects.thresholds).map(
+          ([binStart, binEnd], i) => {
+            const prob = probsForLabel[i] >= 0 ? probsForLabel[i] : NaN;
+            const delta = Number.isNaN(prob)
+              ? NaN
+              : prob - model_info.value.cm.pred_label_pcts[labelIndex];
+            return {
+              startAct: binStart,
+              endAct: binEnd,
+              prob,
+              delta,
+            };
+          },
+        ),
+      }))
+      .filter((_, labelIndex) => classes.includes(labelIndex)),
   );
 
   const x = $derived(
@@ -200,17 +204,7 @@
         showYAxis={false}
         xFormat={activationValueFormat}
         {tooltipEnabled}
-        tooltipData={[
-          {
-            key: "Instance count",
-            value: (_x1, _x2, y) => countFormat(y),
-          },
-          {
-            key: "Activation value",
-            value: (x1, x2, _y) =>
-              `${activationValueFormat(x1)} to ${activationValueFormat(x2)}`,
-          },
-        ]}
+        tooltipData={actValueHistogramTooltipData}
       />
     {/if}
     <svg width={svgWidth} height={svgHeight}>
@@ -247,8 +241,22 @@
       <g>
         {#each series as { points, labelIndex }}
           {#each points as p, pointIndex}
+            <!-- Background -->
             <!-- TODO: do this properly -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <rect
+              x={x(p.startAct)}
+              width={x(p.endAct) - x(p.startAct)}
+              y={y(labelIndex) ?? 0}
+              height={y.bandwidth()}
+              fill={"white"}
+              onmouseenter={tooltipEnabled
+                ? (event) => onMouseEnter(event, p, labelIndex, pointIndex)
+                : null}
+              onmouseleave={tooltipEnabled ? onMouseLeave : null}
+            />
+
+            <!-- rect for vis -->
             <rect
               x={x(p.startAct) + 0.5}
               width={x(p.endAct) - x(p.startAct) - 1}
@@ -257,10 +265,7 @@
               fill={compareToBaseProbs
                 ? divergingColor(p.delta)
                 : sequentialColor(p.prob)}
-              onmouseenter={tooltipEnabled
-                ? (event) => onMouseEnter(event, p, labelIndex, pointIndex)
-                : null}
-              onmouseleave={tooltipEnabled ? onMouseLeave : null}
+              pointer-events="none"
             />
             {#if labelIndex === tooltipInfo?.labelIndex && pointIndex === tooltipInfo.pointIndex}
               <DashedOutlineRect

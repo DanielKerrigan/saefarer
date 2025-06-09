@@ -245,4 +245,5 @@ class Widget(anywidget.AnyWidget):
             self.model,
             self.tokenizer,
             self.sae,
+            self.analysis_cfg,
         )

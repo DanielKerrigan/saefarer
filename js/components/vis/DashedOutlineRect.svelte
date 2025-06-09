@@ -20,7 +20,7 @@
   } = $props();
 </script>
 
-<g transform="translate({x},{y})">
+<g transform="translate({x},{y})" pointer-events="none">
   <rect
     {width}
     {height}

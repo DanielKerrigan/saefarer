@@ -22,6 +22,8 @@
     tickLabelFontSize = 10,
     titleFontSize = 12,
     tickFormat,
+    numTicks,
+    tickValues,
   }: {
     width: number;
     height: number;
@@ -37,6 +39,8 @@
     tickLabelFontSize?: number;
     titleFontSize?: number;
     tickFormat?: (value: number) => string;
+    numTicks?: number;
+    tickValues?: number[];
   } = $props();
 
   let canvas: HTMLCanvasElement | null = $state(null);
@@ -70,9 +74,9 @@
     const colorHeight = height - marginTop - marginBottom;
 
     const minDesiredTicks = color.domain().length;
-    const tickValues = x.ticks(
-      Math.max(Math.min(colorWidth / 50, 10), minDesiredTicks),
-    );
+    const axisTickValues =
+      tickValues ??
+      x.ticks(Math.max(Math.min(colorWidth / 50, 10), minDesiredTicks));
 
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
@@ -84,7 +88,7 @@
 
     axis(ctx, "bottom", x, {
       translateY: height - marginBottom,
-      tickValues,
+      tickValues: axisTickValues,
       tickFormat,
       title,
       titleAnchor: "left",
@@ -96,6 +100,7 @@
       marginLeft,
       tickLabelFontSize,
       titleFontSize,
+      numTicks,
     });
   }
 
@@ -118,8 +123,6 @@
     const colorWidth = width - marginLeft - marginRight;
     const colorHeight = y.range()[0] - y.range()[1];
 
-    const tickValues = y.ticks();
-
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
 
@@ -139,6 +142,7 @@
       marginLeft,
       tickLabelFontSize,
       titleFontSize,
+      numTicks,
     });
   }
 

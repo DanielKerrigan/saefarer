@@ -8,13 +8,13 @@
     position = "auto",
     trigger,
     content,
+    clickingEnabled = false,
   }: {
     position?: Position;
     trigger: Snippet;
     content: Snippet;
+    clickingEnabled?: boolean;
   } = $props();
-
-  const uid = $props.id();
 
   // dimensions and location
 
@@ -33,16 +33,18 @@
     const halfAnchorHeight = anchorRect.height / 2;
 
     if (position === "right" || position === "left") {
-      return anchorRect.top + halfAnchorHeight - halfContentHeight;
+      return (
+        anchorRect.top - rootRect.top + halfAnchorHeight - halfContentHeight
+      );
     } else if (
       position === "bottom" ||
       (position === "auto" && anchorRect.top - contentHeight < rootRect.top)
     ) {
       // below
-      return anchorRect.bottom + space;
+      return anchorRect.bottom - rootRect.top + space;
     } else {
       // above
-      return anchorRect.top - contentHeight - space;
+      return anchorRect.top - rootRect.top - contentHeight - space;
     }
   }
 
@@ -58,7 +60,8 @@
     }
 
     const halfContentWidth = contentWidth / 2;
-    const anchorRectMiddle = anchorRect.left + anchorRect.width / 2;
+    const anchorRectMiddle =
+      anchorRect.left - rootRect.left + anchorRect.width / 2;
 
     if (
       position === "right" ||
@@ -66,14 +69,14 @@
         anchorRectMiddle - halfContentWidth < rootRect.left)
     ) {
       // right
-      return anchorRect.right + space;
+      return anchorRect.right - rootRect.left + space;
     } else if (
       position === "left" ||
       (position === "auto" &&
         anchorRectMiddle + halfContentWidth > rootRect.right)
     ) {
       // left
-      return anchorRect.left - contentWidth - space;
+      return anchorRect.left - rootRect.left - contentWidth - space;
     } else {
       // center
       return anchorRectMiddle - halfContentWidth;
@@ -83,64 +86,66 @@
   const space = 4;
 
   let anchor: HTMLButtonElement | undefined = $state();
-  let tooltip: HTMLDivElement | undefined = $state();
 
-  let tooltipWidth = $state(0);
-  let tooltipHeight = $state(0);
+  let contentWidth = $state(0);
+  let contentHeight = $state(0);
 
   let anchorRect: DOMRect | null = $state(null);
   let rootRect: DOMRect | null = $state(null);
 
   let top = $derived(
-    getTop(tooltipHeight, rootRect, anchorRect, space, position),
+    getTop(contentHeight, rootRect, anchorRect, space, position),
   );
   let left = $derived(
-    getLeft(tooltipWidth, rootRect, anchorRect, space, position),
+    getLeft(contentWidth, rootRect, anchorRect, space, position),
   );
 
   // opening and closing
 
-  function onclick(event: MouseEvent) {
-    event.preventDefault();
+  let show = $state(false);
+  let locked = $state(false);
+
+  function onclick() {
+    locked = !locked;
+    show = locked;
   }
 
   function onmouseenter() {
-    if (anchor && tooltip) {
+    if (!locked && anchor) {
       anchorRect = anchor.getBoundingClientRect();
       rootRect = root.value.getBoundingClientRect();
-      tooltip.showPopover();
+      show = true;
     }
   }
 
   function onmouseleave() {
-    if (anchor && tooltip) {
-      tooltip.hidePopover();
+    if (!locked) {
+      show = false;
     }
   }
 </script>
 
 <div class="sae-tooltip-container">
   <button
-    bind:this={anchor}
-    popovertarget={uid}
-    {onclick}
+    onclick={clickingEnabled ? onclick : null}
     {onmouseenter}
     {onmouseleave}
+    bind:this={anchor}
   >
     {@render trigger()}
   </button>
 
-  <div
-    bind:this={tooltip}
-    id={uid}
-    popover="auto"
-    bind:offsetWidth={tooltipWidth}
-    bind:offsetHeight={tooltipHeight}
-    style:top="{top}px"
-    style:left="{left}px"
-  >
-    {@render content()}
-  </div>
+  {#if show}
+    <div
+      class="sae-tooltip-content"
+      bind:offsetWidth={contentWidth}
+      bind:offsetHeight={contentHeight}
+      style:top="{top}px"
+      style:left="{left}px"
+    >
+      {@render content()}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -156,8 +161,7 @@
     justify-content: center;
   }
 
-  [popover] {
-    inset: unset;
+  .sae-tooltip-content {
     padding: 0.5em;
     position: fixed;
     background-color: var(--color-white);
@@ -165,5 +169,6 @@
     color: var(--color-black);
     font-weight: var(--font-normal);
     pointer-events: none;
+    z-index: 20;
   }
 </style>

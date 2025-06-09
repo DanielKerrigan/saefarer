@@ -1,5 +1,7 @@
 <script lang="ts">
   import { dataset_info, model_info, sae_data } from "../synced-state.svelte";
+  import InfoIcon from "./icons/InfoIcon.svelte";
+  import TooltipButton from "./TooltipButton.svelte";
   import ConfusionMatrix from "./vis/ConfusionMatrix.svelte";
   import Histogram from "./vis/Histogram.svelte";
   import {
@@ -111,7 +113,24 @@
     </div>
 
     <div class="sae-section" style:flex="1">
-      <div class="sae-section-header">Feature activation rate distribution</div>
+      <div class="sae-section-header-row">
+        <div class="sae-section-header">
+          Feature activation rate distribution
+        </div>
+
+        <TooltipButton position="right">
+          {#snippet trigger()}
+            <InfoIcon />
+          {/snippet}
+          {#snippet content()}
+            <div class="sae-info">
+              This histogram shows how often the features in the SAE activate.
+              The activation rate is the percentage of instances that cause a
+              feature to activate. Note that the x-axis uses a log scale.
+            </div>
+          {/snippet}
+        </TooltipButton>
+      </div>
       <div
         class="sae-vis"
         bind:offsetWidth={maxHistWidth}
@@ -199,6 +218,12 @@
     min-height: 0;
   }
 
+  .sae-section-header-row {
+    display: flex;
+    gap: 0.25em;
+    align-items: center;
+  }
+
   .sae-section-header {
     font-weight: var(--font-medium);
   }
@@ -243,5 +268,10 @@
 
   table tr td:nth-child(2) {
     text-align: right;
+  }
+
+  .sae-info {
+    font-size: var(--text-sm);
+    max-width: 24em;
   }
 </style>

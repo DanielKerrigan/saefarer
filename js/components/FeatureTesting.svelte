@@ -10,6 +10,7 @@
   import TooltipButton from "./TooltipButton.svelte";
   import TooltipTable from "./TooltipTable.svelte";
   import { percentFormat } from "./vis/vis-utils";
+  import InfoIcon from "./icons/InfoIcon.svelte";
 
   let {
     tokenColor,
@@ -34,11 +35,30 @@
       sequence: inferenceSequence,
     };
   }
+
+  function onkeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      onTestFeature();
+    }
+  }
 </script>
 
 <div class="sae-feature-testing-container">
   <div class="sae-controls">
-    <span style:font-weight="var(--font-medium)">Test Feature</span>
+    <div class="sae-title">
+      <span>Test Feature</span>
+      <TooltipButton position="right">
+        {#snippet trigger()}
+          <InfoIcon />
+        {/snippet}
+        {#snippet content()}
+          <div class="sae-info">
+            Enter some text and check to see if it causes the feature to
+            activate. Special tokens are automatically added.
+          </div>
+        {/snippet}
+      </TooltipButton>
+    </div>
     <label>
       <input type="checkbox" bind:checked={hidePadding} />
       <span>Hide padding</span>
@@ -50,7 +70,7 @@
   </div>
 
   <div class="sae-input-row">
-    <input type="text" bind:value={inferenceSequence} />
+    <input type="text" bind:value={inferenceSequence} {onkeydown} />
     <button onclick={onTestFeature}>Test</button>
   </div>
 
@@ -208,5 +228,21 @@
 
   .sae-sequences-table-tokens {
     overflow-x: auto;
+  }
+
+  .sae-title {
+    display: flex;
+    gap: 0.25em;
+    align-items: center;
+  }
+
+  .sae-info {
+    font-size: var(--text-sm);
+    font-size: var(--text-sm);
+    max-width: 16em;
+  }
+
+  .sae-title > span {
+    font-weight: var(--font-medium);
   }
 </style>
