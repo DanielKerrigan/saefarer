@@ -11,8 +11,8 @@
   import { activationValueFormat } from "./vis/vis-utils";
   import TooltipTable from "./TooltipTable.svelte";
   import { range } from "d3-array";
-  import Info from "./icons/InfoIcon.svelte";
   import InfoIcon from "./icons/InfoIcon.svelte";
+  import type { FeatureTokenSequence } from "../types";
 
   let {
     tokenColor,
@@ -26,6 +26,20 @@
   );
 
   let wrapSequences = $state(false);
+
+  function getTooltipData(seq: FeatureTokenSequence) {
+    const index =
+      seq.sequence_index === -1
+        ? []
+        : [{ key: "Instance index", value: `${seq.sequence_index}` }];
+
+    const extras = Object.entries(seq.extras).map(([key, value]) => ({
+      key,
+      value,
+    }));
+
+    return [...index, ...extras];
+  }
 </script>
 
 <div class="sae-sequence-container">
@@ -75,21 +89,22 @@
 
     {#each seqInterval.sequences as seq, i}
       {@const showBorder = i !== seqInterval.sequences.length - 1}
+      {@const tooltipData = getTooltipData(seq)}
       <div
         class="sae-sequences-table-cell"
         class:sae-sequences-table-border={showBorder}
       >
-        <TooltipButton position="left">
-          {#snippet trigger()}
-            <InfoIcon />
-          {/snippet}
+        {#if tooltipData.length > 0}
+          <TooltipButton position="left">
+            {#snippet trigger()}
+              <InfoIcon />
+            {/snippet}
 
-          {#snippet content()}
-            <TooltipTable
-              data={[{ key: "Instance index", value: `${seq.sequence_index}` }]}
-            />
-          {/snippet}
-        </TooltipButton>
+            {#snippet content()}
+              <TooltipTable data={tooltipData} />
+            {/snippet}
+          </TooltipButton>
+        {/if}
       </div>
       <div
         class="sae-sequences-table-cell"

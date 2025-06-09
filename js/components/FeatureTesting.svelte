@@ -3,12 +3,10 @@
   import TokenSequence from "./TokenSequence.svelte";
   import {
     dataset_info,
-    font_sizes,
     inference_input,
     inference_output,
   } from "../synced-state.svelte";
   import TooltipButton from "./TooltipButton.svelte";
-  import TooltipTable from "./TooltipTable.svelte";
   import { percentFormat } from "./vis/vis-utils";
   import InfoIcon from "./icons/InfoIcon.svelte";
 
@@ -76,7 +74,6 @@
 
   {#if inference_output.value.feature_index === featureId}
     <div class="sae-sequences-table">
-      <div class="sae-sequences-table-cell sae-sequences-table-header"></div>
       <div class="sae-sequences-table-cell sae-sequences-table-header">
         Pred.
       </div>
@@ -85,50 +82,6 @@
       </div>
       <div class="sae-sequences-table-cell sae-sequences-table-header">
         Tokens
-      </div>
-      <div
-        class="sae-sequences-table-cell"
-        class:sae-sequences-table-border={true}
-      >
-        <TooltipButton position="left">
-          {#snippet trigger()}
-            <svg
-              width="{font_sizes.base}px"
-              height="{font_sizes.base}px"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              color="currentcolor"
-            >
-              <path
-                d="M12 11.5V16.5"
-                stroke="currentcolor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M12 7.51L12.01 7.49889"
-                stroke="currentcolor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
-                stroke="currentcolor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          {/snippet}
-
-          {#snippet content()}
-            <TooltipTable data={[{ key: "Instance index", value: `-1` }]} />
-          {/snippet}
-        </TooltipButton>
       </div>
       <div
         class="sae-sequences-table-cell"
@@ -199,7 +152,6 @@
     display: grid;
     grid-auto-rows: max-content;
     grid-template-columns:
-      max-content
       max-content
       max-content
       minmax(0, 1fr);
