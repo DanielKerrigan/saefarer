@@ -20,7 +20,11 @@
   import MarginalEffectsHeatmap from "./vis/MarginalEffectsHeatmap.svelte";
   import FeatureTesting from "./FeatureTesting.svelte";
   import TooltipButton from "./TooltipButton.svelte";
-  import InfoIcon from "./icons/InfoIcon.svelte";
+  import HelpIcon from "./icons/HelpIcon.svelte";
+  import {
+    cmCompareToWhole,
+    marginalPlotCompareToBaseProbs,
+  } from "../state.svelte";
 
   let {}: {} = $props();
 
@@ -38,6 +42,12 @@
 
   function onClickGo() {
     detail_feature_id.value = featureIdInputValue;
+  }
+
+  function onkeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      onClickGo();
+    }
   }
 
   let maxEffectHeight = $state(0);
@@ -66,9 +76,6 @@
     ),
   );
 
-  let marginalCompareToBase = $state(false);
-  let cmCompareToWhole = $state(false);
-
   const marginalCompareMessage = "Compare to base probabilities";
   const cmCompareMessage = "Compare to whole dataset";
 </script>
@@ -82,6 +89,7 @@
           type="number"
           style:width="{maxNumDigits + 1}em"
           bind:value={featureIdInputValue}
+          {onkeydown}
         />
       </label>
       <button onclick={onClickGo}>Go</button>
@@ -107,7 +115,7 @@
           <span>Predicted Probabilities</span>
           <TooltipButton position="right">
             {#snippet trigger()}
-              <InfoIcon />
+              <HelpIcon />
             {/snippet}
             {#snippet content()}
               <div class="sae-info">
@@ -121,7 +129,10 @@
           </TooltipButton>
         </div>
         <label>
-          <input type="checkbox" bind:checked={marginalCompareToBase} />
+          <input
+            type="checkbox"
+            bind:checked={marginalPlotCompareToBaseProbs.value}
+          />
           <span>{marginalCompareMessage}</span>
         </label>
       </div>
@@ -134,9 +145,9 @@
           marginalEffects={detail_feature.value.marginal_effects}
           distribution={detail_feature.value.sequence_acts_histogram}
           classes={dataset_info.value.label_indices}
-          compareToBaseProbs={marginalCompareToBase}
+          compareToBaseProbs={marginalPlotCompareToBaseProbs.value}
           marginTop={32}
-          marginRight={88}
+          marginRight={92}
           marginLeft={80}
           marginBottom={40}
           width={effectSize.width}
@@ -154,7 +165,7 @@
           <span>Confusion Matrix</span>
           <TooltipButton position="right">
             {#snippet trigger()}
-              <InfoIcon />
+              <HelpIcon />
             {/snippet}
             {#snippet content()}
               <div class="sae-info">
@@ -167,7 +178,7 @@
           </TooltipButton>
         </div>
         <label>
-          <input type="checkbox" bind:checked={cmCompareToWhole} />
+          <input type="checkbox" bind:checked={cmCompareToWhole.value} />
           <span>{cmCompareMessage}</span>
         </label>
       </div>
@@ -179,7 +190,7 @@
         <ConfusionMatrix
           cm={detail_feature.value.cm}
           other={model_info.value.cm}
-          showDifference={cmCompareToWhole}
+          showDifference={cmCompareToWhole.value}
           legend={"vertical"}
           width={cmSize.width}
           height={cmSize.height}
@@ -250,7 +261,6 @@
   .sae-feature-input label input {
     align-self: flex-start;
     border: 1px solid var(--color-black);
-    border-radius: 0.25em;
     padding: 0em 0.25em;
   }
 

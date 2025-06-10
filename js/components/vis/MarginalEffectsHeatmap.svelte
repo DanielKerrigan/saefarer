@@ -76,7 +76,7 @@
   const svgHeight = $derived(height - histogramHeight);
 
   const legendMarginTop = $derived(showColorLegend ? marginTop : 0);
-  const legendMarginRight = $derived(showColorLegend ? 60 : 0);
+  const legendMarginRight = $derived(showColorLegend ? 64 : 0);
   const legendMarginBottom = $derived(showColorLegend ? marginBottom : 0);
   const legendMarginLeft = $derived(0);
 
@@ -101,7 +101,7 @@
             const prob = probsForLabel[i] >= 0 ? probsForLabel[i] : NaN;
             const delta = Number.isNaN(prob)
               ? NaN
-              : prob - model_info.value.cm.pred_label_pcts[labelIndex];
+              : prob - model_info.value.mean_pred_label_probs[labelIndex];
             return {
               startAct: binStart,
               endAct: binEnd,

@@ -37,7 +37,6 @@
 
   button {
     border: none;
-    border-radius: 0;
     background-color: var(--color-black);
     color: var(--color-white);
   }

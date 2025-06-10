@@ -1,6 +1,6 @@
 <script lang="ts">
   import { dataset_info, model_info, sae_data } from "../synced-state.svelte";
-  import InfoIcon from "./icons/InfoIcon.svelte";
+  import HelpIcon from "./icons/HelpIcon.svelte";
   import TooltipButton from "./TooltipButton.svelte";
   import ConfusionMatrix from "./vis/ConfusionMatrix.svelte";
   import Histogram from "./vis/Histogram.svelte";
@@ -120,7 +120,7 @@
 
         <TooltipButton position="right">
           {#snippet trigger()}
-            <InfoIcon />
+            <HelpIcon />
           {/snippet}
           {#snippet content()}
             <div class="sae-info">

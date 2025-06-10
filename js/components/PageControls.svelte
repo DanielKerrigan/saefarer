@@ -83,7 +83,6 @@
 
   input {
     border: 1px solid var(--color-black);
-    border-radius: 0.25em;
     padding: 0 0.25em;
   }
 

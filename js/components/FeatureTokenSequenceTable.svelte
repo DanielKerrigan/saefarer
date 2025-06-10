@@ -13,6 +13,11 @@
   import { range } from "d3-array";
   import InfoIcon from "./icons/InfoIcon.svelte";
   import type { FeatureTokenSequence } from "../types";
+  import {
+    exampleActivationsIntervalKey,
+    wrapTextExampleActivations,
+  } from "../state.svelte";
+  import HelpIcon from "./icons/HelpIcon.svelte";
 
   let {
     tokenColor,
@@ -20,45 +25,62 @@
     tokenColor: ScaleSequential<string>;
   } = $props();
 
-  let chosenIntervalKey = $state(0);
   let seqInterval = $derived(
-    detail_feature.value.sequence_intervals[chosenIntervalKey],
+    detail_feature.value.sequence_intervals[
+      exampleActivationsIntervalKey.value
+    ],
   );
 
-  let wrapSequences = $state(false);
-
-  function getTooltipData(seq: FeatureTokenSequence) {
-    const index =
-      seq.sequence_index === -1
-        ? []
-        : [{ key: "Instance index", value: `${seq.sequence_index}` }];
-
+  function getTooltipTableData(seq: FeatureTokenSequence) {
     const extras = Object.entries(seq.extras).map(([key, value]) => ({
       key,
       value,
     }));
 
-    return [...index, ...extras];
+    return [
+      { key: "Instance index", value: `${seq.sequence_index}` },
+      ...extras,
+    ];
   }
 </script>
 
 <div class="sae-sequence-container">
   <div class="sae-sequences-header">
     <div class="sae-sequences-controls">
-      <span style:font-weight="var(--font-medium)">Example Activations</span>
+      <div class="sae-info">
+        <span>Example Activations</span>
+
+        <TooltipButton position="right">
+          {#snippet trigger()}
+            <HelpIcon />
+          {/snippet}
+          {#snippet content()}
+            <div class="sae-info">
+              This section shows snippets of instances that activate the
+              feature.
+            </div>
+          {/snippet}
+        </TooltipButton>
+      </div>
       <label>
         <span>Range:</span>
-        <select bind:value={chosenIntervalKey}>
+        <select bind:value={exampleActivationsIntervalKey.value}>
           <option value={0}> Max activations </option>
           {#each range(detail_feature.value.sequence_intervals.length - 1, 0, -1) as i}
+            {@const interval = detail_feature.value.sequence_intervals[i]}
             <option value={i}>
-              Interval {i}
+              {activationValueFormat(interval.min_max_act)} to {activationValueFormat(
+                interval.max_max_act,
+              )}
             </option>
           {/each}
         </select>
       </label>
       <label>
-        <input type="checkbox" bind:checked={wrapSequences} />
+        <input
+          type="checkbox"
+          bind:checked={wrapTextExampleActivations.value}
+        />
         <span>Wrap text</span>
       </label>
     </div>
@@ -89,22 +111,19 @@
 
     {#each seqInterval.sequences as seq, i}
       {@const showBorder = i !== seqInterval.sequences.length - 1}
-      {@const tooltipData = getTooltipData(seq)}
       <div
         class="sae-sequences-table-cell"
         class:sae-sequences-table-border={showBorder}
       >
-        {#if tooltipData.length > 0}
-          <TooltipButton position="left">
-            {#snippet trigger()}
-              <InfoIcon />
-            {/snippet}
+        <TooltipButton position="left">
+          {#snippet trigger()}
+            <InfoIcon />
+          {/snippet}
 
-            {#snippet content()}
-              <TooltipTable data={tooltipData} />
-            {/snippet}
-          </TooltipButton>
-        {/if}
+          {#snippet content()}
+            <TooltipTable data={getTooltipTableData(seq)} />
+          {/snippet}
+        </TooltipButton>
       </div>
       <div
         class="sae-sequences-table-cell"
@@ -125,7 +144,7 @@
         <TokenSequence
           colorScale={tokenColor}
           sequence={seq}
-          wrap={wrapSequences}
+          wrap={wrapTextExampleActivations.value}
           hidePadding={false}
         />
       </div>
@@ -136,7 +155,6 @@
 <style>
   select {
     border: 1px solid var(--color-black);
-    border-radius: 0.25em;
   }
 
   label {
@@ -201,5 +219,16 @@
 
   .sae-sequences-table-tokens {
     overflow-x: auto;
+  }
+
+  .sae-info {
+    display: flex;
+    gap: 0.25em;
+    align-items: center;
+    max-width: 16em;
+  }
+
+  .sae-info span {
+    font-weight: var(--font-medium);
   }
 </style>

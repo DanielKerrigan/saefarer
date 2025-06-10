@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { root } from "../state.svelte";
+  import { rootDiv } from "../state.svelte";
 
   let {
     anchor,
@@ -57,7 +57,7 @@
   let height = $state(0);
 
   const anchorRect = $derived(anchor.getBoundingClientRect());
-  const rootRect = $derived(root.value.getBoundingClientRect());
+  const rootRect = $derived(rootDiv.value.getBoundingClientRect());
 
   let top = $derived(getTop(height, rootRect, anchorRect, space));
   let left = $derived(getLeft(width, rootRect, anchorRect, space));

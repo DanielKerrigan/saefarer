@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { root } from "../state.svelte";
+  import { rootDiv } from "../state.svelte";
 
   type Position = "top" | "right" | "bottom" | "left" | "auto";
 
@@ -113,7 +113,7 @@
   function onmouseenter() {
     if (!locked && anchor) {
       anchorRect = anchor.getBoundingClientRect();
-      rootRect = root.value.getBoundingClientRect();
+      rootRect = rootDiv.value.getBoundingClientRect();
       show = true;
     }
   }

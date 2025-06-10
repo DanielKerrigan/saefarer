@@ -12,10 +12,11 @@
   import {
     activationRatePctFormat,
     actValueHistogramTooltipData,
+    percentFormat,
   } from "./vis/vis-utils";
   import TooltipButton from "./TooltipButton.svelte";
-  import InfoIcon from "./icons/InfoIcon.svelte";
   import QuantitativeColorLegend from "./vis/legends/QuantitativeColorLegend.svelte";
+  import HelpIcon from "./icons/HelpIcon.svelte";
 
   let {
     onClickFeature,
@@ -34,9 +35,9 @@
   const marginalPlotMarginLeft = 80;
 
   function getTopClasses(feature: FeatureData): number[] {
-    return feature.cm.pred_label_pcts
-      .map((pct, label) => ({ pct, label }))
-      .sort((a, b) => descending(a.pct, b.pct))
+    return feature.mean_pred_label_probs
+      .map((prob, label) => ({ prob, label }))
+      .sort((a, b) => descending(a.prob, b.prob))
       .slice(0, 3)
       .map(({ label }) => label);
   }
@@ -57,7 +58,7 @@
       <span>ID</span>
       <TooltipButton position="right">
         {#snippet trigger()}
-          <InfoIcon />
+          <HelpIcon />
         {/snippet}
         {#snippet content()}
           <div class="sae-info">The index of the feature in the SAE.</div>
@@ -65,10 +66,23 @@
       </TooltipButton>
     </div>
     <div class="sae-table-cell sae-table-header sae-table-header-align-right">
+      <span>Err. Rate</span>
+      <TooltipButton position="right">
+        {#snippet trigger()}
+          <HelpIcon />
+        {/snippet}
+        {#snippet content()}
+          <div class="sae-info">
+            The model's error rate on instances that activate the feature.
+          </div>
+        {/snippet}
+      </TooltipButton>
+    </div>
+    <div class="sae-table-cell sae-table-header sae-table-header-align-right">
       <span>Act. Rate</span>
       <TooltipButton position="right">
         {#snippet trigger()}
-          <InfoIcon />
+          <HelpIcon />
         {/snippet}
         {#snippet content()}
           <div class="sae-info">
@@ -81,7 +95,7 @@
       <span>Act. Distribution</span>
       <TooltipButton position="right">
         {#snippet trigger()}
-          <InfoIcon />
+          <HelpIcon />
         {/snippet}
         {#snippet content()}
           <div class="sae-info">
@@ -94,7 +108,7 @@
       <span>Top Class Probabilities</span>
       <TooltipButton position="right">
         {#snippet trigger()}
-          <InfoIcon />
+          <HelpIcon />
         {/snippet}
         {#snippet content()}
           <div class="sae-info sae-probabilities-info">
@@ -124,7 +138,7 @@
       <span>Example</span>
       <TooltipButton position="right">
         {#snippet trigger()}
-          <InfoIcon />
+          <HelpIcon />
         {/snippet}
         {#snippet content()}
           <div class="sae-info sae-example-info">
@@ -166,6 +180,14 @@
           >
             {feature.feature_id}
           </button>
+        </div>
+      </div>
+      <div
+        class="sae-table-cell sae-table-number-value"
+        class:sae-table-border={showBorder}
+      >
+        <div>
+          {percentFormat(feature.cm.error_pct)}
         </div>
       </div>
       <div
@@ -235,6 +257,7 @@
     overflow-y: auto;
     display: grid;
     grid-template-columns:
+      max-content
       max-content
       max-content
       max-content

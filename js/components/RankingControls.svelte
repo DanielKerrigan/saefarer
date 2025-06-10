@@ -5,7 +5,7 @@
     table_ranking_option,
   } from "../synced-state.svelte";
   import type { LabelRankingOption, RankingOption } from "../types";
-  import InfoIcon from "./icons/InfoIcon.svelte";
+  import HelpIcon from "./icons/HelpIcon.svelte";
   import TooltipButton from "./TooltipButton.svelte";
 
   const rankingOptions: { label: string; value: RankingOption["kind"] }[] = [
@@ -183,7 +183,7 @@
 
     <TooltipButton position="bottom">
       {#snippet trigger()}
-        <InfoIcon />
+        <HelpIcon />
       {/snippet}
       {#snippet content()}
         <div class="sae-info">
@@ -279,12 +279,10 @@
 
   select {
     border: 1px solid var(--color-black);
-    border-radius: 0.25em;
   }
 
   input {
     border: 1px solid var(--color-black);
-    border-radius: 0.25em;
     padding: 0 0.25em;
   }
 

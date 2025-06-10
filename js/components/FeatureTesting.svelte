@@ -8,7 +8,11 @@
   } from "../synced-state.svelte";
   import TooltipButton from "./TooltipButton.svelte";
   import { percentFormat } from "./vis/vis-utils";
-  import InfoIcon from "./icons/InfoIcon.svelte";
+  import HelpIcon from "./icons/HelpIcon.svelte";
+  import {
+    hidePaddingFeatureTesting,
+    wrapTextFeatureTesting,
+  } from "../state.svelte";
 
   let {
     tokenColor,
@@ -17,9 +21,6 @@
     tokenColor: ScaleSequential<string>;
     featureId: number;
   } = $props();
-
-  let wrapSequence = $state(false);
-  let hidePadding = $state(true);
 
   let inferenceSequence = $derived(
     featureId === inference_input.value.feature_index
@@ -47,7 +48,7 @@
       <span>Test Feature</span>
       <TooltipButton position="right">
         {#snippet trigger()}
-          <InfoIcon />
+          <HelpIcon />
         {/snippet}
         {#snippet content()}
           <div class="sae-info">
@@ -58,11 +59,11 @@
       </TooltipButton>
     </div>
     <label>
-      <input type="checkbox" bind:checked={hidePadding} />
+      <input type="checkbox" bind:checked={hidePaddingFeatureTesting.value} />
       <span>Hide padding</span>
     </label>
     <label>
-      <input type="checkbox" bind:checked={wrapSequence} />
+      <input type="checkbox" bind:checked={wrapTextFeatureTesting.value} />
       <span>Wrap text</span>
     </label>
   </div>
@@ -104,8 +105,8 @@
         <TokenSequence
           colorScale={tokenColor}
           sequence={inference_output.value}
-          wrap={wrapSequence}
-          {hidePadding}
+          wrap={wrapTextFeatureTesting.value}
+          hidePadding={hidePaddingFeatureTesting.value}
         />
       </div>
     </div>
@@ -141,7 +142,6 @@
 
   .sae-input-row input {
     border: 1px solid var(--color-black);
-    border-radius: 0.25em;
     padding: 0em 0.25em;
     width: 100%;
   }

@@ -76,6 +76,8 @@ class Widget(anywidget.AnyWidget):
         if not path.exists():
             raise OSError(f"Cannot read {path}")
 
+        self.cfg = cfg
+
         self.con = sqlite3.connect(path.as_posix())
         self.cur = self.con.cursor()
 
@@ -101,9 +103,7 @@ class Widget(anywidget.AnyWidget):
         self.table_min_act_rate = (
             cfg.default_min_act_rate
             if cfg.default_min_act_rate is not None
-            else cfg.default_min_act_instances / self.dataset_info["n_sequences"]
-            if cfg.default_min_act_instances is not None
-            else 0
+            else self.get_default_min_act_rate()
         )
         self.table_page_index = 0
         self.num_filtered_features = self.sae_data["n_alive_features"]
@@ -247,3 +247,17 @@ class Widget(anywidget.AnyWidget):
             self.sae,
             self.analysis_cfg,
         )
+
+    def get_default_min_act_rate(self):
+        raw = (
+            self.cfg.approx_default_min_act_instances / self.dataset_info["n_sequences"]
+        )
+
+        if raw < 0:
+            return 0
+
+        if raw > 1:
+            return 1
+
+        places = abs(math.floor(math.log10(raw)))
+        return round(raw, places)
