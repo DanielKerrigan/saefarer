@@ -1,35 +1,27 @@
 # SAEfarer
 
-## Development installation
+![Screenshot](https://pub-d9a3d46ad9e747de82d25cd1f4610ee9.r2.dev/screenshot.png)
 
-Create a virtual environment and and install saefarer in _editable_ mode with the
-optional development dependencies:
+SAEfarer is a visualization tool for exploring the relationship between a sparse autoencoder's features and a text classification model's predictions and errors. It is an interactive widget for Jupyter notebook.
 
-```sh
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+You can install SAEfarer with pip:
+
+```shell
+pip install saefarer
 ```
 
-You then need to install the JavaScript dependencies and run the development server.
+Check out the [examples](/examples/) for demonstrations of the tool and read the [paper](https://pub-d9a3d46ad9e747de82d25cd1f4610ee9.r2.dev/kerrigan2025saefarer.pdf) for more details about our approach.
 
-```sh
-npm install
-npm run dev
-```
+## Acknowledgements
 
-Open `example.ipynb` in JupyterLab, VS Code, or your favorite editor
-to start developing. Changes made in `js/` will be reflected
-in the notebook.
-
-## References
-
-This project uses code from the following repositories:
+This project uses code and/or takes inspiration from several other works:
 
 - [OpenAI's sparse_autoencoder](https://github.com/openai/sparse_autoencoder)
-- [EleutherAI's sae](https://github.com/EleutherAI/sae)
+- [EleutherAI's sparsify](https://github.com/EleutherAI/sparsify)
 - [SAELens](https://github.com/jbloomAus/SAELens)
 - [1L-Sparse-Autoencoder](https://github.com/neelnanda-io/1L-Sparse-Autoencoder)
 - [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens)
 - [sae_vis](https://github.com/callummcdougall/sae_vis)
 - [SAEDashboard](https://github.com/jbloomAus/SAEDashboard)
+- [Neuronpedia](https://www.neuronpedia.org)
+- [Towards Monosemanticity](https://transformer-circuits.pub/2023/monosemantic-features)
