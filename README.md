@@ -10,7 +10,7 @@ You can install SAEfarer with pip:
 pip install saefarer
 ```
 
-Check out the [examples](/examples/) for demonstrations of the tool and read the [paper](https://pub-d9a3d46ad9e747de82d25cd1f4610ee9.r2.dev/kerrigan2025saefarer.pdf) for more details about our approach.
+Check out the [examples](/examples/) for demonstrations of the tool and read the [preprint](https://files.dankerrigan.me/kerrigan2025saefarer.pdf) for more details about our approach.
 
 ## Acknowledgements
 
