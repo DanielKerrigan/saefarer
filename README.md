@@ -25,3 +25,9 @@ This project uses code and/or takes inspiration from several other works:
 - [SAEDashboard](https://github.com/jbloomAus/SAEDashboard)
 - [Neuronpedia](https://www.neuronpedia.org)
 - [Towards Monosemanticity](https://transformer-circuits.pub/2023/monosemantic-features)
+
+## Supplemental Material
+
+- [Appendix](https://github.com/DanielKerrigan/saefarer-misc/blob/main/appendix.pdf)
+- [Expert Pilot Evaluation](https://github.com/DanielKerrigan/saefarer-user-study)
+- [Demo video](https://vimeo.com/1206253544)
